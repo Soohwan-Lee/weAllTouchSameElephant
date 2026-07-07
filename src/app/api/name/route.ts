@@ -8,7 +8,10 @@ export const maxDuration = 30;
 const MODEL = process.env.OPENAI_MODEL || "gpt-5.4-mini";
 
 /** Deterministic fallback name from the shared words across fragment titles. */
-function localName(input: NameInput, lang: "en" | "ko"): { name: string; note: string } {
+function localName(
+  input: NameInput,
+  lang: "en" | "ko"
+): { name: string; note: string; question: string } {
   // pick the most frequent meaningful word across titles as a rough handle
   const stop = new Set([
     "the", "a", "an", "of", "to", "and", "or", "for", "on", "in", "is", "are",
@@ -32,7 +35,16 @@ function localName(input: NameInput, lang: "en" | "ko"): { name: string; note: s
     lang === "ko"
       ? `${input.fragments.length}개 조각이 이 하나로 모였어요.`
       : `${input.fragments.length} fragments gathered into one.`;
-  return { name, note };
+  const crux = input.cruxTitle;
+  const question =
+    lang === "ko"
+      ? crux
+        ? `그래서 진짜 질문은: “${crux}”을(를) 먼저 풀면 나머지도 풀릴까요?`
+        : `그래서 진짜 질문은: 이 중에서 무엇을 먼저 풀어야 할까요?`
+      : crux
+      ? `So the real question is: if we resolve “${crux}” first, does the rest follow?`
+      : `So the real question is: which of these should we resolve first?`;
+  return { name, note, question };
 }
 
 export async function POST(req: NextRequest) {
@@ -62,12 +74,14 @@ export async function POST(req: NextRequest) {
       temperature: 0.5,
     });
     const text = completion.choices[0]?.message?.content ?? "{}";
-    const parsed = JSON.parse(text) as { name?: unknown; note?: unknown };
+    const parsed = JSON.parse(text) as { name?: unknown; note?: unknown; question?: unknown };
     const name = String(parsed.name ?? "").trim().slice(0, 60);
     if (!name) return NextResponse.json({ ...localName(input, lang), mode: "fallback" });
+    const question = String(parsed.question ?? "").trim().slice(0, 200) || localName(input, lang).question;
     return NextResponse.json({
       name,
       note: String(parsed.note ?? "").slice(0, 120),
+      question,
       mode: "live",
     });
   } catch (err) {

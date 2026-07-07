@@ -46,8 +46,14 @@ interface SessionState {
   loadingBridges: boolean;
   /** team-accepted name for the assembled elephant (per cluster id) */
   clusterNames: Record<string, string>;
-  /** whether the reveal ("gather into a ring") is active */
+  /** team-edited "so the real question is…" (per cluster id) */
+  clusterQuestions: Record<string, string>;
+  /** team override of the AI-suggested crux fragment (per cluster id) */
+  cruxOverride: Record<string, string>;
+  /** whether the reveal ("gather into a ring / crux") is active */
   assembled: boolean;
+  /** which reveal view: assembly ring vs crux flow */
+  revealView: "assembly" | "crux";
 
   setStep: (s: Step) => void;
   loadScenario: (sc: Scenario, lang: "en" | "ko") => void;
@@ -59,7 +65,10 @@ interface SessionState {
 
   setLoadingBridges: (v: boolean) => void;
   setClusterName: (clusterId: string, name: string) => void;
+  setClusterQuestion: (clusterId: string, q: string) => void;
+  setCruxOverride: (clusterId: string, fragmentId: string) => void;
   setAssembled: (v: boolean) => void;
+  setRevealView: (v: "assembly" | "crux") => void;
   addProposals: (proposals: BridgeProposal[]) => number; // returns # added
   confirmBridge: (id: string, patch?: Partial<Pick<Bridge, "relationType" | "explanation">>) => void;
   rejectBridge: (id: string) => void;
@@ -79,12 +88,20 @@ export const useSession = create<SessionState>((set, get) => ({
   rejectedPairKeys: new Set(),
   loadingBridges: false,
   clusterNames: {},
+  clusterQuestions: {},
+  cruxOverride: {},
   assembled: false,
+  revealView: "crux",
 
   setStep: (step) => set({ step }),
   setClusterName: (clusterId, name) =>
     set((s) => ({ clusterNames: { ...s.clusterNames, [clusterId]: name } })),
+  setClusterQuestion: (clusterId, q) =>
+    set((s) => ({ clusterQuestions: { ...s.clusterQuestions, [clusterId]: q } })),
+  setCruxOverride: (clusterId, fragmentId) =>
+    set((s) => ({ cruxOverride: { ...s.cruxOverride, [clusterId]: fragmentId } })),
   setAssembled: (assembled) => set({ assembled }),
+  setRevealView: (revealView) => set({ revealView }),
 
   loadScenario: (sc, lang) => {
     const fragments: Fragment[] = sc.fragments.map((f) => ({
@@ -103,7 +120,10 @@ export const useSession = create<SessionState>((set, get) => ({
       bridges: [],
       rejectedPairKeys: new Set(),
       clusterNames: {},
+      clusterQuestions: {},
+      cruxOverride: {},
       assembled: false,
+      revealView: "crux",
       step: "gather",
     });
   },
@@ -117,7 +137,10 @@ export const useSession = create<SessionState>((set, get) => ({
       bridges: [],
       rejectedPairKeys: new Set(),
       clusterNames: {},
+      clusterQuestions: {},
+      cruxOverride: {},
       assembled: false,
+      revealView: "crux",
       loadingBridges: false,
     }),
 

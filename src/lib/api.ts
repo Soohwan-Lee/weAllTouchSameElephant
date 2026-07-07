@@ -20,13 +20,13 @@ export async function fetchBridges(
 export async function fetchName(
   input: NameInput,
   lang: "en" | "ko"
-): Promise<{ name: string; note: string; mode: string }> {
+): Promise<{ name: string; note: string; question: string; mode: string }> {
   const res = await fetch("/api/name", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ input, lang }),
   });
-  if (!res.ok) return { name: "", note: "", mode: "error" };
+  if (!res.ok) return { name: "", note: "", question: "", mode: "error" };
   return res.json();
 }
 

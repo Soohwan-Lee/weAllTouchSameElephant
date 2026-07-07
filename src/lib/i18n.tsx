@@ -82,6 +82,14 @@ const dict = {
   "bridge.evidenceB": { en: "From the second piece", ko: "두 번째 조각에서" },
   "bridge.confirmedCount": { en: "connections confirmed", ko: "개의 연결 확인됨" },
   "bridge.addManual": { en: "Connect two yourself", ko: "직접 두 조각 잇기" },
+  "manual.start": { en: "+ Draw your own connection", ko: "+ 내가 직접 연결 그리기" },
+  "manual.pickFirst": { en: "Click the first piece on the table", ko: "테이블에서 첫 번째 조각을 클릭하세요" },
+  "manual.pickSecond": { en: "Now click the second piece", ko: "이제 두 번째 조각을 클릭하세요" },
+  "manual.chooseRelation": { en: "How do these relate?", ko: "이 둘은 어떤 관계인가요?" },
+  "manual.note": { en: "Say why (optional)", ko: "이유를 적어보세요 (선택)" },
+  "manual.create": { en: "Connect them", ko: "연결하기" },
+  "manual.cancel": { en: "Cancel", ko: "취소" },
+  "manual.yours": { en: "yours", ko: "직접" },
 
   // relation types
   "rel.overlap": { en: "Same issue, different angle", ko: "같은 문제, 다른 각도" },
@@ -114,6 +122,22 @@ const dict = {
   "assemble.loose": {
     en: "still on its own — try connecting it too",
     ko: "아직 따로 있어요 — 이것도 이어보세요",
+  },
+
+  // ---- crux (final picture) ----
+  "crux.viewAssembly": { en: "What connects", ko: "무엇이 이어지나" },
+  "crux.viewFlow": { en: "What drives what", ko: "무엇이 무엇을 이끄나" },
+  "crux.likely": { en: "Most connected — likely the crux?", ko: "가장 많이 연결됨 — 핵심일까요?" },
+  "crux.setAsCrux": { en: "Make this the crux", ko: "이걸 핵심으로" },
+  "crux.upstream": { en: "Root pressures", ko: "근본 원인" },
+  "crux.downstream": { en: "Visible symptoms", ko: "드러난 증상" },
+  "crux.realQuestion": { en: "So the real question is…", ko: "그래서 진짜 질문은…" },
+  "crux.editQuestion": { en: "Edit the question", ko: "질문 수정" },
+  "crux.stat": { en: "connections", ko: "개 연결" },
+  "crux.drives": { en: "drives", ko: "→ 이끔" },
+  "crux.noFlow": {
+    en: "Tip: mark some connections as “one affects the other” (dependency) to see what drives what.",
+    ko: "팁: 일부 연결을 “하나가 다른 것에 영향”(의존)으로 표시하면 무엇이 무엇을 이끄는지 보여요.",
   },
 
   // ---- mirror ----
