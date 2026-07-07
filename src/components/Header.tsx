@@ -72,12 +72,32 @@ export function Header() {
               {t("common.reset")}
             </button>
           )}
-          <button
-            onClick={() => setLang(lang === "en" ? "ko" : "en")}
-            className="rounded-full border border-line px-3 py-1 text-xs font-medium text-ink-soft transition hover:border-ink hover:text-ink"
+          <div
+            className="flex items-center rounded-full border border-line bg-paper-card p-0.5 text-xs font-semibold"
+            role="group"
+            aria-label="Language"
           >
-            {t("lang.toggle")}
-          </button>
+            <button
+              onClick={() => setLang("en")}
+              aria-pressed={lang === "en"}
+              className={[
+                "rounded-full px-2.5 py-1 transition",
+                lang === "en" ? "bg-ink text-paper" : "text-ink-faint hover:text-ink",
+              ].join(" ")}
+            >
+              EN
+            </button>
+            <button
+              onClick={() => setLang("ko")}
+              aria-pressed={lang === "ko"}
+              className={[
+                "rounded-full px-2.5 py-1 transition",
+                lang === "ko" ? "bg-ink text-paper" : "text-ink-faint hover:text-ink",
+              ].join(" ")}
+            >
+              한국어
+            </button>
+          </div>
         </div>
       </div>
     </header>

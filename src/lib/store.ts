@@ -44,6 +44,10 @@ interface SessionState {
   bridges: Bridge[];
   rejectedPairKeys: Set<string>;
   loadingBridges: boolean;
+  /** team-accepted name for the assembled elephant (per cluster id) */
+  clusterNames: Record<string, string>;
+  /** whether the reveal ("gather into a ring") is active */
+  assembled: boolean;
 
   setStep: (s: Step) => void;
   loadScenario: (sc: Scenario, lang: "en" | "ko") => void;
@@ -54,6 +58,8 @@ interface SessionState {
   moveFragment: (id: string, x: number, y: number) => void;
 
   setLoadingBridges: (v: boolean) => void;
+  setClusterName: (clusterId: string, name: string) => void;
+  setAssembled: (v: boolean) => void;
   addProposals: (proposals: BridgeProposal[]) => number; // returns # added
   confirmBridge: (id: string, patch?: Partial<Pick<Bridge, "relationType" | "explanation">>) => void;
   rejectBridge: (id: string) => void;
@@ -72,8 +78,13 @@ export const useSession = create<SessionState>((set, get) => ({
   bridges: [],
   rejectedPairKeys: new Set(),
   loadingBridges: false,
+  clusterNames: {},
+  assembled: false,
 
   setStep: (step) => set({ step }),
+  setClusterName: (clusterId, name) =>
+    set((s) => ({ clusterNames: { ...s.clusterNames, [clusterId]: name } })),
+  setAssembled: (assembled) => set({ assembled }),
 
   loadScenario: (sc, lang) => {
     const fragments: Fragment[] = sc.fragments.map((f) => ({
@@ -91,6 +102,8 @@ export const useSession = create<SessionState>((set, get) => ({
       tray: [],
       bridges: [],
       rejectedPairKeys: new Set(),
+      clusterNames: {},
+      assembled: false,
       step: "gather",
     });
   },
@@ -103,6 +116,8 @@ export const useSession = create<SessionState>((set, get) => ({
       tray: [],
       bridges: [],
       rejectedPairKeys: new Set(),
+      clusterNames: {},
+      assembled: false,
       loadingBridges: false,
     }),
 

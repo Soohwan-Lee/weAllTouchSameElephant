@@ -33,6 +33,36 @@ Return ONLY valid JSON of this exact shape (no prose, no markdown):
 If there are no strong bridges, return {"bridges":[]}.`;
 }
 
+export interface NameInput {
+  fragments: Array<{ title: string; body: string }>;
+  bridges: Array<{ aTitle: string; bTitle: string; relationType: RelationType }>;
+}
+
+export function namePrompt(input: NameInput, lang: "en" | "ko") {
+  const language = lang === "ko" ? "Korean" : "English";
+  const frags = input.fragments.map((f) => `- ${f.title}: ${f.body}`).join("\n");
+  const links = input.bridges
+    .map((b) => `- "${b.aTitle}" —[${b.relationType}]— "${b.bTitle}"`)
+    .join("\n");
+
+  return `A team connected several fragments and discovered they are really facets of ONE underlying thing — their "elephant." Your job: propose ONE short NAME for that shared thing. It is a handle the team can argue with, NOT a verdict or a solution.
+
+Hard rules:
+- Output a NAME, not a sentence or recommendation. 2–5 words.
+- The name must capture what ALL these fragments are secretly about together.
+- Do NOT decide anything or say "the real problem is". Just name the shared object.
+- Do NOT invent facts beyond the fragments.
+- Write the name in ${language}.
+
+Fragments in this cluster:
+${frags}
+
+Confirmed connections:
+${links}
+
+Return ONLY valid JSON: {"name":"<2-5 word name in ${language}>","note":"<optional 1 short clause on why, in ${language}>"}`;
+}
+
 export interface MirrorInput {
   fragments: Fragment[];
   bridges: Array<{

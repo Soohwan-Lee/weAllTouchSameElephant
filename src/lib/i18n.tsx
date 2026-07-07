@@ -93,6 +93,29 @@ const dict = {
   "rel.dependency.short": { en: "Depends", ko: "의존" },
   "rel.complement.short": { en: "Completes", ko: "보완" },
 
+  // ---- named assembly (the reveal) ----
+  "assemble.cta": { en: "Gather into one", ko: "하나로 모으기" },
+  "assemble.hint": {
+    en: "You've connected enough pieces. Gather them and name the one thing they were all about.",
+    ko: "충분히 이었어요. 조각들을 모아, 이것들이 사실 무엇이었는지 이름을 붙여보세요.",
+  },
+  "assemble.naming": { en: "Naming what you found…", ko: "찾은 것에 이름을 붙이는 중…" },
+  "assemble.namePrompt": { en: "Name this elephant", ko: "이 코끼리에 이름을 붙이세요" },
+  "assemble.namePlaceholder": { en: "e.g. Untraceable change ownership", ko: "예: 추적 안 되는 변경 소유권" },
+  "assemble.aiSuggested": { en: "AI suggested", ko: "AI 제안" },
+  "assemble.accept": { en: "That's it", ko: "이거예요" },
+  "assemble.useName": { en: "Use this name", ko: "이 이름 쓰기" },
+  "assemble.fromCount": { en: "fragments", ko: "개 조각" },
+  "assemble.bridgesCount": { en: "confirmed connections", ko: "개 연결" },
+  "assemble.namedBy": { en: "named by the team", ko: "팀이 붙인 이름" },
+  "assemble.reveal": { en: "These weren't separate problems — they're one elephant.", ko: "이건 따로따로가 아니었어요 — 하나의 코끼리였어요." },
+  "assemble.scatter": { en: "Spread back out", ko: "다시 펼치기" },
+  "assemble.rename": { en: "Rename", ko: "이름 바꾸기" },
+  "assemble.loose": {
+    en: "still on its own — try connecting it too",
+    ko: "아직 따로 있어요 — 이것도 이어보세요",
+  },
+
   // ---- mirror ----
   "mirror.heading": { en: "The shape you've assembled", ko: "여러분이 맞춘 모양" },
   "mirror.hint": {

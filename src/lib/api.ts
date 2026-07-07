@@ -1,5 +1,5 @@
 import type { BridgeProposal, Fragment, MirrorReflection } from "./types";
-import type { MirrorInput } from "./prompts";
+import type { MirrorInput, NameInput } from "./prompts";
 
 export type BridgeMode = "live" | "sample" | "empty" | "error";
 
@@ -14,6 +14,19 @@ export async function fetchBridges(
     body: JSON.stringify({ fragments, lang, max }),
   });
   if (!res.ok) return { bridges: [], mode: "error" };
+  return res.json();
+}
+
+export async function fetchName(
+  input: NameInput,
+  lang: "en" | "ko"
+): Promise<{ name: string; note: string; mode: string }> {
+  const res = await fetch("/api/name", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ input, lang }),
+  });
+  if (!res.ok) return { name: "", note: "", mode: "error" };
   return res.json();
 }
 

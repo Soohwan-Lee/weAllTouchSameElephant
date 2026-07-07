@@ -7,6 +7,7 @@ import { getScenario } from "@/lib/scenarios";
 import { fetchBridges } from "@/lib/api";
 import { PuzzleCanvas } from "./PuzzleCanvas";
 import { BridgeCard } from "./BridgeCard";
+import { Hint } from "./Hint";
 
 export function ConnectScreen() {
   const { t, lang } = useI18n();
@@ -59,6 +60,16 @@ export function ConnectScreen() {
         <h2 className="text-2xl font-semibold tracking-tight text-ink">{t("connect.heading")}</h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-faint">{t("connect.hint")}</p>
       </div>
+
+      {bridges.length === 0 && tray.length === 0 && (
+        <div className="mt-4 animate-fade-up">
+          <Hint tone="nudge">
+            {lang === "ko"
+              ? "먼저 오른쪽의 “연결 제안받기”를 눌러보세요. AI가 어떤 조각들이 이어질지 알려줄 거예요."
+              : "Start by pressing “Suggest connections” on the right — the AI will show which pieces might link."}
+          </Hint>
+        </div>
+      )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         {/* board */}
