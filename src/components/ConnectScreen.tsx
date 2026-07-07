@@ -1,0 +1,127 @@
+"use client";
+
+import { useState } from "react";
+import { useI18n } from "@/lib/i18n";
+import { useSession, scenarioBridgesToProposals } from "@/lib/store";
+import { getScenario } from "@/lib/scenarios";
+import { fetchBridges } from "@/lib/api";
+import { PuzzleCanvas } from "./PuzzleCanvas";
+import { BridgeCard } from "./BridgeCard";
+
+export function ConnectScreen() {
+  const { t, lang } = useI18n();
+  const fragments = useSession((s) => s.fragments);
+  const tray = useSession((s) => s.tray);
+  const bridges = useSession((s) => s.bridges);
+  const scenarioId = useSession((s) => s.scenarioId);
+  const rejectedPairKeys = useSession((s) => s.rejectedPairKeys);
+  const addProposals = useSession((s) => s.addProposals);
+  const setStep = useSession((s) => s.setStep);
+
+  const [loading, setLoading] = useState(false);
+  const [emptyResult, setEmptyResult] = useState(false);
+  const [mode, setMode] = useState<string | null>(null);
+
+  const byId = (id: string) => fragments.find((f) => f.id === id);
+  const canMirror = bridges.length >= 3;
+
+  async function suggest() {
+    setLoading(true);
+    setEmptyResult(false);
+    try {
+      const { bridges: proposals, mode: apiMode } = await fetchBridges(fragments, lang, 3);
+      let added = 0;
+      if (apiMode === "live" && proposals.length) {
+        setMode("live");
+        added = addProposals(proposals);
+      } else {
+        // sample mode (or empty/error) → use the scenario's pre-baked bridges
+        setMode(apiMode === "live" ? "live" : "sample");
+        const sc = getScenario(scenarioId);
+        if (sc) {
+          const baked = scenarioBridgesToProposals(sc.sampleBridges, lang);
+          added = addProposals(baked);
+        }
+      }
+      if (added === 0) setEmptyResult(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const usedPairs = bridges.length + tray.length + rejectedPairKeys.size;
+  const totalPairs = (fragments.length * (fragments.length - 1)) / 2;
+  const moreAvailable = usedPairs < totalPairs;
+
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className="animate-fade-up">
+        <h2 className="text-2xl font-semibold tracking-tight text-ink">{t("connect.heading")}</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-faint">{t("connect.hint")}</p>
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+        {/* board */}
+        <div>
+          <PuzzleCanvas />
+          <p className="mt-2 text-center text-xs text-ink-faint">{t("canvas.hintConnect")}</p>
+        </div>
+
+        {/* tray */}
+        <div className="flex flex-col">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-sm font-semibold text-ink">{t("connect.tray")}</span>
+            <span className="text-xs text-ink-faint">
+              {bridges.length} {t("bridge.confirmedCount")}
+            </span>
+          </div>
+
+          <button
+            onClick={suggest}
+            disabled={loading}
+            className="mb-4 w-full rounded-full bg-ink py-2.5 text-sm font-medium text-paper transition enabled:hover:opacity-90 disabled:opacity-60"
+          >
+            {loading
+              ? t("connect.thinking")
+              : tray.length || bridges.length
+              ? `✨ ${t("connect.findMore")}`
+              : `✨ ${t("connect.find")}`}
+          </button>
+
+          <div className="flex-1 space-y-3">
+            {tray.length === 0 && !loading && !emptyResult && (
+              <div className="rounded-xl border border-dashed border-line bg-paper-sunken/40 p-6 text-center text-sm text-ink-faint">
+                {t("connect.trayEmpty")}
+              </div>
+            )}
+            {emptyResult && tray.length === 0 && (
+              <div className="rounded-xl border border-dashed border-line bg-paper-sunken/40 p-6 text-center text-sm text-ink-faint">
+                {moreAvailable ? t("connect.none") : t("connect.none")}
+              </div>
+            )}
+            {tray.map((b) => (
+              <BridgeCard key={b.id} bridge={b} fragA={byId(b.fragmentAId)} fragB={byId(b.fragmentBId)} />
+            ))}
+          </div>
+
+          {mode && (
+            <div className="mt-4 text-center text-[11px] text-ink-faint">
+              {mode === "live" ? `● ${t("common.liveMode")}` : `○ ${t("common.sampleMode")}`}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* proceed */}
+      <div className="sticky bottom-4 mt-8 flex justify-center">
+        <button
+          onClick={() => setStep("mirror")}
+          disabled={!canMirror}
+          className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-lift transition enabled:hover:opacity-95 disabled:cursor-not-allowed disabled:bg-line disabled:text-ink-faint disabled:shadow-none"
+        >
+          {canMirror ? `${t("mirror.reveal")} →` : t("mirror.locked")}
+        </button>
+      </div>
+    </div>
+  );
+}
