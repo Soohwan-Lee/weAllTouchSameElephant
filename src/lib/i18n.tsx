@@ -15,15 +15,19 @@ const dict = {
   "lang.toggle": { en: "한국어", ko: "English" },
 
   // ---- steps / nav ----
-  "step.gather": { en: "1 · Gather", ko: "1 · 모으기" },
-  "step.connect": { en: "2 · Connect", ko: "2 · 잇기" },
-  "step.mirror": { en: "3 · See the whole", ko: "3 · 전체 보기" },
+  "step.gather": { en: "1 · Add pieces", ko: "1 · 조각 넣기" },
+  "step.connect": { en: "2 · Find links", ko: "2 · 연결 찾기" },
+  "step.mirror": { en: "3 · Find the crux", ko: "3 · 핵심 찾기" },
 
   // ---- landing / start ----
   "start.heading": { en: "What are we deciding together?", ko: "우리가 함께 정할 것은 무엇인가요?" },
   "start.sub": {
-    en: "Each person drops the part they see. Then the AI suggests how the pieces might connect — you decide.",
-    ko: "각자 자신이 본 부분을 적습니다. 그러면 AI가 조각들이 어떻게 이어질지 제안하고, 결정은 여러분이 합니다.",
+    en: "Many issues usually hide one real core. Everyone drops the part they see, the AI suggests how the pieces connect, and together you find the crux behind them all.",
+    ko: "여러 문제 뒤엔 대개 하나의 진짜 핵심이 숨어 있어요. 각자 본 부분을 적으면 AI가 조각들이 어떻게 이어질지 제안하고, 그 모든 것의 핵심을 함께 찾습니다.",
+  },
+  "start.example": {
+    en: "e.g. “App keeps slipping, too many features, users get lost, endless rewrites” → the crux might be: no shared user.",
+    ko: "예: “앱이 자꾸 늦고, 기능은 많고, 사용자는 헤매고, 재작업만 반복” → 핵심은 어쩌면: 대상 사용자 미합의.",
   },
   "start.trySample": { en: "Try a ready-made example", ko: "미리 준비된 예시로 시작" },
   "start.orBlank": { en: "or start from a blank table", ko: "또는 빈 테이블에서 시작" },
@@ -33,8 +37,8 @@ const dict = {
   // ---- fragment gathering ----
   "gather.heading": { en: "Add the pieces you each see", ko: "각자 본 조각을 더하세요" },
   "gather.hint": {
-    en: "A fragment is one short thought: a concern, a fact, a constraint. Keep it to a sentence or two.",
-    ko: "조각은 하나의 짧은 생각입니다: 우려, 사실, 제약 등. 한두 문장으로 적어주세요.",
+    en: "A piece is one short thought — a symptom, a concern, a dependency, or an expected consequence. One or two sentences. The more angles you add, the clearer the crux becomes.",
+    ko: "조각은 하나의 짧은 생각이에요 — 증상, 우려, 의존 관계, 예상되는 결과 등. 한두 문장이면 됩니다. 다양한 각도를 더할수록 핵심이 또렷해져요.",
   },
   "gather.author": { en: "Your name", ko: "이름" },
   "gather.role": { en: "Role / team", ko: "역할 / 팀" },
@@ -141,10 +145,10 @@ const dict = {
   },
 
   // ---- mirror ----
-  "mirror.heading": { en: "The shape you've assembled", ko: "여러분이 맞춘 모양" },
+  "mirror.heading": { en: "What's really at the core?", ko: "진짜 핵심은 무엇일까요?" },
   "mirror.hint": {
-    en: "This reflects the connections you confirmed — nothing new, no decision made for you.",
-    ko: "이것은 여러분이 확인한 연결을 그대로 비춘 것입니다 — 새로운 주장도, 대신 내린 결정도 없어요.",
+    en: "From your connections, here's the piece that seems to drive the rest — the likely crux. It's a starting point to argue with, not a verdict.",
+    ko: "여러분의 연결을 바탕으로, 나머지를 이끄는 듯한 조각을 짚어봤어요 — 유력한 핵심이에요. 정답이 아니라 함께 따져볼 출발점입니다.",
   },
   "mirror.locked": {
     en: "Confirm at least 3 connections to reveal the whole picture.",

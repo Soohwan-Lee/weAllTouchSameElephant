@@ -24,9 +24,12 @@ export function StartScreen() {
         <p className="mx-auto mt-4 max-w-xl text-pretty text-base leading-relaxed text-ink-faint">
           {t("start.sub")}
         </p>
+        <p className="mx-auto mt-5 max-w-lg rounded-xl border border-line bg-paper-card px-4 py-3 text-xs leading-relaxed text-ink-soft">
+          {t("start.example")}
+        </p>
         <button
           onClick={() => setShowTour(true)}
-          className="mt-5 text-sm font-medium text-accent underline-offset-4 hover:underline"
+          className="mt-4 text-sm font-medium text-accent underline-offset-4 hover:underline"
         >
           {lang === "ko" ? "어떻게 작동하나요? (30초)" : "How does it work? (30s)"}
         </button>
