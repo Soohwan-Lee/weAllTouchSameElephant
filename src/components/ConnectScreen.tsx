@@ -96,7 +96,7 @@ export function ConnectScreen() {
             )}
             {emptyResult && tray.length === 0 && (
               <div className="rounded-xl border border-dashed border-line bg-paper-sunken/40 p-6 text-center text-sm text-ink-faint">
-                {moreAvailable ? t("connect.none") : t("connect.none")}
+                {moreAvailable ? t("connect.none") : t("connect.allDone")}
               </div>
             )}
             {tray.map((b) => (

@@ -67,5 +67,8 @@ Fragments still with no connection: ${loose}
 
 Return ONLY valid JSON of this exact shape (no prose, no markdown):
 {"connected":["<short sentence citing fragment titles>"],"tensions":["<short sentence about a tension link>"],"separate":["<short sentence naming an unconnected fragment>"]}
-Put tension-type links under "tensions", other links under "connected", and unconnected fragments under "separate".`;
+Sorting rule (each link goes in exactly ONE list, never both):
+- A link whose relation is "tension" → put it ONLY in "tensions".
+- Every other link → put it ONLY in "connected".
+- Each unconnected fragment → put it in "separate".`;
 }

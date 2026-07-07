@@ -9,6 +9,7 @@ export function Header() {
   const { t, lang, setLang } = useI18n();
   const step = useSession((s) => s.step);
   const setStep = useSession((s) => s.setStep);
+  const reset = useSession((s) => s.reset);
   const fragments = useSession((s) => s.fragments);
   const bridges = useSession((s) => s.bridges);
 
@@ -61,6 +62,16 @@ export function Header() {
         )}
 
         <div className="ml-auto flex items-center gap-2">
+          {step !== "start" && (
+            <button
+              onClick={() => {
+                if (confirm(lang === "ko" ? "테이블을 초기화할까요?" : "Reset the table?")) reset();
+              }}
+              className="rounded-full px-3 py-1 text-xs font-medium text-ink-faint transition hover:text-tension"
+            >
+              {t("common.reset")}
+            </button>
+          )}
           <button
             onClick={() => setLang(lang === "en" ? "ko" : "en")}
             className="rounded-full border border-line px-3 py-1 text-xs font-medium text-ink-soft transition hover:border-ink hover:text-ink"

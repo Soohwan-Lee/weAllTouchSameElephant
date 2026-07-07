@@ -63,6 +63,10 @@ const dict = {
     en: "No strong connections found right now. Try adding or editing a piece.",
     ko: "지금은 뚜렷한 연결을 찾지 못했어요. 조각을 추가하거나 수정해 보세요.",
   },
+  "connect.allDone": {
+    en: "You've looked at every pair. Nice — head to the whole picture.",
+    ko: "모든 조각 쌍을 살펴봤어요. 좋아요 — 전체 그림으로 넘어가세요.",
+  },
   "connect.tray": { en: "Suggested bridges", ko: "제안된 다리" },
   "connect.trayEmpty": {
     en: "Press “Suggest connections” to see how the AI might bridge two pieces.",
