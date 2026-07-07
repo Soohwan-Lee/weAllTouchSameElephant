@@ -1,7 +1,30 @@
 "use client";
 
 import { create } from "zustand";
-import type { Bridge, BridgeProposal, Fragment, RelationType, Scenario } from "./types";
+import type {
+  Bridge,
+  BridgeProposal,
+  Fragment,
+  RelationType,
+  Scenario,
+  ScenarioBridge,
+} from "./types";
+
+/** Turn a scenario's bilingual pre-baked bridges into proposals in one language. */
+export function scenarioBridgesToProposals(
+  bridges: ScenarioBridge[],
+  lang: "en" | "ko"
+): BridgeProposal[] {
+  return bridges.map((b) => ({
+    fragmentAId: b.fragmentAId,
+    fragmentBId: b.fragmentBId,
+    relationType: b.relationType,
+    explanation: b.explanation[lang],
+    evidenceA: b.evidenceA[lang],
+    evidenceB: b.evidenceB[lang],
+    confidence: b.confidence,
+  }));
+}
 
 export type Step = "start" | "gather" | "connect" | "mirror";
 
@@ -56,9 +79,9 @@ export const useSession = create<SessionState>((set, get) => ({
     const fragments: Fragment[] = sc.fragments.map((f) => ({
       id: f.id,
       authorName: f.authorName,
-      authorRole: f.authorRole,
-      title: f.title,
-      body: f.body,
+      authorRole: f.authorRole[lang],
+      title: f.title[lang],
+      body: f.body[lang],
       x: f.x,
       y: f.y,
     }));

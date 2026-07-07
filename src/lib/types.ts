@@ -56,13 +56,34 @@ export interface MirrorReflection {
   separate: string[];
 }
 
+/** A localized fragment as stored in a scenario (title/body per language). */
+export interface ScenarioFragment {
+  id: string;
+  authorName: string;
+  authorRole: { en: string; ko: string };
+  title: { en: string; ko: string };
+  body: { en: string; ko: string };
+  x: number;
+  y: number;
+}
+
+/** A localized pre-baked bridge for sample mode. */
+export interface ScenarioBridge {
+  fragmentAId: string;
+  fragmentBId: string;
+  relationType: RelationType;
+  explanation: { en: string; ko: string };
+  evidenceA: { en: string; ko: string };
+  evidenceB: { en: string; ko: string };
+  confidence: number;
+}
+
 export interface Scenario {
   id: string;
+  emoji: string;
   title: { en: string; ko: string };
   prompt: { en: string; ko: string };
-  fragments: Array<
-    Omit<Fragment, "id" | "x" | "y"> & { id: string; x: number; y: number }
-  >;
+  fragments: ScenarioFragment[];
   /** pre-baked bridges so sample mode works with no API key */
-  sampleBridges: BridgeProposal[];
+  sampleBridges: ScenarioBridge[];
 }
