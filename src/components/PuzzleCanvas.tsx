@@ -12,7 +12,17 @@ import type { Fragment } from "@/lib/types";
  * drawn as lines between them. When `assembled` is on, the largest connected
  * cluster gathers into a ring around a named center — the "elephant" reveal.
  */
-export function PuzzleCanvas({ showCenterName = false }: { showCenterName?: boolean }) {
+export function PuzzleCanvas({
+  showCenterName = false,
+  connectMode = false,
+  selectedIds = [],
+  onPickFragment,
+}: {
+  showCenterName?: boolean;
+  connectMode?: boolean;
+  selectedIds?: string[];
+  onPickFragment?: (id: string) => void;
+}) {
   const { t } = useI18n();
   const fragments = useSession((s) => s.fragments);
   const bridges = useSession((s) => s.bridges);
@@ -45,6 +55,11 @@ export function PuzzleCanvas({ showCenterName = false }: { showCenterName?: bool
 
   const onPointerDown = (id: string) => (e: React.PointerEvent) => {
     if (assembled) return; // locked during the reveal
+    if (connectMode) {
+      e.preventDefault();
+      onPickFragment?.(id);
+      return;
+    }
     e.preventDefault();
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     setDragId(id);
@@ -161,6 +176,8 @@ export function PuzzleCanvas({ showCenterName = false }: { showCenterName?: bool
             dimmed={assembled && !inMain(f.id)}
             animated={assembled}
             dragging={dragId === f.id}
+            selected={selectedIds.includes(f.id)}
+            connectMode={connectMode}
             onPointerDown={onPointerDown(f.id)}
           />
         );
@@ -182,6 +199,8 @@ function FragmentCard({
   dimmed,
   animated,
   dragging,
+  selected,
+  connectMode,
   onPointerDown,
 }: {
   f: Fragment;
@@ -190,6 +209,8 @@ function FragmentCard({
   dimmed: boolean;
   animated: boolean;
   dragging: boolean;
+  selected: boolean;
+  connectMode: boolean;
   onPointerDown: (e: React.PointerEvent) => void;
 }) {
   return (
@@ -202,8 +223,12 @@ function FragmentCard({
       }}
       className={[
         "absolute w-36 -translate-x-1/2 -translate-y-1/2 touch-none select-none rounded-xl border bg-paper-card p-3 shadow-card sm:w-40",
-        dragging ? "z-20 cursor-grabbing border-ink/30 shadow-lift" : "border-line",
-        animated ? "" : "cursor-grab hover:shadow-lift",
+        selected
+          ? "z-20 border-accent shadow-lift ring-2 ring-accent/40"
+          : dragging
+          ? "z-20 cursor-grabbing border-ink/30 shadow-lift"
+          : "border-line",
+        connectMode ? "cursor-pointer hover:border-accent/50 hover:shadow-lift" : animated ? "" : "cursor-grab hover:shadow-lift",
         dimmed ? "opacity-40" : "opacity-100",
       ].join(" ")}
     >

@@ -72,7 +72,12 @@ interface SessionState {
   addProposals: (proposals: BridgeProposal[]) => number; // returns # added
   confirmBridge: (id: string, patch?: Partial<Pick<Bridge, "relationType" | "explanation">>) => void;
   rejectBridge: (id: string) => void;
-  addManualBridge: (aId: string, bId: string, relationType: RelationType, explanation: string) => void;
+  addManualBridge: (
+    aId: string,
+    bId: string,
+    relationType: RelationType,
+    explanation: string
+  ) => boolean;
 }
 
 function pairKey(a: string, b: string) {
@@ -227,23 +232,29 @@ export const useSession = create<SessionState>((set, get) => ({
       return { tray: s.tray.filter((x) => x.id !== id), rejectedPairKeys: next };
     }),
 
-  addManualBridge: (aId, bId, relationType, explanation) =>
-    set((s) => {
-      if (aId === bId) return {};
-      const key = pairKey(aId, bId);
-      if (s.bridges.some((b) => pairKey(b.fragmentAId, b.fragmentBId) === key)) return {};
-      const manual: Bridge = {
-        id: uid("bridge"),
-        fragmentAId: aId,
-        fragmentBId: bId,
-        relationType,
-        explanation,
-        evidenceA: "",
-        evidenceB: "",
-        confidence: 1,
-        status: "edited",
-        createdBy: "human",
-      };
-      return { bridges: [...s.bridges, manual] };
-    }),
+  addManualBridge: (aId, bId, relationType, explanation) => {
+    if (aId === bId) return false;
+    const key = pairKey(aId, bId);
+    const s = get();
+    // don't duplicate an existing confirmed bridge or a pending tray proposal
+    if (
+      s.bridges.some((b) => pairKey(b.fragmentAId, b.fragmentBId) === key) ||
+      s.tray.some((b) => pairKey(b.fragmentAId, b.fragmentBId) === key)
+    )
+      return false;
+    const manual: Bridge = {
+      id: uid("bridge"),
+      fragmentAId: aId,
+      fragmentBId: bId,
+      relationType,
+      explanation,
+      evidenceA: "",
+      evidenceB: "",
+      confidence: 1,
+      status: "edited",
+      createdBy: "human",
+    };
+    set({ bridges: [...s.bridges, manual] });
+    return true;
+  },
 }));

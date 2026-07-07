@@ -5,9 +5,9 @@ import { useI18n } from "@/lib/i18n";
 import { useSession, scenarioBridgesToProposals } from "@/lib/store";
 import { getScenario } from "@/lib/scenarios";
 import { fetchBridges } from "@/lib/api";
-import { PuzzleCanvas } from "./PuzzleCanvas";
 import { BridgeCard } from "./BridgeCard";
 import { Hint } from "./Hint";
+import { ManualConnect } from "./ManualConnect";
 
 export function ConnectScreen() {
   const { t, lang } = useI18n();
@@ -72,10 +72,9 @@ export function ConnectScreen() {
       )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-        {/* board */}
+        {/* board (with draw-your-own-connection mode) */}
         <div>
-          <PuzzleCanvas />
-          <p className="mt-2 text-center text-xs text-ink-faint">{t("canvas.hintConnect")}</p>
+          <ManualConnect />
         </div>
 
         {/* tray */}
