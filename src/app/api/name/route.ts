@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
     };
     if (mode === "explore") {
       const readings = Array.isArray(parsed.readings)
-        ? parsed.readings.map((r) => String(r).slice(0, 200)).filter(Boolean).slice(0, 3)
+        ? parsed.readings.map((r) => String(r).trim().slice(0, 280)).filter(Boolean).slice(0, 3)
         : [];
       out.readings = readings.length ? readings : localName(input, lang, mode).readings;
     } else if (mode === "hypothesis") {

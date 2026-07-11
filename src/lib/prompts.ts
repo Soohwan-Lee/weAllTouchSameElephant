@@ -68,9 +68,9 @@ const MODE_SPEC: Record<
   explore: {
     label: "EXPLORE",
     instruction:
-      "Hold the space OPEN. Offer 2–3 genuinely COMPETING readings of what this elephant is — each a different lens that a smart teammate could defend. Do not rank them. The value is that the team sees the picture could be read more than one way before they commit.",
+      "Hold the space OPEN. Offer 2–3 genuinely COMPETING readings of what this elephant is — each a different lens that a smart teammate could defend. Keep EACH reading to ONE tight sentence (~25 words max). Do not rank them. The value is that the team sees the picture could be read more than one way before they commit.",
     shape:
-      '"readings": ["<reading 1: this is really about X, in 1 sharp sentence>", "<reading 2: or it is about Y>", "<optional reading 3>"]',
+      '"readings": ["<reading 1: one sentence, this is really about X>", "<reading 2: one sentence, or it is about Y>", "<optional reading 3: one sentence>"]',
   },
   hypothesis: {
     label: "HYPOTHESIS",
