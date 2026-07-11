@@ -27,6 +27,9 @@ everyone into one smooth answer, which quietly flattens the very differences tha
 - **The AI proposes connections, not conclusions.** Its only move is to suggest a bridge
   between two pieces.
 - **Humans assemble the whole** by confirming, editing, or dismissing each bridge.
+- **Integrate differences without erasing them.** The final shape fuses genuinely-same
+  pieces into facets but keeps real tensions alive as their own strand — it never collapses
+  the group into one winner.
 - **The summary comes last, as a mirror.** Only after the team has connected things does the
   AI reflect back the shape they built — never as an opening move that would anchor them.
 
@@ -35,13 +38,30 @@ everyone into one smooth answer, which quietly flattens the very differences tha
 ## How it works (3 steps)
 
 1. **Gather** — each person adds short fragments (a concern, a fact, a constraint).
-2. **Connect** — press *Suggest connections*. The AI offers up to 3 bridges at a time, each
-   with a relation type (*overlap · tension · dependency · complement*) and short evidence
-   from both pieces. Confirm, tweak, or dismiss each.
-3. **See the whole** — once ≥3 bridges are confirmed, reveal the assembled shape. The AI
-   mirrors back what you connected, what's in tension, and what's still on its own.
+2. **Connect** — press *Suggest connections*. The AI offers a handful of bridges at a time
+   (scaled to how many pieces are on the table), each with a relation type
+   (*overlap · tension · dependency · complement*) and short evidence from both pieces.
+   Confirm, tweak, or dismiss each.
+3. **See the whole** — once ≥3 bridges are confirmed, reveal the **shape your pieces make**.
 
 Try it instantly with a **ready-made sample scenario** — no setup, no typing required.
+
+### What "the whole shape" actually shows
+
+The reveal isn't a summary and it isn't a single crowned "bottleneck." A **synthesis engine**
+reads your confirmed connections and lays out the shape the pieces make together:
+
+- **Facets** — pieces you linked as *overlap* or *complement* fuse into one **side of the
+  elephant** ("these four were the same thing seen differently").
+- **Spine** — *dependency* links arrange the facets from root pressures → visible symptoms.
+- **Keystone** — the side the most others rest on gets a gentle halo. It's an inspectable
+  starting point to argue with, **not** a declared root cause.
+- **Live tensions** — *tension* links are kept as their own strand, never resolved away
+  (integrating differences means preserving them — Cronin & Weingart, 2007).
+- **Coverage** — how assembled the picture is, and which pieces are still floating alone.
+
+Only *after* this shape is built does the AI mirror back a **name** for the elephant and the
+single highest-leverage **question** to answer next — never an answer, never an opening move.
 
 ---
 
@@ -99,13 +119,17 @@ src/
   app/
     page.tsx              # step router (start → gather → connect → mirror)
     api/bridges/route.ts  # AI bridge proposals (falls back to sample mode)
+    api/name/route.ts     # AI name + "so the real question is…" (after assembly)
     api/mirror/route.ts   # AI "mirror" reflection (falls back to local mirror)
-  components/             # Header, StartScreen, Tour, Gather/Connect/Mirror, PuzzleCanvas, BridgeCard
+  components/             # Header, StartScreen, Tour, Gather/Connect/Mirror,
+                          # PuzzleCanvas, BridgeCard, SynthesisCanvas, SynthesisSummary
   lib/
     types.ts             # Fragment, Bridge, Scenario data model
     store.ts             # Zustand session store
-    scenarios.ts         # three bilingual sample scenarios with pre-baked bridges
-    prompts.ts           # LLM prompts (bridge + mirror)
+    clusters.ts          # connected-components (which pieces form an "elephant")
+    synthesis.ts         # synthesis engine: facets, spine, keystone, tensions, coverage
+    scenarios.ts         # four bilingual sample scenarios with pre-baked bridges
+    prompts.ts           # LLM prompts (bridge + name + mirror)
     i18n.tsx             # EN/KO strings + toggle
 ```
 
