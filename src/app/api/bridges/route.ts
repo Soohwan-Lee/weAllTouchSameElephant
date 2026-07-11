@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   }
   const fragments = body.fragments ?? [];
   const lang = body.lang === "ko" ? "ko" : "en";
-  const max = Math.min(3, Math.max(1, body.max ?? 3));
+  const max = Math.min(6, Math.max(1, body.max ?? 3));
 
   if (fragments.length < 2) {
     return NextResponse.json({ bridges: [], mode: "empty" });

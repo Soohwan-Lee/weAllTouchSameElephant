@@ -30,7 +30,9 @@ export function ConnectScreen() {
     setLoading(true);
     setEmptyResult(false);
     try {
-      const { bridges: proposals, mode: apiMode } = await fetchBridges(fragments, lang, 3);
+      // scale the ask to the table: more pieces → more bridges per round (cap 6)
+      const max = Math.min(6, Math.max(3, Math.round(fragments.length / 2)));
+      const { bridges: proposals, mode: apiMode } = await fetchBridges(fragments, lang, max);
       let added = 0;
       if (apiMode === "live" && proposals.length) {
         setMode("live");
