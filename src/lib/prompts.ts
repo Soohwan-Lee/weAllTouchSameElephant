@@ -1,4 +1,4 @@
-import type { Fragment, RelationType } from "./types";
+import type { Fragment, RelationType, RevealMode } from "./types";
 
 const RELATION_GUIDE = `Relation types (choose exactly one per bridge):
 - "overlap": the two pieces describe the SAME underlying issue from different angles.
@@ -33,41 +33,114 @@ Return ONLY valid JSON of this exact shape (no prose, no markdown):
 If there are no strong bridges, return {"bridges":[]}.`;
 }
 
+/** A "side of the elephant" handed to the naming prompt — the shape the team built. */
+export interface FacetSummary {
+  /** the anchor piece's title (the side's handle) */
+  anchor: string;
+  /** the other pieces fused into this side */
+  members: string[];
+  /** 0 = a root pressure, higher = a downstream symptom */
+  depth: number;
+  /** how many other sides rest on this one */
+  supports: number;
+  /** true if this is the side the most others rest on */
+  isKeystone: boolean;
+}
+
 export interface NameInput {
   fragments: Array<{ title: string; body: string }>;
   bridges: Array<{ aTitle: string; bTitle: string; relationType: RelationType }>;
   /** the anchor of the facet the most others rest on — a starting point, not a verdict */
   cruxTitle?: string;
+  /** the assembled shape: the sides the pieces fused into (root→symptom) */
+  facets?: FacetSummary[];
+  /** live tensions the team kept (pairs pulling in different directions) */
+  tensions?: Array<{ a: string; b: string }>;
+  /** how assembled the picture is (0..100) */
+  wholeness?: number;
 }
 
-export function namePrompt(input: NameInput, lang: "en" | "ko") {
+/** Per-mode instruction block: same input, three different "elephants" out. */
+const MODE_SPEC: Record<
+  RevealMode,
+  { label: string; instruction: string; shape: string }
+> = {
+  explore: {
+    label: "EXPLORE",
+    instruction:
+      "Hold the space OPEN. Offer 2–3 genuinely COMPETING readings of what this elephant is — each a different lens that a smart teammate could defend. Do not rank them. The value is that the team sees the picture could be read more than one way before they commit.",
+    shape:
+      '"readings": ["<reading 1: this is really about X, in 1 sharp sentence>", "<reading 2: or it is about Y>", "<optional reading 3>"]',
+  },
+  hypothesis: {
+    label: "HYPOTHESIS",
+    instruction:
+      "Make ONE sharp, FALSIFIABLE bet about what is really going on underneath — a provocation the team can test and disprove, not a safe restatement. Phrase it as 'Maybe the real core is X — and if so, we'd expect to see Y.' It should feel like it names something the pieces were circling but nobody said out loud. Being wrong-but-testable beats being vague-but-safe.",
+    shape:
+      '"hypothesis": "<one falsifiable \'maybe the real core is X\' claim with a testable consequence>"',
+  },
+  verdict: {
+    label: "VERDICT",
+    instruction:
+      "Commit. State the SHARPEST single claim about what the core actually is — the one sentence you'd stake on it. No hedging, no 'it could be'. Name the thing the whole shape is really about, even if it stings a little. (The team asked for a verdict; give them one worth arguing with.)",
+    shape:
+      '"verdict": "<the single sharpest claim about what the core is — one committed sentence>"',
+  },
+};
+
+export function namePrompt(input: NameInput, lang: "en" | "ko", mode: RevealMode = "explore") {
   const language = lang === "ko" ? "Korean" : "English";
+  const spec = MODE_SPEC[mode];
+
   const frags = input.fragments.map((f) => `- ${f.title}: ${f.body}`).join("\n");
   const links = input.bridges
     .map((b) => `- "${b.aTitle}" —[${b.relationType}]— "${b.bTitle}"`)
     .join("\n");
-  const keystone = input.cruxTitle
-    ? `\nThe team's assembled shape suggests the most rests on "${input.cruxTitle}" (a starting point to argue with, NOT a declared cause).`
-    : "";
 
-  return `A team connected several fragments and discovered they are really facets of ONE thing — sides of the same "elephant." Do two things:
-1) Propose ONE short NAME (2–5 words) for that shared thing. A handle the team can argue with, NOT a verdict or solution.
-2) Propose ONE "so the real question is…" QUESTION that turns this picture into the single highest-leverage decision the team should now answer. It must be an open QUESTION, never a recommendation or answer.
+  // Give the model the SHAPE the team built, not just a flat list — this is what
+  // lets it say something specific instead of a generic theme.
+  let shapeBlock = "";
+  if (input.facets?.length) {
+    const sides = input.facets
+      .map((f) => {
+        const tag = f.isKeystone ? " [KEYSTONE — the most rests on this side]" : "";
+        const pieces = [f.anchor, ...f.members.filter((m) => m !== f.anchor)];
+        const role = f.depth === 0 ? "root pressure" : `downstream (depth ${f.depth})`;
+        return `  • SIDE "${f.anchor}"${tag} — ${role}, ${f.supports} other side(s) rest on it — fuses: ${pieces.map((p) => `"${p}"`).join(", ")}`;
+      })
+      .join("\n");
+    shapeBlock += `\n\nThe shape the team assembled (their pieces fused into these "sides of the elephant", laid out root pressures → visible symptoms):\n${sides}`;
+  }
+  if (input.tensions?.length) {
+    const tens = input.tensions.map((t) => `  • "${t.a}" ↔ "${t.b}"`).join("\n");
+    shapeBlock += `\n\nLive tensions they deliberately kept (do NOT resolve these away — they are load-bearing disagreements):\n${tens}`;
+  }
+  if (typeof input.wholeness === "number") {
+    shapeBlock += `\n\nAssembled-ness: ${input.wholeness}% (100% would mean every difference was flattened — a healthy elephant keeps several sides and live tensions).`;
+  }
+
+  return `A team laid out their partial views as pieces and CONNECTED them by hand into one shape — sides of the same "elephant." They did the assembling; you did NOT. Your job now is to read the SHAPE THEY BUILT and hand back the "${spec.label}" they asked for.
+
+Read for what the pieces are SECRETLY about together — the thing they were all circling. Lean on the shape: the keystone side, what rests on what (root→symptom), and the tensions they kept. Be SPECIFIC to THESE pieces — reuse their actual words and concrete nouns. Never a generic theme any team could have gotten ("communication", "alignment", "prioritization" alone are failures).
+
+MODE = ${spec.label}. ${spec.instruction}
+
+Then, separately, propose ONE "so the real question is…" QUESTION: the single highest-leverage thing this team should decide next. It must be an open QUESTION they can actually answer, grounded in the keystone/tension — never a recommendation, never an answer.
 
 Hard rules:
-- The name captures what ALL fragments are secretly about together — it should honor that they are complementary sides, not collapse them into one winner.
-- The question is the most useful thing to resolve next — phrased so the team can actually answer it. It may build on the keystone piece if given, but must not treat it as proven.
-- Do NOT decide anything, do NOT say "the real problem is X" or "you should…". No answers.
-- Do NOT invent facts beyond the fragments.
-- Write both in ${language}.
+- Ground everything in the pieces and the shape. Do NOT invent facts beyond them.
+- Honor the sides — do not silently collapse a real tension into one winner.
+- The question is a QUESTION, not "you should…".
+- Write everything in ${language}. Keep each sentence tight.
 
 Fragments in this cluster:
 ${frags}
 
 Confirmed connections:
-${links}${keystone}
+${links}${shapeBlock}
 
-Return ONLY valid JSON: {"name":"<2-5 word name in ${language}>","note":"<optional 1 short clause on why, in ${language}>","question":"<one open 'so the real question is…' question in ${language}>"}`;
+Return ONLY valid JSON of this exact shape (no prose, no markdown):
+{"name":"<2-5 word handle for the elephant in ${language}>","note":"<one short clause on why this name, in ${language}>",${spec.shape.replace(/<([^>]+)>/g, (_m, d) => `<${d}, in ${language}>`)},"question":"<one open 'so the real question is…' question in ${language}>"}`;
 }
 
 export interface MirrorInput {

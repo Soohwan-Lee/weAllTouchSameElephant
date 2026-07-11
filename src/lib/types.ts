@@ -3,6 +3,16 @@
 
 export type RelationType = "overlap" | "tension" | "dependency" | "complement";
 
+/**
+ * What kind of "elephant" the team wants the AI to hand back after they assemble:
+ *  - explore   : hold 2–3 competing readings open (safest re: anchoring)
+ *  - hypothesis: one falsifiable "maybe the real core is X" — a provocation to test
+ *  - verdict   : the sharpest single claim — "the core is X" (most anchoring risk)
+ */
+export type RevealMode = "explore" | "hypothesis" | "verdict";
+
+export const REVEAL_MODES: RevealMode[] = ["explore", "hypothesis", "verdict"];
+
 export const RELATION_TYPES: RelationType[] = [
   "overlap",
   "tension",
@@ -49,6 +59,22 @@ export interface BridgeProposal {
   confidence: number;
 }
 
+/** Result of /api/name — a named elephant + the mode-specific "reading." */
+export interface NameResult {
+  name: string;
+  note: string;
+  question: string;
+  mode: RevealMode;
+  /** explore: 2–3 competing readings */
+  readings?: string[];
+  /** hypothesis: one falsifiable claim */
+  hypothesis?: string;
+  /** verdict: the sharpest single claim */
+  verdict?: string;
+  /** true when this came from the local fallback (no API key) — client may swap in a scenario reveal */
+  sample?: boolean;
+}
+
 /** Structured, non-authoritative reflection from /api/mirror. */
 export interface MirrorReflection {
   connected: string[]; // sentences citing fragment titles
@@ -78,6 +104,19 @@ export interface ScenarioBridge {
   confidence: number;
 }
 
+/** Hand-written per-mode reveal for sample mode (no API key). Bilingual. */
+export interface ScenarioReveal {
+  name: { en: string; ko: string };
+  note: { en: string; ko: string };
+  question: { en: string; ko: string };
+  /** explore: 2–3 competing readings */
+  readings: Array<{ en: string; ko: string }>;
+  /** hypothesis: one falsifiable claim */
+  hypothesis: { en: string; ko: string };
+  /** verdict: the sharpest single claim */
+  verdict: { en: string; ko: string };
+}
+
 export interface Scenario {
   id: string;
   emoji: string;
@@ -86,4 +125,6 @@ export interface Scenario {
   fragments: ScenarioFragment[];
   /** pre-baked bridges so sample mode works with no API key */
   sampleBridges: ScenarioBridge[];
+  /** pre-written reveal (name + 3 modes) so sample mode is a first-class experience */
+  reveal?: ScenarioReveal;
 }

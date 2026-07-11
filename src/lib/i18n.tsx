@@ -128,6 +128,35 @@ const dict = {
     ko: "아직 따로 있어요 — 이것도 이어보세요",
   },
 
+  // ---- reveal modes (what kind of elephant the AI hands back) ----
+  "reveal.pick": {
+    en: "Your pieces are assembled. How sharp an answer do you want?",
+    ko: "조각이 모였어요. 얼마나 날카로운 답을 원하세요?",
+  },
+  "reveal.explore": { en: "Explore the possibilities", ko: "여러 가능성 살펴보기" },
+  "reveal.explore.sub": {
+    en: "2–3 competing readings — hold the space open",
+    ko: "경쟁하는 2~3개 해석 — 가능성을 열어둠",
+  },
+  "reveal.hypothesis": { en: "Give me a hypothesis", ko: "가설을 하나 달라" },
+  "reveal.hypothesis.sub": {
+    en: "one sharp, testable bet about the real core",
+    ko: "진짜 핵심에 대한 반증 가능한 도발 하나",
+  },
+  "reveal.verdict": { en: "Just tell me the core", ko: "핵심을 단도직입으로" },
+  "reveal.verdict.sub": {
+    en: "the single sharpest claim — worth arguing with",
+    ko: "가장 날카로운 단정 하나 — 따져볼 가치가 있는",
+  },
+  "reveal.thinking": { en: "Reading the shape you built…", ko: "여러분이 만든 모양을 읽는 중…" },
+  "reveal.readingsLabel": { en: "It could be read as…", ko: "이렇게 읽을 수도 있어요…" },
+  "reveal.hypothesisLabel": { en: "A hypothesis to test", ko: "검증해볼 가설" },
+  "reveal.verdictLabel": { en: "The core, stated plainly", ko: "핵심, 단도직입으로" },
+  "reveal.verdictCaveat": {
+    en: "A claim to argue with — not the last word. Switch modes to see it differently.",
+    ko: "따져볼 주장이에요 — 최종 결론이 아니라. 모드를 바꿔 다르게 볼 수 있어요.",
+  },
+
   // ---- synthesis (the assembled elephant) ----
   "synth.roots": { en: "Root pressures", ko: "근본 압력" },
   "synth.symptoms": { en: "Visible symptoms", ko: "드러난 증상" },

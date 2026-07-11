@@ -213,6 +213,39 @@ export const SCENARIOS: Scenario[] = [
         confidence: 0.83,
       },
     ],
+    reveal: {
+      name: { en: "The missing paper trail", ko: "사라진 감사 추적" },
+      note: {
+        en: "Five roles named the same absent capability in five vocabularies.",
+        ko: "다섯 역할이 같은 '없는 기능'을 다섯 가지 말로 부른 거예요.",
+      },
+      readings: [
+        {
+          en: "It's a product-priority story: an unglamorous audit trail keeps losing the roadmap, so revenue quietly bleeds.",
+          ko: "이건 우선순위 이야기예요: 화려하지 않은 감사 추적이 계속 로드맵에서 밀려서 매출이 조용히 새요.",
+        },
+        {
+          en: "It's a trust story: without a tamper-proof record, buyers and renewals just don't believe your change history.",
+          ko: "이건 신뢰 이야기예요: 위변조 방지 기록이 없으니 구매자도 갱신 고객도 변경 이력을 안 믿어요.",
+        },
+        {
+          en: "It's an architecture bet: the same feature that unlocks deals is the one Engineering says will slow the core.",
+          ko: "이건 아키텍처 내기예요: 계약을 여는 바로 그 기능이 엔지니어링이 코어를 느리게 한다고 말하는 그거예요.",
+        },
+      ],
+      hypothesis: {
+        en: "Maybe the real core isn't security at all — it's that a tamper-proof change log was never owned on the roadmap. If so, you'd expect every 'stuck deal' to trace back to the same missing artifact, and shipping it once would clear Sales, Legal, Support and renewals together.",
+        ko: "어쩌면 진짜 핵심은 보안이 아니라, 위변조 방지 변경 로그를 로드맵에서 아무도 책임지지 않은 거예요. 그렇다면 모든 '막힌 계약'이 같은 빠진 기능으로 수렴하고, 그걸 한 번 출시하면 영업·법무·지원·갱신이 한꺼번에 풀릴 거예요.",
+      },
+      verdict: {
+        en: "The core is a single unbuilt feature — a tamper-proof audit log — that four teams are describing as four different problems. Ship the log; the 'security', 'trust', and 'support' problems were always one.",
+        ko: "핵심은 아직 안 만든 기능 하나 — 위변조 방지 감사 로그 — 이고, 네 팀이 그걸 네 개의 다른 문제로 말하고 있을 뿐이에요. 그 로그를 만드세요. '보안'·'신뢰'·'지원' 문제는 원래 하나였어요.",
+      },
+      question: {
+        en: "So the real question is: who owns shipping the tamper-proof audit log this quarter — and can it be designed to satisfy Legal without the latency Engineering fears?",
+        ko: "그래서 진짜 질문은: 이번 분기에 위변조 방지 감사 로그 출시를 누가 책임질 것인가 — 그리고 엔지니어링이 걱정하는 지연 없이 법무를 만족시키게 설계할 수 있는가?",
+      },
+    },
   },
 
   // ─────────────────────────────────────────────────────────────
@@ -419,6 +452,39 @@ export const SCENARIOS: Scenario[] = [
         confidence: 0.76,
       },
     ],
+    reveal: {
+      name: { en: "No agreed user", ko: "합의 안 된 사용자" },
+      note: {
+        en: "Every symptom downstream traces to one decision nobody made.",
+        ko: "모든 하류 증상이 아무도 안 내린 결정 하나로 거슬러 올라가요.",
+      },
+      readings: [
+        {
+          en: "It reads as a scope problem — too many half-features, endless rewrites, unowned bugs piling up.",
+          ko: "범위 문제로 읽혀요 — 반쯤 된 기능이 너무 많고, 재작업이 끝없고, 주인 없는 버그가 쌓여요.",
+        },
+        {
+          en: "It reads as a coordination problem — everyone is quietly building a slightly different app.",
+          ko: "협업 문제로 읽혀요 — 다들 조용히 조금씩 다른 앱을 만들고 있어요.",
+        },
+        {
+          en: "It reads as one upstream decision — you never agreed who it's for, so nothing downstream can settle.",
+          ko: "하나의 상류 결정으로 읽혀요 — 대상을 못 정해서 그 아래 무엇도 정착을 못 해요.",
+        },
+      ],
+      hypothesis: {
+        en: "Maybe none of the visible problems are the problem: they're all symptoms of never agreeing who the app is for. If that's true, you'd expect the feature list, the lost users, and the rewrites to keep regenerating no matter how hard you grind — until you name one user and one flow, and then most of them dissolve at once.",
+        ko: "어쩌면 눈에 보이는 문제들은 문제가 아니에요: 전부 '대상 미합의'의 증상이에요. 그게 맞다면, 아무리 갈아넣어도 기능 목록·헤매는 사용자·재작업이 계속 재생될 거예요 — 한 사용자와 한 흐름을 정하는 순간, 대부분이 한꺼번에 녹아 사라질 때까지.",
+      },
+      verdict: {
+        en: "The core isn't features, time, or bugs — it's that you never chose a user. Everything you called a separate crisis is the downstream of that one skipped decision. Pick one user and one flow this week, and four of your five problems stop being problems.",
+        ko: "핵심은 기능도, 시간도, 버그도 아니에요 — 사용자를 안 골랐다는 거예요. 당신이 별개의 위기라 부른 모든 게 그 건너뛴 결정 하나의 하류예요. 이번 주에 한 사용자와 한 흐름을 고르면, 다섯 문제 중 넷이 문제이길 멈춰요.",
+      },
+      question: {
+        en: "So the real question is: if we had to name one user and one core flow by Friday and cut everything else, which would we choose — and what would that let us stop building?",
+        ko: "그래서 진짜 질문은: 금요일까지 한 사용자와 하나의 핵심 흐름을 정하고 나머지를 다 잘라야 한다면 무엇을 고를 것인가 — 그러면 무엇을 그만 만들어도 되는가?",
+      },
+    },
   },
 
   // ─────────────────────────────────────────────────────────────
@@ -603,6 +669,39 @@ export const SCENARIOS: Scenario[] = [
         confidence: 0.8,
       },
     ],
+    reveal: {
+      name: { en: "The ground, not the amenities", ko: "시설이 아니라 땅바닥" },
+      note: {
+        en: "Benches, zones and safe routes all sit on one surface that can't drain.",
+        ko: "벤치·구역·안전 통로가 전부 물 못 빼는 한 지면 위에 놓여 있어요.",
+      },
+      readings: [
+        {
+          en: "It's a competing-wishes story: parents, seniors, runners and dog owners each want a different amenity on one budget.",
+          ko: "바람이 경쟁하는 이야기예요: 학부모·어르신·러너·견주가 하나의 예산으로 각기 다른 시설을 원해요.",
+        },
+        {
+          en: "It's a zoning story: with no defined areas, kids, dogs and cyclists collide in the same space.",
+          ko: "구역 나누기 이야기예요: 정해진 영역이 없어 아이·개·자전거가 같은 공간에서 부딪혀요.",
+        },
+        {
+          en: "It's an infrastructure story: broken drainage rots the paths and lawn, and everything else is built on that.",
+          ko: "인프라 이야기예요: 망가진 배수가 길과 잔디를 썩게 하고, 나머지는 전부 그 위에 지어져요.",
+        },
+      ],
+      hypothesis: {
+        en: "Maybe the neighbors aren't actually disagreeing — the 'redesign' fight is really about which amenity to buy, but every amenity is being undermined by the same failing drainage. If so, fixing the ground first would make one shared budget stretch further than any single amenity would.",
+        ko: "어쩌면 이웃들은 사실 반대하는 게 아니에요 — '재설계' 다툼은 어떤 시설을 살까의 문제지만, 모든 시설이 같은 배수 문제로 무너지고 있어요. 그렇다면 땅부터 고치는 게 어떤 단일 시설보다 하나의 예산을 더 멀리 가게 해요.",
+      },
+      verdict: {
+        en: "The core isn't which amenity to fund — it's that the ground can't drain. Broken paths, dying lawn, and unsafe routes are all downstream of one failing surface. Fix drainage first, and the 'pick one thing' fight mostly disappears.",
+        ko: "핵심은 어떤 시설에 돈을 쓸까가 아니라 — 땅이 물을 못 뺀다는 거예요. 망가진 길·죽는 잔디·위험한 통로가 전부 무너지는 지면 하나의 하류예요. 배수부터 고치면 '하나만 고르자' 다툼은 대부분 사라져요.",
+      },
+      question: {
+        en: "So the real question is: could one drainage-and-path fix be framed as the shared foundation everyone's amenity depends on — instead of forcing neighbors to compete for a single upgrade?",
+        ko: "그래서 진짜 질문은: 배수·산책로 정비 하나를 모두의 시설이 기대는 공동 기반으로 제시할 수 있는가 — 이웃들을 단 하나의 업그레이드를 두고 경쟁시키는 대신?",
+      },
+    },
   },
 
   // ─────────────────────────────────────────────────────────────
@@ -787,6 +886,39 @@ export const SCENARIOS: Scenario[] = [
         confidence: 0.72,
       },
     ],
+    reveal: {
+      name: { en: "Barriers, not no-shows", ko: "노쇼가 아니라 장벽" },
+      note: {
+        en: "Two separate walls — can't-reach and can't-come — feed the same lost slots.",
+        ko: "'못 닿음'과 '못 옴'이라는 두 개의 벽이 같은 낭비된 슬롯을 만들어요.",
+      },
+      readings: [
+        {
+          en: "It's a data-hygiene story: contact info is collected once and never updated, so half the reminders never land.",
+          ko: "데이터 위생 이야기예요: 연락처를 한 번만 받고 갱신을 안 해서 안내 절반이 안 닿아요.",
+        },
+        {
+          en: "It's an access story: weekday-only slots and no transport mean many patients physically can't come.",
+          ko: "접근성 이야기예요: 평일 낮만 있고 교통편이 없어 많은 환자가 물리적으로 못 와요.",
+        },
+        {
+          en: "It's a motivation story: no one explained why the visit matters, so one miss quietly becomes never.",
+          ko: "동기 이야기예요: 이 방문이 왜 중요한지 아무도 설명 안 해서, 한 번 놓침이 조용히 영영으로 이어져요.",
+        },
+      ],
+      hypothesis: {
+        en: "Maybe 'no-show' is the wrong word — patients aren't flaking, they're hitting walls the clinic built: unreachable, un-gettable-to, un-motivated. If so, you'd expect the cheapest fix (just updating phone numbers at every visit) to recover more slots than any new program, because the biggest wall is the one you can't even see them behind.",
+        ko: "어쩌면 '노쇼'는 틀린 말이에요 — 환자가 무책임한 게 아니라, 병원이 세운 벽에 부딪히는 거예요: 못 닿고, 못 오고, 동기 없고. 그렇다면 가장 싼 해법(매 방문마다 전화번호만 갱신)이 어떤 새 프로그램보다 더 많은 슬롯을 되찾을 거예요 — 가장 큰 벽은 그들이 뒤에 있는지조차 안 보이는 벽이니까.",
+      },
+      verdict: {
+        en: "The core isn't patient no-shows — it's three clinic-side barriers wearing one costume. Fix the cheapest one first: update contact info at every visit. You can't motivate or transport a patient you can't even reach.",
+        ko: "핵심은 환자의 노쇼가 아니라 — 하나의 탈을 쓴 세 개의 병원 측 장벽이에요. 가장 싼 것부터 고치세요: 매 방문마다 연락처를 갱신. 닿지도 못하는 환자를 동기부여하거나 데려올 수는 없어요.",
+      },
+      question: {
+        en: "So the real question is: before spending on new slots or transport, could we recover the most no-shows just by re-confirming contact info at every single visit?",
+        ko: "그래서 진짜 질문은: 새 시간대나 교통편에 돈을 쓰기 전에, 매 방문마다 연락처를 다시 확인하는 것만으로 가장 많은 노쇼를 되찾을 수 있지 않을까?",
+      },
+    },
   },
 ];
 

@@ -5,9 +5,12 @@ import type {
   Bridge,
   BridgeProposal,
   Fragment,
+  NameResult,
   RelationType,
+  RevealMode,
   Scenario,
   ScenarioBridge,
+  ScenarioReveal,
 } from "./types";
 
 /** Turn a scenario's bilingual pre-baked bridges into proposals in one language. */
@@ -24,6 +27,23 @@ export function scenarioBridgesToProposals(
     evidenceB: b.evidenceB[lang],
     confidence: b.confidence,
   }));
+}
+
+/** Turn a scenario's hand-written reveal into a NameResult for the chosen mode/language. */
+export function scenarioRevealToResult(
+  reveal: ScenarioReveal,
+  lang: "en" | "ko",
+  mode: RevealMode
+): NameResult {
+  const base: NameResult = {
+    name: reveal.name[lang],
+    note: reveal.note[lang],
+    question: reveal.question[lang],
+    mode,
+  };
+  if (mode === "explore") return { ...base, readings: reveal.readings.map((r) => r[lang]) };
+  if (mode === "hypothesis") return { ...base, hypothesis: reveal.hypothesis[lang] };
+  return { ...base, verdict: reveal.verdict[lang] };
 }
 
 export type Step = "start" | "gather" | "connect" | "mirror";
