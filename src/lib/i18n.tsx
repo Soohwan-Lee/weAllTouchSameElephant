@@ -128,6 +128,40 @@ const dict = {
     ko: "아직 따로 있어요 — 이것도 이어보세요",
   },
 
+  // ---- synthesis (the assembled elephant) ----
+  "synth.roots": { en: "Root pressures", ko: "근본 압력" },
+  "synth.symptoms": { en: "Visible symptoms", ko: "드러난 증상" },
+  "synth.keystone": { en: "Everything rests on this", ko: "여기에 다 걸려 있어요" },
+  "synth.noFlow": {
+    en: "Tip: mark some links as “one affects the other” to see which side the rest rest on.",
+    ko: "팁: 일부 연결을 “하나가 다른 것에 영향”으로 표시하면 나머지가 어디에 기대는지 보여요.",
+  },
+  "synth.heading": { en: "The shape you assembled", ko: "여러분이 맞춘 모양" },
+  "synth.oneSide": { en: "one side", ko: "한 면" },
+  "synth.sides": { en: "sides of the same thing", ko: "개의 면이 한 몸이었어요" },
+  "synth.facetLabel": { en: "Sides", ko: "면(側)" },
+  "synth.tensionLabel": { en: "Live tensions", ko: "살아있는 긴장" },
+  "synth.wholenessLabel": { en: "Assembled", ko: "조립도" },
+  "synth.facetIntro": {
+    en: "These pieces turned out to be facets of the same thing:",
+    ko: "이 조각들은 사실 같은 것의 여러 면이었어요:",
+  },
+  "synth.tensionIntro": {
+    en: "And these stay in real tension — kept, not resolved away:",
+    ko: "그리고 이건 진짜 긴장으로 남아요 — 없애지 않고 그대로 둡니다:",
+  },
+  "synth.looseIntro": {
+    en: "Still floating on its own — try connecting it too:",
+    ko: "아직 혼자 떠 있어요 — 이것도 이어보세요:",
+  },
+  "synth.keystoneIntro": {
+    en: "The most rests on this side:",
+    ko: "가장 많은 것이 이 면에 기대고 있어요:",
+  },
+  "synth.facetOf": { en: "of", ko: "/" },
+  "synth.pieceOne": { en: "piece", ko: "조각" },
+  "synth.piecesMany": { en: "pieces", ko: "조각" },
+
   // ---- crux (final picture) ----
   "crux.viewAssembly": { en: "What connects", ko: "무엇이 이어지나" },
   "crux.viewFlow": { en: "What drives what", ko: "무엇이 무엇을 이끄나" },

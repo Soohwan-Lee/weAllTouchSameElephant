@@ -5,17 +5,21 @@ import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/store";
 import { fetchName } from "@/lib/api";
 import { findClusters } from "@/lib/clusters";
-import { computeCrux } from "@/lib/crux";
+import { computeSynthesis } from "@/lib/synthesis";
 import { PuzzleCanvas } from "./PuzzleCanvas";
-import { CruxCanvas } from "./CruxCanvas";
+import { SynthesisCanvas } from "./SynthesisCanvas";
+import { SynthesisSummary } from "./SynthesisSummary";
 import { Hint } from "./Hint";
 
 /**
- * The final picture. Two views:
- *  - "crux" (default): upstream→downstream flow, likely-crux elevated, real question.
- *    GOAL: reveal the bottleneck behind many issues.
- *  - "assembly": the ring of connected pieces + one name.
+ * The final picture — the assembled elephant. Two views:
+ *  - "synthesis" (default): pieces fused into facets along the root→symptom spine,
+ *    live tensions kept, keystone haloed. GOAL: see the ONE shape the pieces make.
+ *  - "assembly": the loose ring of connected pieces + one name.
  *    GOAL: the "we're one elephant" belonging beat.
+ *
+ * Order matters (WATSE v5 §4.5): people assemble the links first; only here does the
+ * AI mirror back a NAME + the highest-leverage QUESTION. The AI never authors the shape.
  */
 export function MirrorScreen() {
   const { t, lang } = useI18n();
@@ -29,7 +33,6 @@ export function MirrorScreen() {
   const setClusterName = useSession((s) => s.setClusterName);
   const clusterQuestions = useSession((s) => s.clusterQuestions);
   const setClusterQuestion = useSession((s) => s.setClusterQuestion);
-  const cruxOverride = useSession((s) => s.cruxOverride);
 
   const [loading, setLoading] = useState(false);
   const [suggested, setSuggested] = useState("");
@@ -48,8 +51,10 @@ export function MirrorScreen() {
     setLoading(true);
     setAssembled(true);
     try {
-      const layout = computeCrux(fragments, bridges, main, cruxOverride[main.id] ?? null);
-      const cruxTitle = layout.cruxId ? byId(layout.cruxId)?.title : undefined;
+      const synth = computeSynthesis(fragments, bridges, main);
+      // hand the AI the keystone side's anchor as the "crux" hint (a starting point)
+      const keystone = synth.facets.find((f) => f.id === synth.keystoneFacetId);
+      const cruxTitle = keystone ? byId(keystone.anchorId)?.title : undefined;
       const clusterFrags = main.fragmentIds.map(byId).filter(Boolean) as typeof fragments;
       const clusterBridges = bridges.filter(
         (b) => main.fragmentIds.includes(b.fragmentAId) && main.fragmentIds.includes(b.fragmentBId)
@@ -89,7 +94,7 @@ export function MirrorScreen() {
                 revealView === "crux" ? "bg-ink text-paper" : "text-ink-faint hover:text-ink",
               ].join(" ")}
             >
-              🎯 {t("crux.viewFlow")}
+              🐘 {t("crux.viewFlow")}
             </button>
             <button
               onClick={() => setRevealView("assembly")}
@@ -98,7 +103,7 @@ export function MirrorScreen() {
                 revealView === "assembly" ? "bg-ink text-paper" : "text-ink-faint hover:text-ink",
               ].join(" ")}
             >
-              🐘 {t("crux.viewAssembly")}
+              🔗 {t("crux.viewAssembly")}
             </button>
           </div>
         )}
@@ -108,7 +113,7 @@ export function MirrorScreen() {
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
           <PuzzleCanvas />
           <div className="flex h-full flex-col items-center justify-center rounded-xl2 border border-dashed border-line bg-paper-sunken/40 p-8 text-center">
-            <div className="text-4xl">🎯</div>
+            <div className="text-4xl">🐘</div>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-ink-faint">{t("assemble.hint")}</p>
             <button
               onClick={reveal}
@@ -123,18 +128,25 @@ export function MirrorScreen() {
       ) : (
         <div className="mt-6 space-y-5">
           {/* the picture */}
-          {revealView === "crux" ? <CruxCanvas /> : <PuzzleCanvas showCenterName={!!named} />}
-
-          {/* the payoff line: real question (crux) or reveal line (assembly) */}
           {revealView === "crux" ? (
-            <RealQuestion
-              value={question ?? ""}
-              loading={loading}
-              onChange={(v) => main && setClusterQuestion(main.id, v)}
-              label={t("crux.realQuestion")}
-              editLabel={t("crux.editQuestion")}
-              placeholder={lang === "ko" ? "그래서 우리가 먼저 답해야 할 질문은…" : "So the question we must answer first is…"}
-            />
+            <SynthesisCanvas />
+          ) : (
+            <PuzzleCanvas showCenterName={!!named} />
+          )}
+
+          {/* the payoff */}
+          {revealView === "crux" ? (
+            <>
+              <SynthesisSummary />
+              <RealQuestion
+                value={question ?? ""}
+                loading={loading}
+                onChange={(v) => main && setClusterQuestion(main.id, v)}
+                label={t("crux.realQuestion")}
+                editLabel={t("crux.editQuestion")}
+                placeholder={lang === "ko" ? "그래서 우리가 먼저 답해야 할 질문은…" : "So the question we must answer first is…"}
+              />
+            </>
           ) : (
             <NamePanel
               suggested={suggested}

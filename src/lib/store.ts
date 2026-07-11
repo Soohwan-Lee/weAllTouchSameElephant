@@ -48,11 +48,9 @@ interface SessionState {
   clusterNames: Record<string, string>;
   /** team-edited "so the real question is…" (per cluster id) */
   clusterQuestions: Record<string, string>;
-  /** team override of the AI-suggested crux fragment (per cluster id) */
-  cruxOverride: Record<string, string>;
-  /** whether the reveal ("gather into a ring / crux") is active */
+  /** whether the reveal ("assemble the elephant") is active */
   assembled: boolean;
-  /** which reveal view: assembly ring vs crux flow */
+  /** which reveal view: "crux" = the synthesis shape, "assembly" = the loose ring */
   revealView: "assembly" | "crux";
 
   setStep: (s: Step) => void;
@@ -66,7 +64,6 @@ interface SessionState {
   setLoadingBridges: (v: boolean) => void;
   setClusterName: (clusterId: string, name: string) => void;
   setClusterQuestion: (clusterId: string, q: string) => void;
-  setCruxOverride: (clusterId: string, fragmentId: string) => void;
   setAssembled: (v: boolean) => void;
   setRevealView: (v: "assembly" | "crux") => void;
   addProposals: (proposals: BridgeProposal[]) => number; // returns # added
@@ -94,7 +91,6 @@ export const useSession = create<SessionState>((set, get) => ({
   loadingBridges: false,
   clusterNames: {},
   clusterQuestions: {},
-  cruxOverride: {},
   assembled: false,
   revealView: "crux",
 
@@ -103,8 +99,6 @@ export const useSession = create<SessionState>((set, get) => ({
     set((s) => ({ clusterNames: { ...s.clusterNames, [clusterId]: name } })),
   setClusterQuestion: (clusterId, q) =>
     set((s) => ({ clusterQuestions: { ...s.clusterQuestions, [clusterId]: q } })),
-  setCruxOverride: (clusterId, fragmentId) =>
-    set((s) => ({ cruxOverride: { ...s.cruxOverride, [clusterId]: fragmentId } })),
   setAssembled: (assembled) => set({ assembled }),
   setRevealView: (revealView) => set({ revealView }),
 
@@ -126,7 +120,6 @@ export const useSession = create<SessionState>((set, get) => ({
       rejectedPairKeys: new Set(),
       clusterNames: {},
       clusterQuestions: {},
-      cruxOverride: {},
       assembled: false,
       revealView: "crux",
       step: "gather",
@@ -143,7 +136,6 @@ export const useSession = create<SessionState>((set, get) => ({
       rejectedPairKeys: new Set(),
       clusterNames: {},
       clusterQuestions: {},
-      cruxOverride: {},
       assembled: false,
       revealView: "crux",
       loadingBridges: false,
