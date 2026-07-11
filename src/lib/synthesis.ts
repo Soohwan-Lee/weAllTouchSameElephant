@@ -38,8 +38,13 @@ export interface Facet {
   /** dependency depth: 0 = a root pressure, higher = a downstream consequence */
   depth: number;
   kind: FacetKind;
-  /** how many other facets depend ON this one (out-degree in the facet flow) */
+  /** how many other facets depend ON this one (out-degree — it drives them) */
   supports: number;
+  /** how many other facets this one depends ON (in-degree — it's driven by them) */
+  dependsOn: number;
+  /** true when this side drives others but nothing drives it — a genuine ROOT.
+   *  Root-ness is causal position, NOT connection count: a root can have few links. */
+  isRoot: boolean;
 }
 
 /** A tension that survived assembly — a live disagreement, not a defect. */
@@ -62,7 +67,9 @@ export interface Synthesis {
   facets: Facet[];
   tensions: LiveTension[];
   flow: FacetFlow[];
-  /** the facet the most others rest on (or null if the flow is flat) */
+  /** the ROOT the picture rests on: the side that drives others but nothing drives.
+   *  Chosen by causal position, not connection count — a sparsely-linked root still wins
+   *  over a densely-linked symptom. Null when the flow is flat (no root to point at). */
   keystoneFacetId: string | null;
   maxDepth: number;
   coverage: {
@@ -139,10 +146,17 @@ export function computeSynthesis(
   }
 
   // 2. FACET FLOW from dependency bridges (A drives B → facet(A) → facet(B)).
+  //    Track BOTH out-edges (this side drives others) and in-edges (others drive it),
+  //    because "what's the root?" is about in-edges, not raw connection count.
   const flowKey = (a: string, b: string) => `${a}->${b}`;
   const flowMap = new Map<string, FacetFlow>();
   const outFacets = new Map<string, Set<string>>();
-  roots.forEach((r) => outFacets.set(rootToFacetId.get(r)!, new Set()));
+  const inFacets = new Map<string, Set<string>>();
+  roots.forEach((r) => {
+    const fid = rootToFacetId.get(r)!;
+    outFacets.set(fid, new Set());
+    inFacets.set(fid, new Set());
+  });
   for (const b of clusterBridges) {
     if (b.relationType !== "dependency") continue;
     const fa = facetIdOf(b.fragmentAId);
@@ -152,6 +166,7 @@ export function computeSynthesis(
     if (!flowMap.has(key)) flowMap.set(key, { from: fa, to: fb, bridgeIds: [] });
     flowMap.get(key)!.bridgeIds.push(b.id);
     outFacets.get(fa)!.add(fb);
+    inFacets.get(fb)!.add(fa);
   }
   const flow = [...flowMap.values()];
 
@@ -176,6 +191,10 @@ export function computeSynthesis(
 
   // supports = how many distinct facets this one drives (out-degree)
   const supportsOf = (fid: string) => outFacets.get(fid)?.size ?? 0;
+  // dependsOn = how many distinct facets drive THIS one (in-degree)
+  const dependsOnOf = (fid: string) => inFacets.get(fid)?.size ?? 0;
+  // a genuine ROOT: it drives something, but nothing drives it. Few links is fine.
+  const isRootOf = (fid: string) => supportsOf(fid) > 0 && dependsOnOf(fid) === 0;
 
   // 4. FACET objects
   const facets: Facet[] = roots.map((root) => {
@@ -201,20 +220,32 @@ export function computeSynthesis(
       depth: depthOf(fid),
       kind,
       supports,
+      dependsOn: dependsOnOf(fid),
+      isRoot: isRootOf(fid),
     };
   });
 
-  // 5. KEYSTONE — the facet the most others rest on. Prefer highest `supports`,
-  //    tie-break by facet size (a bigger shared side), then by lower depth (more root-ward).
+  // 5. KEYSTONE — the ROOT of the causal flow, not the most-connected side.
+  //    "What's really the core?" is a question about CAUSAL POSITION: the side that
+  //    drives others but that nothing drives. A root can have few links and still win
+  //    over a densely-connected symptom — that's the whole point (a bottleneck upstream
+  //    isn't always the loudest, most-linked node).
+  //
+  //    Ranking (all among facets that drive at least one other side):
+  //      1. genuine roots first (nothing drives them)
+  //      2. among those, the one that reaches the MOST of the picture downstream
+  //         (net leverage = supports − dependsOn), so a true source beats a mid-chain
+  //      3. tie-break toward lower depth (more upstream), then smaller fan-in
   let keystoneFacetId: string | null = null;
   if (facets.length > 1) {
-    let bestScore = -1;
-    for (const f of facets) {
-      const score = f.supports * 100 + f.fragmentIds.length * 10 + (maxPathDepth - f.depth);
-      if (f.supports > 0 && score > bestScore) {
-        bestScore = score;
-        keystoneFacetId = f.id;
-      }
+    const drivers = facets.filter((f) => f.supports > 0);
+    if (drivers.length) {
+      const score = (f: (typeof facets)[number]) =>
+        (f.isRoot ? 10_000 : 0) + // a real root dominates a mid-chain symptom
+        (f.supports - f.dependsOn) * 100 + // net downstream leverage
+        (maxPathDepth - depthMemo.get(f.id)!) * 5 - // more upstream = closer to source
+        f.dependsOn; // fewer things upstream of it
+      keystoneFacetId = drivers.slice().sort((a, b) => score(b) - score(a))[0].id;
     }
   }
 

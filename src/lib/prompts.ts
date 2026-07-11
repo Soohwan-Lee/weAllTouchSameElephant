@@ -41,9 +41,11 @@ export interface FacetSummary {
   members: string[];
   /** 0 = a root pressure, higher = a downstream symptom */
   depth: number;
-  /** how many other sides rest on this one */
+  /** how many other sides this one drives */
   supports: number;
-  /** true if this is the side the most others rest on */
+  /** how many other sides drive this one */
+  dependsOn: number;
+  /** true if this is the ROOT the rest grow from (causal position, not link count) */
   isKeystone: boolean;
 }
 
@@ -103,13 +105,15 @@ export function namePrompt(input: NameInput, lang: "en" | "ko", mode: RevealMode
   if (input.facets?.length) {
     const sides = input.facets
       .map((f) => {
-        const tag = f.isKeystone ? " [KEYSTONE — the most rests on this side]" : "";
+        const tag = f.isKeystone
+          ? " [ROOT — drives others but nothing drives it; likely the real core even though it may be linked to FEW pieces]"
+          : "";
         const pieces = [f.anchor, ...f.members.filter((m) => m !== f.anchor)];
         const role = f.depth === 0 ? "root pressure" : `downstream (depth ${f.depth})`;
-        return `  • SIDE "${f.anchor}"${tag} — ${role}, ${f.supports} other side(s) rest on it — fuses: ${pieces.map((p) => `"${p}"`).join(", ")}`;
+        return `  • SIDE "${f.anchor}"${tag} — ${role}, drives ${f.supports} other side(s), driven by ${f.dependsOn} — fuses: ${pieces.map((p) => `"${p}"`).join(", ")}`;
       })
       .join("\n");
-    shapeBlock += `\n\nThe shape the team assembled (their pieces fused into these "sides of the elephant", laid out root pressures → visible symptoms):\n${sides}`;
+    shapeBlock += `\n\nThe shape the team assembled (their pieces fused into these "sides of the elephant", laid out root pressures → visible symptoms). IMPORTANT: the real core is about CAUSAL POSITION, not how many pieces a side has — a root that drives the rest matters more than a big cluster of symptoms:\n${sides}`;
   }
   if (input.tensions?.length) {
     const tens = input.tensions.map((t) => `  • "${t.a}" ↔ "${t.b}"`).join("\n");
@@ -121,7 +125,9 @@ export function namePrompt(input: NameInput, lang: "en" | "ko", mode: RevealMode
 
   return `A team laid out their partial views as pieces and CONNECTED them by hand into one shape — sides of the same "elephant." They did the assembling; you did NOT. Your job now is to read the SHAPE THEY BUILT and hand back the "${spec.label}" they asked for.
 
-Read for what the pieces are SECRETLY about together — the thing they were all circling. Lean on the shape: the keystone side, what rests on what (root→symptom), and the tensions they kept. Be SPECIFIC to THESE pieces — reuse their actual words and concrete nouns. Never a generic theme any team could have gotten ("communication", "alignment", "prioritization" alone are failures).
+Read for what the pieces are SECRETLY about together — the thing they were all circling. Lean on the shape: the ROOT side, what rests on what (root→symptom), and the tensions they kept. Be SPECIFIC to THESE pieces — reuse their actual words and concrete nouns. Never a generic theme any team could have gotten ("communication", "alignment", "prioritization" alone are failures).
+
+CRUCIAL — anchor on the ROOT, not the loudest symptom: the side tagged [ROOT] drives the rest but nothing drives it. It is often NOT the biggest cluster and may be linked to only one or two pieces — that is exactly why teams miss it. A downstream symptom (e.g. "no tamper-proof record", "too many features") feels concrete and tempting, but if the shape says something upstream drives it, name the UPSTREAM thing as the core and treat the symptom as its consequence. Do not quietly promote a well-connected symptom over a sparsely-connected root.
 
 MODE = ${spec.label}. ${spec.instruction}
 

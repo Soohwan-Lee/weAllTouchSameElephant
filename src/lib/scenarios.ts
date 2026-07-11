@@ -238,12 +238,12 @@ export const SCENARIOS: Scenario[] = [
         ko: "어쩌면 진짜 핵심은 보안이 아니라, 위변조 방지 변경 로그를 로드맵에서 아무도 책임지지 않은 거예요. 그렇다면 모든 '막힌 계약'이 같은 빠진 기능으로 수렴하고, 그걸 한 번 출시하면 영업·법무·지원·갱신이 한꺼번에 풀릴 거예요.",
       },
       verdict: {
-        en: "The core is a single unbuilt feature — a tamper-proof audit log — that four teams are describing as four different problems. Ship the log; the 'security', 'trust', and 'support' problems were always one.",
-        ko: "핵심은 아직 안 만든 기능 하나 — 위변조 방지 감사 로그 — 이고, 네 팀이 그걸 네 개의 다른 문제로 말하고 있을 뿐이에요. 그 로그를 만드세요. '보안'·'신뢰'·'지원' 문제는 원래 하나였어요.",
+        en: "The core isn't security — it's that audit was never treated as a real deliverable, so it keeps losing the roadmap. Everything downstream (stalled deals, shaky trust, lost renewals) is the cost of that one unmade priority call. The tamper-proof log is a symptom of it, not the root.",
+        ko: "핵심은 보안이 아니라 — 감사 기능을 제대로 된 산출물로 취급한 적이 없어서 로드맵에서 계속 밀린다는 거예요. 그 아래 모든 것(막힌 계약·흔들리는 신뢰·잃은 갱신)이 그 안 내린 우선순위 결정 하나의 대가예요. 위변조 로그는 그 뿌리가 아니라 증상이고요.",
       },
       question: {
-        en: "So the real question is: who owns shipping the tamper-proof audit log this quarter — and can it be designed to satisfy Legal without the latency Engineering fears?",
-        ko: "그래서 진짜 질문은: 이번 분기에 위변조 방지 감사 로그 출시를 누가 책임질 것인가 — 그리고 엔지니어링이 걱정하는 지연 없이 법무를 만족시키게 설계할 수 있는가?",
+        en: "So the real question is: what would it take to make audit a protected, owned roadmap item this quarter — instead of the thing that flashier features keep bumping?",
+        ko: "그래서 진짜 질문은: 이번 분기에 감사 기능을 더 화려한 기능에 밀리지 않는, 주인 있는 보호된 로드맵 항목으로 만들려면 무엇이 필요한가?",
       },
     },
   },

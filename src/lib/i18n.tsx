@@ -160,10 +160,10 @@ const dict = {
   // ---- synthesis (the assembled elephant) ----
   "synth.roots": { en: "Root pressures", ko: "근본 압력" },
   "synth.symptoms": { en: "Visible symptoms", ko: "드러난 증상" },
-  "synth.keystone": { en: "Everything rests on this", ko: "여기에 다 걸려 있어요" },
+  "synth.keystone": { en: "The root the rest grow from", ko: "나머지가 자라난 뿌리" },
   "synth.noFlow": {
-    en: "Tip: mark some links as “one affects the other” to see which side the rest rest on.",
-    ko: "팁: 일부 연결을 “하나가 다른 것에 영향”으로 표시하면 나머지가 어디에 기대는지 보여요.",
+    en: "Tip: mark some links as “one affects the other” to reveal which side is the root and which are symptoms.",
+    ko: "팁: 일부 연결을 “하나가 다른 것에 영향”으로 표시하면 무엇이 뿌리이고 무엇이 증상인지 드러나요.",
   },
   "synth.heading": { en: "The shape you assembled", ko: "여러분이 맞춘 모양" },
   "synth.oneSide": { en: "one side", ko: "한 면" },
@@ -184,8 +184,8 @@ const dict = {
     ko: "아직 혼자 떠 있어요 — 이것도 이어보세요:",
   },
   "synth.keystoneIntro": {
-    en: "The most rests on this side:",
-    ko: "가장 많은 것이 이 면에 기대고 있어요:",
+    en: "The root the rest seem to grow from — even if it's connected to few:",
+    ko: "나머지가 자라난 듯한 뿌리 — 연결은 적더라도:",
   },
   "synth.facetOf": { en: "of", ko: "/" },
   "synth.pieceOne": { en: "piece", ko: "조각" },

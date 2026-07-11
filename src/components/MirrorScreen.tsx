@@ -66,6 +66,7 @@ export function MirrorScreen() {
         members: f.fragmentIds.map((id) => byId(id)?.title ?? "?"),
         depth: f.depth,
         supports: f.supports,
+        dependsOn: f.dependsOn,
         isKeystone: f.id === synth.keystoneFacetId,
       }));
       const tensions = synth.tensions.map((tn) => {
