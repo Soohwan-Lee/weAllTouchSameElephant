@@ -63,6 +63,21 @@ reads your confirmed connections and lays out the shape the pieces make together
 Only *after* this shape is built does the AI mirror back a **name** for the elephant and the
 single highest-leverage **question** to answer next — never an answer, never an opening move.
 
+### Choose how sharp an answer you want
+
+When you reveal, you pick what kind of "elephant" the AI hands back — and you can switch
+between them on the result:
+
+- 🧭 **Explore** — 2–3 genuinely *competing* readings, held open. Safest against anchoring.
+- 💡 **Hypothesis** — one sharp, *falsifiable* bet about the real core, with a testable
+  consequence. A provocation to disprove, not a safe restatement.
+- 🎯 **Verdict** — the single sharpest claim, stated plainly. A committed sentence worth
+  arguing with (never the last word — switch modes to see it differently).
+
+The AI is handed the **shape the team built** (the keystone side, what rests on what, the
+tensions kept) — not just a flat list — which is what lets it say something specific to
+*these* pieces instead of a generic theme.
+
 ---
 
 ## Tech stack
