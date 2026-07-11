@@ -94,7 +94,7 @@ Open http://localhost:3000.
 | `OPENAI_API_KEY` | optional | Enables **live** AI bridge suggestions. Without it, the app runs in **sample mode** and uses each scenario's pre-baked bridges — so the whole experience still works end to end. |
 | `OPENAI_MODEL` | optional | Overrides the model. Default: `gpt-5.4-mini`. |
 
-> **Sample mode is a first-class experience.** With no key, the three built-in scenarios
+> **Sample mode is a first-class experience.** With no key, the four built-in scenarios
 > demonstrate the full flow (fragments → bridges → assembly → mirror). Add a key to run it on
 > your own fragments with real AI suggestions.
 
