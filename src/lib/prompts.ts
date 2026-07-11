@@ -36,7 +36,7 @@ If there are no strong bridges, return {"bridges":[]}.`;
 export interface NameInput {
   fragments: Array<{ title: string; body: string }>;
   bridges: Array<{ aTitle: string; bTitle: string; relationType: RelationType }>;
-  /** the fragment the app flagged as the likely crux (most-connected / most-downstream) */
+  /** the anchor of the facet the most others rest on — a starting point, not a verdict */
   cruxTitle?: string;
 }
 
@@ -46,17 +46,17 @@ export function namePrompt(input: NameInput, lang: "en" | "ko") {
   const links = input.bridges
     .map((b) => `- "${b.aTitle}" —[${b.relationType}]— "${b.bTitle}"`)
     .join("\n");
-  const crux = input.cruxTitle
-    ? `\nThe app flagged "${input.cruxTitle}" as the most-connected fragment (a likely crux/bottleneck).`
+  const keystone = input.cruxTitle
+    ? `\nThe team's assembled shape suggests the most rests on "${input.cruxTitle}" (a starting point to argue with, NOT a declared cause).`
     : "";
 
-  return `A team connected several fragments and discovered they are really facets of ONE underlying thing — their "elephant." Do two things:
+  return `A team connected several fragments and discovered they are really facets of ONE thing — sides of the same "elephant." Do two things:
 1) Propose ONE short NAME (2–5 words) for that shared thing. A handle the team can argue with, NOT a verdict or solution.
 2) Propose ONE "so the real question is…" QUESTION that turns this picture into the single highest-leverage decision the team should now answer. It must be an open QUESTION, never a recommendation or answer.
 
 Hard rules:
-- The name captures what ALL fragments are secretly about together.
-- The question is the crux to resolve — phrased so the team can actually answer it. It may build on the flagged crux fragment if given.
+- The name captures what ALL fragments are secretly about together — it should honor that they are complementary sides, not collapse them into one winner.
+- The question is the most useful thing to resolve next — phrased so the team can actually answer it. It may build on the keystone piece if given, but must not treat it as proven.
 - Do NOT decide anything, do NOT say "the real problem is X" or "you should…". No answers.
 - Do NOT invent facts beyond the fragments.
 - Write both in ${language}.
@@ -65,7 +65,7 @@ Fragments in this cluster:
 ${frags}
 
 Confirmed connections:
-${links}${crux}
+${links}${keystone}
 
 Return ONLY valid JSON: {"name":"<2-5 word name in ${language}>","note":"<optional 1 short clause on why, in ${language}>","question":"<one open 'so the real question is…' question in ${language}>"}`;
 }

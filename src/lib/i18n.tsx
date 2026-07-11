@@ -17,7 +17,7 @@ const dict = {
   // ---- steps / nav ----
   "step.gather": { en: "1 · Add pieces", ko: "1 · 조각 넣기" },
   "step.connect": { en: "2 · Find links", ko: "2 · 연결 찾기" },
-  "step.mirror": { en: "3 · Find the crux", ko: "3 · 핵심 찾기" },
+  "step.mirror": { en: "3 · See the whole", ko: "3 · 전체 보기" },
 
   // ---- landing / start ----
   "start.heading": { en: "What are we deciding together?", ko: "우리가 함께 정할 것은 무엇인가요?" },
@@ -163,8 +163,8 @@ const dict = {
   "synth.piecesMany": { en: "pieces", ko: "조각" },
 
   // ---- crux (final picture) ----
-  "crux.viewAssembly": { en: "What connects", ko: "무엇이 이어지나" },
-  "crux.viewFlow": { en: "What drives what", ko: "무엇이 무엇을 이끄나" },
+  "crux.viewAssembly": { en: "The ring", ko: "고리 보기" },
+  "crux.viewFlow": { en: "The whole shape", ko: "전체 모양" },
   "crux.likely": { en: "Most connected — likely the crux?", ko: "가장 많이 연결됨 — 핵심일까요?" },
   "crux.setAsCrux": { en: "Make this the crux", ko: "이걸 핵심으로" },
   "crux.upstream": { en: "Root pressures", ko: "근본 원인" },
@@ -179,10 +179,10 @@ const dict = {
   },
 
   // ---- mirror ----
-  "mirror.heading": { en: "What's really at the core?", ko: "진짜 핵심은 무엇일까요?" },
+  "mirror.heading": { en: "The one shape your pieces make", ko: "여러분의 조각이 이루는 하나의 그림" },
   "mirror.hint": {
-    en: "From your connections, here's the piece that seems to drive the rest — the likely crux. It's a starting point to argue with, not a verdict.",
-    ko: "여러분의 연결을 바탕으로, 나머지를 이끄는 듯한 조각을 짚어봤어요 — 유력한 핵심이에요. 정답이 아니라 함께 따져볼 출발점입니다.",
+    en: "Your connections fused the pieces into a few sides of the same thing. Here's the shape — which sides rest on which, and what stays in tension. A picture to argue with, not a verdict.",
+    ko: "여러분의 연결이 조각들을 같은 것의 몇 개 면으로 묶었어요. 그 모양이에요 — 어느 면이 어디에 기대는지, 무엇이 긴장으로 남는지. 정답이 아니라 함께 따져볼 그림입니다.",
   },
   "mirror.locked": {
     en: "Confirm at least 3 connections to reveal the whole picture.",
