@@ -130,31 +130,31 @@ const dict = {
 
   // ---- reveal modes (what kind of elephant the AI hands back) ----
   "reveal.pick": {
-    en: "Your pieces are assembled. How sharp an answer do you want?",
-    ko: "조각이 모였어요. 얼마나 날카로운 답을 원하세요?",
+    en: "Your pieces are connected. How would you like to look at the whole?",
+    ko: "조각이 모두 이어졌어요. 전체를 어떻게 보시겠어요?",
   },
-  "reveal.explore": { en: "Explore the possibilities", ko: "여러 가능성 살펴보기" },
+  "reveal.explore": { en: "See a few angles", ko: "여러 각도로 보기" },
   "reveal.explore.sub": {
-    en: "2–3 competing readings — hold the space open",
-    ko: "경쟁하는 2~3개 해석 — 가능성을 열어둠",
+    en: "A few different ways to read the whole picture",
+    ko: "전체 그림을 읽는 몇 가지 다른 방식",
   },
-  "reveal.hypothesis": { en: "Give me a hypothesis", ko: "가설을 하나 달라" },
+  "reveal.hypothesis": { en: "Point me at the likely core", ko: "핵심으로 보이는 곳 짚어주기" },
   "reveal.hypothesis.sub": {
-    en: "one sharp, testable bet about the real core",
-    ko: "진짜 핵심에 대한 반증 가능한 도발 하나",
+    en: "One idea worth checking — what might really be underneath",
+    ko: "확인해볼 만한 짚음 하나 — 밑에 진짜 뭐가 있을지",
   },
-  "reveal.verdict": { en: "Just tell me the core", ko: "핵심을 단도직입으로" },
+  "reveal.verdict": { en: "Name the core directly", ko: "핵심을 콕 짚어주기" },
   "reveal.verdict.sub": {
-    en: "the single sharpest claim — worth arguing with",
-    ko: "가장 날카로운 단정 하나 — 따져볼 가치가 있는",
+    en: "One clear take you can push back on",
+    ko: "반박해볼 수 있는 분명한 한 마디",
   },
-  "reveal.thinking": { en: "Reading the shape you built…", ko: "여러분이 만든 모양을 읽는 중…" },
-  "reveal.readingsLabel": { en: "It could be read as…", ko: "이렇게 읽을 수도 있어요…" },
-  "reveal.hypothesisLabel": { en: "A hypothesis to test", ko: "검증해볼 가설" },
-  "reveal.verdictLabel": { en: "The core, stated plainly", ko: "핵심, 단도직입으로" },
+  "reveal.thinking": { en: "Reading the picture you built…", ko: "여러분이 만든 그림을 읽는 중…" },
+  "reveal.readingsLabel": { en: "A few ways to read it", ko: "이렇게 읽어볼 수 있어요" },
+  "reveal.hypothesisLabel": { en: "Worth a closer look", ko: "더 들여다볼 만한 것" },
+  "reveal.verdictLabel": { en: "The likely core", ko: "핵심으로 보이는 것" },
   "reveal.verdictCaveat": {
-    en: "A claim to argue with — not the last word. Switch modes to see it differently.",
-    ko: "따져볼 주장이에요 — 최종 결론이 아니라. 모드를 바꿔 다르게 볼 수 있어요.",
+    en: "A starting point to push back on — not the final word. Try another angle anytime.",
+    ko: "반박해볼 출발점이에요 — 정답이 아니라. 언제든 다른 각도로 볼 수 있어요.",
   },
 
   // ---- synthesis (the assembled elephant) ----
