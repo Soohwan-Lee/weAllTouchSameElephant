@@ -11,10 +11,16 @@ import type { Fragment } from "@/lib/types";
 /**
  * SYNTHESIS CANVAS — the assembled elephant, as one organic map.
  *
- * Each facet (a "side of the elephant") is wrapped in a soft blob so it reads as one
- * body, not scattered cards. Blobs flow left→right along the causal spine (root → symptom),
- * joined by curved dependency streams. The ROOT gets real visual weight — it's the source
- * the rest grow from, even when it's small.
+ * The unit here is the SIDE, not the card. Each facet is a soft, named body (a blob with
+ * its own label); the member cards sit INSIDE it as small chips, so the eye reads "one
+ * side called X" before it reads individual pieces. Sides flow left→right along the causal
+ * spine (root → symptom) as thick rivers, not thin strings. The ROOT gets real visual
+ * weight — the source the rest grow from, even when it holds few pieces.
+ *
+ * Design intent (author feedback): stop looking like "a few cards on strings." Cards were
+ * carrying too much text; the picture read as a node-link diagram. Now the cards are quiet
+ * chips and the tinted, labelled bodies + flowing rivers carry the "we assembled one thing"
+ * payoff.
  *
  * Grounded in: Cronin & Weingart (integrate, keep differences) · Kolko (forge a bigger
  * picture) · WATSE v5 Puzzle Table (people assemble; the map reflects what they built).
@@ -42,7 +48,10 @@ export function SynthesisCanvas() {
   // Layout in board pixel space (viewBox) so blobs and curves are easy to compute.
   const layout = useMemo(() => {
     const pos = new Map<string, { x: number; y: number }>();
-    const facetCenter = new Map<string, { x: number; y: number; r: number; color: string }>();
+    const facetCenter = new Map<
+      string,
+      { x: number; y: number; r: number; color: string; labelY: number }
+    >();
     if (!synth || !main) return { pos, facetCenter };
 
     // group facets into columns by depth (root pressures left → symptoms right)
@@ -61,28 +70,41 @@ export function SynthesisCanvas() {
     const colorOf = new Map<string, string>();
     let ci2 = 1;
     synth.facets.forEach((f) => {
-      colorOf.set(f.id, f.id === synth.keystoneFacetId ? FACET_COLORS[0] : FACET_COLORS[ci2++ % FACET_COLORS.length || 1]);
+      colorOf.set(
+        f.id,
+        f.id === synth.keystoneFacetId ? FACET_COLORS[0] : FACET_COLORS[ci2++ % FACET_COLORS.length || 1]
+      );
     });
 
-    // a card is ~150px wide / ~120px tall in board space; keep members from overlapping
-    const CARD_W = 158;
-    const CARD_H = 124;
+    // a chip is ~132px wide / ~52px tall in board space; keep members from overlapping
+    const CHIP_W = 132;
+    const CHIP_H = 58;
+    // leave a band at the top for the side labels so they never clip the board edge
+    const TOP_BAND = 54;
     depths.forEach((depth, ci) => {
       const here = cols.get(depth)!;
       const cx = nCols === 1 ? BOARD_W / 2 : padX + (ci / (nCols - 1)) * usableW;
       const nRows = here.length;
       here.forEach((facet, ri) => {
-        const cy = nRows === 1 ? BOARD_H / 2 : (BOARD_H * (ri + 1)) / (nRows + 1);
         const n = facet.fragmentIds.length;
-        // ring radius must be big enough that n cards don't collide: chord ≈ 2·rr·sin(π/n) ≥ card
-        const minChord = Math.max(CARD_W, CARD_H) * 0.92;
-        const ringR = n <= 1 ? 0 : Math.max(70, minChord / (2 * Math.sin(Math.PI / n)));
-        // blob radius wraps the ring + half a card
-        const r = (n <= 1 ? 64 : ringR + CARD_H * 0.5) + (facet.id === synth.keystoneFacetId ? 10 : 0);
-        facetCenter.set(facet.id, { x: cx, y: cy, r, color: colorOf.get(facet.id)! });
+        // ring radius must be big enough that n chips don't collide (chips are wide, short)
+        const minChord = CHIP_W * 1.04;
+        const ringR = n <= 1 ? 0 : Math.max(62, minChord / (2 * Math.sin(Math.PI / n)));
+        // blob radius wraps the ring + half a chip
+        const r = (n <= 1 ? 70 : ringR + CHIP_H * 0.9) + (facet.id === synth.keystoneFacetId ? 12 : 0);
+        // spread rows inside the usable height, but keep each blob + its label on-board
+        const usableTop = TOP_BAND + r;
+        const usableBot = BOARD_H - r - 24;
+        const cy =
+          nRows === 1
+            ? Math.max(usableTop, Math.min(usableBot, BOARD_H / 2))
+            : usableTop + ((usableBot - usableTop) * ri) / (nRows - 1);
+        const labelY = Math.max(22, cy - r - 6); // the side's name sits just above the body
 
-        const clampX = (x: number) => Math.min(BOARD_W - 90, Math.max(90, x));
-        const clampY = (y: number) => Math.min(BOARD_H - 70, Math.max(70, y));
+        const clampX = (x: number) => Math.min(BOARD_W - 78, Math.max(78, x));
+        const clampY = (y: number) => Math.min(BOARD_H - 46, Math.max(56, y));
+        facetCenter.set(facet.id, { x: cx, y: cy, r, color: colorOf.get(facet.id)!, labelY });
+
         facet.fragmentIds.forEach((id, mi) => {
           if (n === 1) {
             pos.set(id, { x: clampX(cx), y: clampY(cy) });
@@ -90,7 +112,7 @@ export function SynthesisCanvas() {
             const a = (mi / n) * Math.PI * 2 - Math.PI / 2;
             pos.set(id, {
               x: clampX(cx + Math.cos(a) * ringR),
-              y: clampY(cy + Math.sin(a) * ringR),
+              y: clampY(cy + Math.sin(a) * ringR * 0.9),
             });
           }
         });
@@ -105,14 +127,25 @@ export function SynthesisCanvas() {
   const posOf = (id: string) => pos.get(id) ?? { x: BOARD_W / 2, y: BOARD_H / 2 };
   const hasFlow = synth.flow.length > 0;
   const facetOf = (id: string) => synth.facets.find((f) => f.fragmentIds.includes(id));
+  const anchorTitle = (facet: Facet) => byId(facet.anchorId)?.title ?? "";
 
-  // curved stream between two facet centers (root → symptom)
+  // a flowing river between two facet centers (root → symptom), entering/leaving edges
   const flowPath = (from: string, to: string) => {
     const a = facetCenter.get(from);
     const b = facetCenter.get(to);
     if (!a || !b) return null;
-    const mx = (a.x + b.x) / 2;
-    return `M ${a.x} ${a.y} C ${mx} ${a.y}, ${mx} ${b.y}, ${b.x} ${b.y}`;
+    // start/end at the blob rims, not centers, so the river connects bodies not points
+    const dist = Math.hypot(b.x - a.x, b.y - a.y);
+    // if the two bodies already overlap (or nearly touch), the connection is implied by
+    // the touching blobs — a tiny river stub would just look like a floating dash.
+    if (dist < a.r * 0.82 + b.r * 0.82 + 80) return null;
+    const ang = Math.atan2(b.y - a.y, b.x - a.x);
+    const ax = a.x + Math.cos(ang) * (a.r * 0.82);
+    const ay = a.y + Math.sin(ang) * (a.r * 0.82);
+    const bx = b.x - Math.cos(ang) * (b.r * 0.82);
+    const by = b.y - Math.sin(ang) * (b.r * 0.82);
+    const mx = (ax + bx) / 2;
+    return { d: `M ${ax} ${ay} C ${mx} ${ay}, ${mx} ${by}, ${bx} ${by}`, from: a, to: b };
   };
 
   return (
@@ -124,43 +157,60 @@ export function SynthesisCanvas() {
       >
         <defs>
           <filter id="blob-soft" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="10" />
+            <feGaussianBlur stdDeviation="12" />
           </filter>
-          <marker id="synth-arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
-            <path d="M0,0 L6,3 L0,6 Z" fill="#6b6ba8" opacity="0.85" />
-          </marker>
+          {/* per-side radial gradient so each body has depth, brighter core → soft edge */}
+          {synth.facets.map((f) => {
+            const c = facetCenter.get(f.id);
+            if (!c) return null;
+            const isRoot = f.id === synth.keystoneFacetId;
+            return (
+              <radialGradient key={`g_${f.id}`} id={`side_${f.id}`} cx="50%" cy="45%" r="65%">
+                <stop offset="0%" stopColor={c.color} stopOpacity={isRoot ? 0.42 : 0.3} />
+                <stop offset="100%" stopColor={c.color} stopOpacity={isRoot ? 0.16 : 0.1} />
+              </radialGradient>
+            );
+          })}
+          {/* river gradients: colored by the upstream side, fading downstream */}
+          {synth.flow.map((fl, i) => {
+            const a = facetCenter.get(fl.from);
+            const b = facetCenter.get(fl.to);
+            if (!a || !b) return null;
+            return (
+              <linearGradient
+                key={`rg_${i}`}
+                id={`river_${i}`}
+                x1={a.x}
+                y1={a.y}
+                x2={b.x}
+                y2={b.y}
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop offset="0%" stopColor={a.color} stopOpacity="0.55" />
+                <stop offset="100%" stopColor={b.color} stopOpacity="0.28" />
+              </linearGradient>
+            );
+          })}
         </defs>
 
-        {/* 1. curved dependency streams UNDER everything (root → symptom) */}
+        {/* 1. rivers UNDER everything (root → symptom), colored by source side */}
         {synth.flow.map((fl, i) => {
-          const d = flowPath(fl.from, fl.to);
-          if (!d) return null;
+          const p = flowPath(fl.from, fl.to);
+          if (!p) return null;
           return (
-            <g key={`flow_${i}`}>
-              <path
-                d={d}
-                fill="none"
-                stroke="#6b6ba8"
-                strokeWidth={7}
-                strokeOpacity={0.14}
-                strokeLinecap="round"
-                className="animate-draw-in"
-              />
-              <path
-                d={d}
-                fill="none"
-                stroke="#6b6ba8"
-                strokeWidth={2}
-                strokeOpacity={0.5}
-                strokeLinecap="round"
-                markerEnd="url(#synth-arrow)"
-                className="animate-draw-in"
-              />
-            </g>
+            <path
+              key={`flow_${i}`}
+              d={p.d}
+              fill="none"
+              stroke={`url(#river_${i})`}
+              strokeWidth={14}
+              strokeLinecap="round"
+              className="animate-draw-in"
+            />
           );
         })}
 
-        {/* 2. facet blobs — each side as one soft body */}
+        {/* 2. facet blobs — each side as one soft, named body */}
         {synth.facets.map((facet) => {
           const c = facetCenter.get(facet.id);
           if (!c) return null;
@@ -169,16 +219,15 @@ export function SynthesisCanvas() {
           // build a soft blob from overlapping circles at each member point (metaball-ish)
           const circles =
             members.length === 1
-              ? [{ x: c.x, y: c.y, r: c.r * 0.85 }]
+              ? [{ x: c.x, y: c.y, r: c.r * 0.9 }]
               : members.map((id) => {
                   const p = posOf(id);
-                  return { x: p.x, y: p.y, r: 84 };
+                  return { x: p.x, y: p.y, r: 92 };
                 });
           return (
             <g key={`blob_${facet.id}`} className="animate-draw-in">
-              {/* soft body — a clearly visible tinted "side" */}
               <g filter="url(#blob-soft)">
-                {/* connective tissue first (fat rounded links between members) */}
+                {/* connective tissue: fat rounded links between members */}
                 {circles.length > 1 &&
                   circles.map((ci, k) => {
                     const next = circles[(k + 1) % circles.length];
@@ -189,39 +238,38 @@ export function SynthesisCanvas() {
                         y1={ci.y}
                         x2={next.x}
                         y2={next.y}
-                        stroke={c.color}
-                        strokeWidth={c.r * 0.7}
-                        strokeOpacity={isRoot ? 0.3 : 0.2}
+                        stroke={`url(#side_${facet.id})`}
+                        strokeWidth={c.r * 0.85}
                         strokeLinecap="round"
                       />
                     );
                   })}
                 {circles.map((ci, k) => (
-                  <circle
-                    key={k}
-                    cx={ci.x}
-                    cy={ci.y}
-                    r={ci.r}
-                    fill={c.color}
-                    opacity={isRoot ? 0.32 : 0.22}
-                  />
+                  <circle key={k} cx={ci.x} cy={ci.y} r={ci.r} fill={`url(#side_${facet.id})`} />
                 ))}
               </g>
+              {/* crisp rim so the body has an edge, not just a smudge */}
+              {members.length === 1 && (
+                <circle
+                  cx={c.x}
+                  cy={c.y}
+                  r={c.r * 0.9}
+                  fill="none"
+                  stroke={c.color}
+                  strokeOpacity={isRoot ? 0.34 : 0.2}
+                  strokeWidth={isRoot ? 2 : 1.25}
+                />
+              )}
             </g>
           );
         })}
 
-        {/* 3. within-facet fusing links (faint, hold each side together) */}
+        {/* 3. tensions across the map (kept alive — dashed) */}
         {bridges.map((b) => {
+          if (b.relationType !== "tension") return null;
           if (!pos.has(b.fragmentAId) || !pos.has(b.fragmentBId)) return null;
-          const fa = facetOf(b.fragmentAId);
-          const fb = facetOf(b.fragmentBId);
-          const sameFacet = fa && fb && fa.id === fb.id;
-          if (!sameFacet && b.relationType !== "tension") return null; // cross-facet deps shown as streams
           const pa = posOf(b.fragmentAId);
           const pc = posOf(b.fragmentBId);
-          const meta = RELATION_META[b.relationType];
-          const tension = b.relationType === "tension";
           return (
             <line
               key={b.id}
@@ -229,12 +277,41 @@ export function SynthesisCanvas() {
               y1={pa.y}
               x2={pc.x}
               y2={pc.y}
-              stroke={meta.stroke}
-              strokeWidth={tension ? 2 : 1.4}
-              strokeDasharray={tension ? "7 5" : undefined}
-              strokeOpacity={tension ? 0.75 : 0.3}
+              stroke={RELATION_META.tension.stroke}
+              strokeWidth={2}
+              strokeDasharray="7 5"
+              strokeOpacity={0.7}
               strokeLinecap="round"
             />
+          );
+        })}
+
+        {/* 4. side labels — the blob's NAME, so the body is the unit, not the cards */}
+        {synth.facets.map((facet) => {
+          const c = facetCenter.get(facet.id);
+          if (!c) return null;
+          const isRoot = facet.id === synth.keystoneFacetId;
+          const label = anchorTitle(facet);
+          if (!label) return null;
+          return (
+            <text
+              key={`lbl_${facet.id}`}
+              x={c.x}
+              y={c.labelY}
+              textAnchor="middle"
+              className="animate-draw-in"
+              style={{
+                fontSize: isRoot ? 19 : 16,
+                fontWeight: 700,
+                fill: c.color,
+                letterSpacing: "-0.01em",
+                paintOrder: "stroke",
+                stroke: "#fbfbfa",
+                strokeWidth: 4,
+              }}
+            >
+              {isRoot ? `🌱 ${label}` : label}
+            </text>
           );
         })}
       </svg>
@@ -251,7 +328,7 @@ export function SynthesisCanvas() {
         </>
       )}
 
-      {/* fragment cards — absolutely positioned over the SVG in % space */}
+      {/* member chips — quiet, title-only; the body/label carries the meaning */}
       {main.fragmentIds.map((id) => {
         const f = byId(id);
         const p = posOf(id);
@@ -260,14 +337,13 @@ export function SynthesisCanvas() {
         const isAnchor = facet?.anchorId === id;
         const inRoot = !!facet && facet.id === synth.keystoneFacetId;
         return (
-          <SynthCard
+          <SynthChip
             key={id}
             f={f}
             xPct={(p.x / BOARD_W) * 100}
             yPct={(p.y / BOARD_H) * 100}
             isAnchor={isAnchor}
             inRoot={inRoot}
-            rootLabel={t("synth.keystone")}
           />
         );
       })}
@@ -281,43 +357,44 @@ export function SynthesisCanvas() {
   );
 }
 
-function SynthCard({
+/**
+ * A member chip — deliberately quiet. Title only + a small role dot on hover-title.
+ * The old card showed title + 2 lines of body + role, which made the map read like a
+ * node-link diagram of busy cards. The full text still lives in the assembly view and
+ * the summary; here the chip just marks "this piece belongs to this side."
+ */
+function SynthChip({
   f,
   xPct,
   yPct,
   isAnchor,
   inRoot,
-  rootLabel,
 }: {
   f: Fragment;
   xPct: number;
   yPct: number;
   isAnchor: boolean;
   inRoot: boolean;
-  rootLabel: string;
 }) {
   return (
     <div
+      title={`${f.title} — ${f.body} · ${f.authorRole}`}
       style={{ left: `${xPct}%`, top: `${yPct}%`, transition: "left 0.6s ease, top 0.6s ease" }}
       className={[
-        "absolute w-32 -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-paper-card/95 p-2.5 backdrop-blur-sm sm:w-36",
+        "absolute flex max-w-[9rem] -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full border bg-paper-card/95 px-2.5 py-1.5 backdrop-blur-sm",
         inRoot && isAnchor
-          ? "z-10 border-accent/60 shadow-lift ring-2 ring-accent/25"
+          ? "z-10 border-accent/60 shadow-lift ring-2 ring-accent/20"
           : inRoot
           ? "z-[9] border-accent/30 shadow-card"
           : "border-line shadow-card",
       ].join(" ")}
     >
-      {inRoot && isAnchor && (
-        <div className="mb-1 -mt-0.5 flex items-center gap-1 text-[9.5px] font-semibold leading-tight text-accent">
-          🌱 {rootLabel}
-        </div>
-      )}
-      <div className="text-[12px] font-semibold leading-snug text-ink">{f.title}</div>
-      <div className="mt-0.5 line-clamp-2 text-[10.5px] leading-snug text-ink-soft">{f.body}</div>
-      <div className="mt-1 truncate text-[9.5px] font-medium uppercase tracking-wide text-ink-faint">
-        {f.authorRole}
-      </div>
+      <span
+        className="h-1.5 w-1.5 shrink-0 rounded-full"
+        style={{ backgroundColor: inRoot ? "#2f6f6b" : "#a1a1aa" }}
+        aria-hidden
+      />
+      <span className="truncate text-[11px] font-semibold leading-tight text-ink">{f.title}</span>
     </div>
   );
 }
