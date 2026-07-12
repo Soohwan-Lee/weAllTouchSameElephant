@@ -79,6 +79,9 @@ export interface Synthesis {
   facets: Facet[];
   tensions: LiveTension[];
   flow: FacetFlow[];
+  /** causal chains root→symptom, each a list of facet ids from upstream to downstream.
+   *  These are the "spine" the team built — what drives what, read left to right. */
+  spine: string[][];
   /** the ROOT the picture rests on: the side that drives others but nothing drives.
    *  Chosen by causal position, not connection count — a sparsely-linked root still wins
    *  over a densely-linked symptom. Null when the flow is flat (no root to point at). */
@@ -293,10 +296,31 @@ export function computeSynthesis(
   }
   const looseFragmentIds = ids.filter((id) => !touched.has(id));
 
+  // 8. SPINE — the causal chains, each from a source (nothing drives it) to a sink
+  //    (drives nothing), following the longest path. This is what lets the naming model
+  //    see "A → B → C" as a story, not just per-side depths. Cycle-safe.
+  const sources = facetIds.filter((fid) => (inFacets.get(fid)?.size ?? 0) === 0 && (outFacets.get(fid)?.size ?? 0) > 0);
+  const longestFrom = (fid: string, seen: Set<string>): string[] => {
+    const outs = [...(outFacets.get(fid) ?? [])].filter((n) => !seen.has(n));
+    if (!outs.length) return [fid];
+    let best: string[] = [];
+    for (const n of outs) {
+      const tail = longestFrom(n, new Set([...seen, fid]));
+      if (tail.length > best.length) best = tail;
+    }
+    return [fid, ...best];
+  };
+  const spine = sources
+    .map((s) => longestFrom(s, new Set()))
+    .filter((chain) => chain.length >= 2)
+    // longest, most-reaching chains first
+    .sort((a, b) => b.length - a.length);
+
   return {
     facets,
     tensions,
     flow,
+    spine,
     keystoneFacetId,
     maxDepth: maxPathDepth,
     coverage: {

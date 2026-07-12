@@ -58,6 +58,9 @@ export interface NameInput {
   facets?: FacetSummary[];
   /** live tensions the team kept (pairs pulling in different directions) */
   tensions?: Array<{ a: string; b: string }>;
+  /** the causal chains the team built, root→symptom (e.g. ["A", "B", "C"]) —
+   *  the actual spine, so the model can see what drives what, not just per-side depth */
+  spine?: string[][];
   /** how assembled the picture is (0..100) */
   wholeness?: number;
 }
@@ -114,6 +117,15 @@ export function namePrompt(input: NameInput, lang: "en" | "ko", mode: RevealMode
       })
       .join("\n");
     shapeBlock += `\n\nThe shape the team assembled (their pieces fused into these "sides of the elephant", laid out root pressures → visible symptoms). IMPORTANT: the real core is about CAUSAL POSITION, not how many pieces a side has — a root that drives the rest matters more than a big cluster of symptoms:\n${sides}`;
+  }
+  if (input.spine?.length) {
+    const chains = input.spine
+      .filter((c) => c.length >= 2)
+      .map((c) => `  • ${c.map((s) => `"${s}"`).join(" → ")}`)
+      .join("\n");
+    if (chains) {
+      shapeBlock += `\n\nThe causal chains they built (read left→right as "drives / is needed by"). The LEFTMOST link in a chain is upstream of everything to its right — that is where the core usually hides:\n${chains}`;
+    }
   }
   if (input.tensions?.length) {
     const tens = input.tensions.map((t) => `  • "${t.a}" ↔ "${t.b}"`).join("\n");

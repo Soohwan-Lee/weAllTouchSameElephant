@@ -73,6 +73,12 @@ export function MirrorScreen() {
         const b = bridges.find((x) => x.id === tn.bridgeId);
         return { a: byId(b?.fragmentAId ?? "")?.title ?? "?", b: byId(b?.fragmentBId ?? "")?.title ?? "?" };
       });
+      // causal chains as anchor titles (root→symptom) so the model sees the actual spine
+      const anchorTitleOf = (fid: string) => {
+        const f = synth.facets.find((x) => x.id === fid);
+        return f ? byId(f.anchorId)?.title ?? "?" : "?";
+      };
+      const spine = synth.spine.map((chain) => chain.map(anchorTitleOf));
 
       const clusterFrags = main.fragmentIds.map(byId).filter(Boolean) as typeof fragments;
       const clusterBridges = bridges.filter(
@@ -88,6 +94,7 @@ export function MirrorScreen() {
         cruxTitle,
         facets,
         tensions,
+        spine,
         wholeness: Math.round(synth.coverage.wholeness * 100),
       };
       let res = await fetchName(input, lang, chosen);
