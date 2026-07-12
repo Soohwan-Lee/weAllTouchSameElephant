@@ -18,13 +18,25 @@ import type { Cluster } from "./clusters";
  *     is "your piece and mine are two sides of the same elephant," not a verdict.
  *
  * So instead of one number per node, we compute the SHAPE the pieces make together:
- *   1. FACETS   — pieces fused by "same issue / completes each other" become one side of
- *                 the elephant. (overlap + complement, transitively.)
- *   2. TENSIONS — kept alive as their own strand, never merged away. (Cronin: preserve.)
- *   3. SPINE    — the dependency flow: what a facet rests on vs what it produces.
- *   4. KEYSTONE — the piece the most other facets rest on. A humble, inspectable "if this
- *                 shifts, the most shifts" — NOT a declared root cause.
+ *   1. FACETS   — pieces that are truly the SAME thing seen differently become one side of
+ *                 the elephant. Only "overlap" fuses (transitively). This is deliberate:
+ *                 the four relations are NOT interchangeable, and conflating them was a bug.
+ *   2. FLOW     — directional relations that shape the spine, NOT the merge:
+ *                   • "dependency"  — A causes/blocks/enables B  → facet(A) → facet(B)
+ *                   • "complement"  — A supplies context B NEEDS → facet(A) → facet(B)
+ *                 "complement" used to fuse (union-find), which over-merged genuinely
+ *                 distinct sides and inflated facet size — feeding the very "big cluster =
+ *                 important" bias we're trying to kill. A completes B is a DIRECTIONAL bond
+ *                 ("B leans on A"), not sameness, so it belongs in the flow, not the merge.
+ *   3. TENSIONS — kept alive as their own strand, never merged away. (Cronin: preserve.)
+ *   4. KEYSTONE — the causal ROOT: the side that drives others but nothing drives. Chosen by
+ *                 position in the flow, not connection count — a sparsely-linked root wins.
  *   5. COVERAGE — how much of the table has joined the one shape, and what floats loose.
+ *
+ * Why these four and not more/fewer: overlap (identity), tension (conflict), dependency
+ * (causal), complement (needs-context) are the minimal set that spans how partial views
+ * actually relate — same / against / because-of / incomplete-without. Overlap is the only
+ * one that says "these are the same side"; the other three keep the pieces distinct.
  */
 
 export type FacetKind = "core" | "supporting";
@@ -84,7 +96,12 @@ export interface Synthesis {
   looseFragmentIds: string[];
 }
 
-const isFusing = (r: RelationType) => r === "overlap" || r === "complement";
+/** Only "overlap" fuses two pieces into the SAME side. The others keep them distinct:
+ *  complement/dependency become directional flow; tension stays its own strand. */
+const isFusing = (r: RelationType) => r === "overlap";
+/** Relations that create a directional bond (A → B): dependency (A drives B) and
+ *  complement (A supplies context B needs, so B leans on A). */
+const isDirectional = (r: RelationType) => r === "dependency" || r === "complement";
 
 /**
  * Fuse fragments into facets using overlap/complement bridges (union-find),
@@ -145,7 +162,9 @@ export function computeSynthesis(
     }
   }
 
-  // 2. FACET FLOW from dependency bridges (A drives B → facet(A) → facet(B)).
+  // 2. FACET FLOW from directional bridges (A drives B → facet(A) → facet(B)).
+  //    Both "dependency" (A causes/blocks B) and "complement" (A supplies context B needs,
+  //    so B leans on A) point the same way: A is more upstream, B rests on it.
   //    Track BOTH out-edges (this side drives others) and in-edges (others drive it),
   //    because "what's the root?" is about in-edges, not raw connection count.
   const flowKey = (a: string, b: string) => `${a}->${b}`;
@@ -158,10 +177,10 @@ export function computeSynthesis(
     inFacets.set(fid, new Set());
   });
   for (const b of clusterBridges) {
-    if (b.relationType !== "dependency") continue;
+    if (!isDirectional(b.relationType)) continue;
     const fa = facetIdOf(b.fragmentAId);
     const fb = facetIdOf(b.fragmentBId);
-    if (fa === fb) continue; // internal dependency doesn't shape the between-facet flow
+    if (fa === fb) continue; // a bond inside one side doesn't shape the between-side flow
     const key = flowKey(fa, fb);
     if (!flowMap.has(key)) flowMap.set(key, { from: fa, to: fb, bridgeIds: [] });
     flowMap.get(key)!.bridgeIds.push(b.id);
