@@ -70,16 +70,16 @@ const MODE_SPEC: Record<
   explore: {
     label: "EXPLORE",
     instruction:
-      "Hold the space OPEN. Offer 2–3 genuinely COMPETING readings of what this elephant is — each a different lens that a smart teammate could defend. Keep EACH reading to ONE tight sentence (~25 words max). Do not rank them. The value is that the team sees the picture could be read more than one way before they commit.",
+      "Hold the space OPEN. Offer 2–3 genuinely COMPETING readings of what this elephant is — each a different lens that a smart teammate could defend. Keep EACH reading to ONE tight sentence (~25 words max). Do not rank them. STYLE: each reading must open DIFFERENTLY and lead with its own concrete claim — do NOT stamp them all from one template ('It's a … story', '이건 … 이야기', 'Maybe…', '어쩌면…'). The value is that the team sees the picture could be read more than one way before they commit.",
     shape:
-      '"readings": ["<reading 1: one sentence, this is really about X>", "<reading 2: one sentence, or it is about Y>", "<optional reading 3: one sentence>"]',
+      '"readings": ["<reading 1: one sentence, lead with the concrete claim>", "<reading 2: one sentence, a different lens, different opening>", "<optional reading 3: one sentence>"]',
   },
   hypothesis: {
     label: "HYPOTHESIS",
     instruction:
-      "Make ONE sharp, FALSIFIABLE bet about what is really going on underneath — a provocation the team can test and disprove, not a safe restatement. Phrase it as 'Maybe the real core is X — and if so, we'd expect to see Y.' It should feel like it names something the pieces were circling but nobody said out loud. Being wrong-but-testable beats being vague-but-safe.",
+      "Make ONE sharp, FALSIFIABLE bet about what is really going on underneath — a provocation the team can test and disprove, not a safe restatement. Two moves in one or two sentences: (1) name the underlying core, (2) give the concrete thing you'd EXPECT TO SEE if it's true (the test). It should name something the pieces were circling but nobody said out loud. Being wrong-but-testable beats vague-but-safe. STYLE: open with the claim itself, not a hedge. Do NOT begin with 'Maybe the real core is…' / '어쩌면 진짜 핵심은…' — that opener is banned. Start from the concrete noun (e.g. 'The audit trail is the hidden dependency — if so, every stalled deal traces to it.'). Vary sentence shape.",
     shape:
-      '"hypothesis": "<one falsifiable \'maybe the real core is X\' claim with a testable consequence>"',
+      '"hypothesis": "<one falsifiable claim + its testable consequence; do NOT start with \'Maybe\'/\'어쩌면\'>"',
   },
   verdict: {
     label: "VERDICT",

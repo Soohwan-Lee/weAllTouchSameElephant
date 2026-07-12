@@ -49,11 +49,11 @@ function localName(input: NameInput, lang: "en" | "ko", mode: RevealMode): NameR
       ...base,
       readings: crux
         ? lang === "ko"
-          ? [`어쩌면 이건 “${crux}”에 관한 이야기예요.`, "어쩌면 여러 증상이 겹친 것일 수도 있어요."]
-          : [`Maybe this is really about “${crux}.”`, "Or maybe it's several symptoms overlapping."]
+          ? [`“${crux}”이(가) 나머지를 끌고 가는 축일 수 있어요.`, "겹쳐 보이는 여러 증상이 사실은 따로 놀 수도 있고요."]
+          : [`“${crux}” may be the axis the rest turn on.`, "Or these could be separate symptoms that only look like one."]
         : lang === "ko"
-        ? ["어쩌면 하나의 뿌리가 있어요.", "어쩌면 별개의 문제들이 겹친 것일 수도요."]
-        : ["Maybe there's one root.", "Or maybe separate issues just overlap."],
+        ? ["하나의 뿌리가 나머지를 낳고 있을 수 있어요.", "아니면 별개의 문제들이 우연히 겹친 것일 수도요."]
+        : ["One root may be producing the rest.", "Or separate issues just happen to overlap here."],
     };
   }
   if (mode === "hypothesis") {
@@ -62,11 +62,11 @@ function localName(input: NameInput, lang: "en" | "ko", mode: RevealMode): NameR
       hypothesis:
         lang === "ko"
           ? crux
-            ? `어쩌면 진짜 핵심은 “${crux}”이고, 그렇다면 다른 조각들도 여기서 갈라져 나올 거예요.`
-            : "어쩌면 하나의 뿌리가 나머지를 만들고 있어요."
+            ? `“${crux}”이(가) 숨은 뿌리예요 — 맞다면 다른 조각들이 전부 여기서 갈라져 나올 거예요.`
+            : "하나의 뿌리가 나머지를 만들고 있어요 — 그렇다면 그것만 건드려도 나머지가 함께 움직일 거예요."
           : crux
-          ? `Maybe the real core is “${crux}” — and if so, the other pieces branch from it.`
-          : "Maybe one root is producing the rest.",
+          ? `“${crux}” is the hidden root — if so, the other pieces all branch from it.`
+          : "One root is producing the rest — if so, moving just it should move the others too.",
     };
   }
   return {

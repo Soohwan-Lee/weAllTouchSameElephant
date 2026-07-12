@@ -221,21 +221,21 @@ export const SCENARIOS: Scenario[] = [
       },
       readings: [
         {
-          en: "It's a product-priority story: an unglamorous audit trail keeps losing the roadmap, so revenue quietly bleeds.",
-          ko: "이건 우선순위 이야기예요: 화려하지 않은 감사 추적이 계속 로드맵에서 밀려서 매출이 조용히 새요.",
+          en: "Priority is the story: an unglamorous audit trail keeps losing the roadmap, so revenue quietly bleeds.",
+          ko: "우선순위 문제로 보여요: 화려하지 않은 감사 추적이 계속 로드맵에서 밀려서 매출이 조용히 새요.",
         },
         {
-          en: "It's a trust story: without a tamper-proof record, buyers and renewals just don't believe your change history.",
-          ko: "이건 신뢰 이야기예요: 위변조 방지 기록이 없으니 구매자도 갱신 고객도 변경 이력을 안 믿어요.",
+          en: "Or it's really about trust — without a tamper-proof record, buyers and renewals don't believe your change history.",
+          ko: "아니면 결국 신뢰 문제예요 — 위변조 방지 기록이 없으니 구매자도 갱신 고객도 변경 이력을 안 믿어요.",
         },
         {
-          en: "It's an architecture bet: the same feature that unlocks deals is the one Engineering says will slow the core.",
-          ko: "이건 아키텍처 내기예요: 계약을 여는 바로 그 기능이 엔지니어링이 코어를 느리게 한다고 말하는 그거예요.",
+          en: "Read another way it's an architecture bet: the feature that unlocks deals is the one Engineering says will slow the core.",
+          ko: "다르게 보면 아키텍처 내기예요: 계약을 여는 바로 그 기능이 엔지니어링이 코어를 느리게 한다고 말하는 그거예요.",
         },
       ],
       hypothesis: {
-        en: "Maybe the real core isn't security at all — it's that a tamper-proof change log was never owned on the roadmap. If so, you'd expect every 'stuck deal' to trace back to the same missing artifact, and shipping it once would clear Sales, Legal, Support and renewals together.",
-        ko: "어쩌면 진짜 핵심은 보안이 아니라, 위변조 방지 변경 로그를 로드맵에서 아무도 책임지지 않은 거예요. 그렇다면 모든 '막힌 계약'이 같은 빠진 기능으로 수렴하고, 그걸 한 번 출시하면 영업·법무·지원·갱신이 한꺼번에 풀릴 거예요.",
+        en: "The tamper-proof change log is the hidden root — not security. Nobody ever owned it on the roadmap, so if that's the cause, every 'stuck deal' should trace back to the same missing artifact, and shipping it once would clear Sales, Legal, Support and renewals together.",
+        ko: "위변조 방지 변경 로그가 숨은 뿌리예요 — 보안이 아니라. 로드맵에서 아무도 책임진 적이 없죠. 그게 원인이라면 모든 '막힌 계약'이 같은 빠진 기능으로 수렴하고, 그걸 한 번 출시하면 영업·법무·지원·갱신이 한꺼번에 풀릴 거예요.",
       },
       verdict: {
         en: "The core isn't security — it's that audit was never treated as a real deliverable, so it keeps losing the roadmap. Everything downstream (stalled deals, shaky trust, lost renewals) is the cost of that one unmade priority call. The tamper-proof log is a symptom of it, not the root.",
@@ -460,21 +460,21 @@ export const SCENARIOS: Scenario[] = [
       },
       readings: [
         {
-          en: "It reads as a scope problem — too many half-features, endless rewrites, unowned bugs piling up.",
-          ko: "범위 문제로 읽혀요 — 반쯤 된 기능이 너무 많고, 재작업이 끝없고, 주인 없는 버그가 쌓여요.",
+          en: "On the surface it's scope — too many half-features, endless rewrites, unowned bugs piling up.",
+          ko: "겉으로는 범위 문제예요 — 반쯤 된 기능이 너무 많고, 재작업이 끝없고, 주인 없는 버그가 쌓여요.",
         },
         {
-          en: "It reads as a coordination problem — everyone is quietly building a slightly different app.",
-          ko: "협업 문제로 읽혀요 — 다들 조용히 조금씩 다른 앱을 만들고 있어요.",
+          en: "Look closer and it's coordination — everyone is quietly building a slightly different app.",
+          ko: "가까이 보면 협업 문제예요 — 다들 조용히 조금씩 다른 앱을 만들고 있어요.",
         },
         {
-          en: "It reads as one upstream decision — you never agreed who it's for, so nothing downstream can settle.",
-          ko: "하나의 상류 결정으로 읽혀요 — 대상을 못 정해서 그 아래 무엇도 정착을 못 해요.",
+          en: "Underneath sits one upstream decision — you never agreed who it's for, so nothing downstream can settle.",
+          ko: "그 아래엔 상류 결정 하나가 있어요 — 대상을 못 정해서 그 아래 무엇도 정착을 못 해요.",
         },
       ],
       hypothesis: {
-        en: "Maybe none of the visible problems are the problem: they're all symptoms of never agreeing who the app is for. If that's true, you'd expect the feature list, the lost users, and the rewrites to keep regenerating no matter how hard you grind — until you name one user and one flow, and then most of them dissolve at once.",
-        ko: "어쩌면 눈에 보이는 문제들은 문제가 아니에요: 전부 '대상 미합의'의 증상이에요. 그게 맞다면, 아무리 갈아넣어도 기능 목록·헤매는 사용자·재작업이 계속 재생될 거예요 — 한 사용자와 한 흐름을 정하는 순간, 대부분이 한꺼번에 녹아 사라질 때까지.",
+        en: "None of the visible problems is the problem — they're all symptoms of never agreeing who the app is for. If that's the cause, the feature list, lost users, and rewrites keep regenerating no matter how hard you grind, until you name one user and one flow — then most dissolve at once.",
+        ko: "눈에 보이는 문제들은 문제가 아니에요 — 전부 '대상 미합의'의 증상이죠. 그게 원인이라면 아무리 갈아넣어도 기능 목록·헤매는 사용자·재작업이 계속 재생돼요. 한 사용자와 한 흐름을 정하는 순간, 대부분이 한꺼번에 녹아 사라질 거예요.",
       },
       verdict: {
         en: "The core isn't features, time, or bugs — it's that you never chose a user. Everything you called a separate crisis is the downstream of that one skipped decision. Pick one user and one flow this week, and four of your five problems stop being problems.",
@@ -677,21 +677,21 @@ export const SCENARIOS: Scenario[] = [
       },
       readings: [
         {
-          en: "It's a competing-wishes story: parents, seniors, runners and dog owners each want a different amenity on one budget.",
-          ko: "바람이 경쟁하는 이야기예요: 학부모·어르신·러너·견주가 하나의 예산으로 각기 다른 시설을 원해요.",
+          en: "Competing wishes are one lens: parents, seniors, runners and dog owners each want a different amenity on one budget.",
+          ko: "하나는 바람이 경쟁하는 렌즈예요: 학부모·어르신·러너·견주가 하나의 예산으로 각기 다른 시설을 원해요.",
         },
         {
-          en: "It's a zoning story: with no defined areas, kids, dogs and cyclists collide in the same space.",
-          ko: "구역 나누기 이야기예요: 정해진 영역이 없어 아이·개·자전거가 같은 공간에서 부딪혀요.",
+          en: "Or it's about zoning — with no defined areas, kids, dogs and cyclists collide in the same space.",
+          ko: "아니면 구역 문제예요 — 정해진 영역이 없어 아이·개·자전거가 같은 공간에서 부딪혀요.",
         },
         {
-          en: "It's an infrastructure story: broken drainage rots the paths and lawn, and everything else is built on that.",
-          ko: "인프라 이야기예요: 망가진 배수가 길과 잔디를 썩게 하고, 나머지는 전부 그 위에 지어져요.",
+          en: "Deeper down it's infrastructure: broken drainage rots the paths and lawn, and everything else is built on that.",
+          ko: "더 깊이 보면 인프라예요: 망가진 배수가 길과 잔디를 썩게 하고, 나머지는 전부 그 위에 지어져요.",
         },
       ],
       hypothesis: {
-        en: "Maybe the neighbors aren't actually disagreeing — the 'redesign' fight is really about which amenity to buy, but every amenity is being undermined by the same failing drainage. If so, fixing the ground first would make one shared budget stretch further than any single amenity would.",
-        ko: "어쩌면 이웃들은 사실 반대하는 게 아니에요 — '재설계' 다툼은 어떤 시설을 살까의 문제지만, 모든 시설이 같은 배수 문제로 무너지고 있어요. 그렇다면 땅부터 고치는 게 어떤 단일 시설보다 하나의 예산을 더 멀리 가게 해요.",
+        en: "The neighbors aren't really disagreeing — the 'redesign' fight is about which amenity to buy, while the same failing drainage undermines every one of them. If that's the cause, fixing the ground first makes one shared budget stretch further than any single amenity would.",
+        ko: "이웃들은 사실 반대하는 게 아니에요 — '재설계' 다툼은 어떤 시설을 살까의 문제이고, 같은 배수 문제가 그 시설들을 전부 무너뜨리고 있죠. 그게 원인이라면, 땅부터 고치는 게 어떤 단일 시설보다 하나의 예산을 더 멀리 가게 해요.",
       },
       verdict: {
         en: "The core isn't which amenity to fund — it's that the ground can't drain. Broken paths, dying lawn, and unsafe routes are all downstream of one failing surface. Fix drainage first, and the 'pick one thing' fight mostly disappears.",
@@ -894,21 +894,21 @@ export const SCENARIOS: Scenario[] = [
       },
       readings: [
         {
-          en: "It's a data-hygiene story: contact info is collected once and never updated, so half the reminders never land.",
-          ko: "데이터 위생 이야기예요: 연락처를 한 번만 받고 갱신을 안 해서 안내 절반이 안 닿아요.",
+          en: "Data hygiene is one lens: contact info is collected once and never updated, so half the reminders never land.",
+          ko: "하나는 데이터 위생이에요: 연락처를 한 번만 받고 갱신을 안 해서 안내 절반이 안 닿아요.",
         },
         {
-          en: "It's an access story: weekday-only slots and no transport mean many patients physically can't come.",
-          ko: "접근성 이야기예요: 평일 낮만 있고 교통편이 없어 많은 환자가 물리적으로 못 와요.",
+          en: "Or it's access — weekday-only slots and no transport mean many patients physically can't come.",
+          ko: "아니면 접근성 문제예요 — 평일 낮만 있고 교통편이 없어 많은 환자가 물리적으로 못 와요.",
         },
         {
-          en: "It's a motivation story: no one explained why the visit matters, so one miss quietly becomes never.",
-          ko: "동기 이야기예요: 이 방문이 왜 중요한지 아무도 설명 안 해서, 한 번 놓침이 조용히 영영으로 이어져요.",
+          en: "Or it's motivation — no one explained why the visit matters, so one miss quietly becomes never.",
+          ko: "아니면 동기 문제예요 — 이 방문이 왜 중요한지 아무도 설명 안 해서, 한 번 놓침이 조용히 영영으로 이어져요.",
         },
       ],
       hypothesis: {
-        en: "Maybe 'no-show' is the wrong word — patients aren't flaking, they're hitting walls the clinic built: unreachable, un-gettable-to, un-motivated. If so, you'd expect the cheapest fix (just updating phone numbers at every visit) to recover more slots than any new program, because the biggest wall is the one you can't even see them behind.",
-        ko: "어쩌면 '노쇼'는 틀린 말이에요 — 환자가 무책임한 게 아니라, 병원이 세운 벽에 부딪히는 거예요: 못 닿고, 못 오고, 동기 없고. 그렇다면 가장 싼 해법(매 방문마다 전화번호만 갱신)이 어떤 새 프로그램보다 더 많은 슬롯을 되찾을 거예요 — 가장 큰 벽은 그들이 뒤에 있는지조차 안 보이는 벽이니까.",
+        en: "'No-show' is the wrong word — patients aren't flaking, they're hitting walls the clinic built: unreachable, un-gettable-to, un-motivated. If that's right, the cheapest fix — just updating phone numbers at every visit — recovers more slots than any new program, because the biggest wall is the one you can't even see them behind.",
+        ko: "'노쇼'는 틀린 말이에요 — 환자가 무책임한 게 아니라, 병원이 세운 벽에 부딪히는 거예요: 못 닿고, 못 오고, 동기 없고. 그게 맞다면 가장 싼 해법(매 방문마다 전화번호만 갱신)이 어떤 새 프로그램보다 더 많은 슬롯을 되찾아요 — 가장 큰 벽은 그들이 뒤에 있는지조차 안 보이는 벽이니까요.",
       },
       verdict: {
         en: "The core isn't patient no-shows — it's three clinic-side barriers wearing one costume. Fix the cheapest one first: update contact info at every visit. You can't motivate or transport a patient you can't even reach.",
