@@ -920,6 +920,409 @@ export const SCENARIOS: Scenario[] = [
       },
     },
   },
+
+  // ─────────────────────────────────────────────────────────────
+  // AI ADOPTION — six stakeholders whose *values* diverge (efficiency vs
+  // survival vs trust vs risk), not just their symptoms. The hidden root is
+  // not "which tool" but that nobody ever decided WHAT the AI is FOR.
+  {
+    id: "aiadopt",
+    emoji: "🤖",
+    title: {
+      en: "Should we roll out AI across the company?",
+      ko: "회사 전체에 AI를 도입해야 할까?",
+    },
+    prompt: {
+      en: "Leadership wants an AI rollout decided this month. Each function is arguing from a different value — cost, jobs, risk, quality — and they're talking past each other.",
+      ko: "경영진이 이번 달 안에 AI 도입을 결정하려 합니다. 부서마다 다른 가치(비용·일자리·리스크·품질)로 주장하며 서로 엇갈리고 있어요.",
+    },
+    fragments: [
+      {
+        id: "ai_exec",
+        authorName: "Dana",
+        authorRole: { en: "Leadership", ko: "경영진" },
+        title: { en: "We're behind on cost", ko: "비용 경쟁에서 밀림" },
+        body: {
+          en: "Competitors are cutting costs with AI. If we don't automate the repetitive work this year, our margins fall behind.",
+          ko: "경쟁사는 AI로 비용을 줄이고 있어요. 올해 반복 업무를 자동화하지 않으면 마진이 뒤처집니다.",
+        },
+        x: 0.20, y: 0.22,
+      },
+      {
+        id: "ai_ic",
+        authorName: "Marcus",
+        authorRole: { en: "Frontline staff", ko: "실무자" },
+        title: { en: "Is this replacing us?", ko: "우릴 대체하는 건가" },
+        body: {
+          en: "Nobody told us what happens to our jobs. People are quietly polishing résumés instead of learning the tool.",
+          ko: "우리 일자리가 어떻게 되는지 아무도 말 안 해줬어요. 다들 도구를 배우는 대신 조용히 이력서를 손보고 있어요.",
+        },
+        x: 0.72, y: 0.24,
+      },
+      {
+        id: "ai_legal",
+        authorName: "Priya",
+        authorRole: { en: "Legal", ko: "법무" },
+        title: { en: "Who owns a bad output?", ko: "잘못된 출력은 누구 책임" },
+        body: {
+          en: "If the model gives a customer wrong advice, liability is unclear. I can't sign off without an accountability line.",
+          ko: "모델이 고객에게 잘못된 조언을 하면 책임 소재가 불분명해요. 책임 라인 없이는 승인 못 합니다.",
+        },
+        x: 0.15, y: 0.55,
+      },
+      {
+        id: "ai_cs",
+        authorName: "Rosa",
+        authorRole: { en: "Customer support", ko: "고객지원" },
+        title: { en: "Quality could slip", ko: "품질이 떨어질 수도" },
+        body: {
+          en: "Customers can tell when an answer is canned. If the AI sounds off, trust erodes and the tickets come back angrier.",
+          ko: "고객은 기계적인 답을 알아채요. AI가 어색하면 신뢰가 무너지고 문의가 더 화나서 돌아옵니다.",
+        },
+        x: 0.80, y: 0.56,
+      },
+      {
+        id: "ai_data",
+        authorName: "Kenji",
+        authorRole: { en: "Data team", ko: "데이터팀" },
+        title: { en: "Our data isn't ready", ko: "우리 데이터가 준비 안 됨" },
+        body: {
+          en: "The models are only as good as our messy, siloed data. Half the 'AI wins' people imagine won't survive contact with it.",
+          ko: "모델은 우리의 지저분하고 분산된 데이터만큼만 좋아요. 사람들이 상상하는 'AI 성과'의 절반은 실제 데이터에 닿으면 무너집니다.",
+        },
+        x: 0.30, y: 0.80,
+      },
+      {
+        id: "ai_hr",
+        authorName: "Ellen",
+        authorRole: { en: "HR / People", ko: "인사" },
+        title: { en: "No retraining plan", ko: "재교육 계획 없음" },
+        body: {
+          en: "We keep saying 'people will move to higher-value work,' but there's no budget or plan to actually retrain anyone.",
+          ko: "'사람들은 더 가치 있는 일로 옮겨갈 것'이라 말하지만, 실제로 누굴 재교육할 예산도 계획도 없어요.",
+        },
+        x: 0.66, y: 0.82,
+      },
+    ],
+    sampleBridges: [
+      // FACET: "we never said what AI is FOR" surfaces as trust/quality/jobs anxiety
+      {
+        fragmentAId: "ai_ic",
+        fragmentBId: "ai_hr",
+        relationType: "overlap",
+        explanation: {
+          en: "'Is this replacing us' and 'no retraining plan' are the same unanswered question: what happens to people.",
+          ko: "'우릴 대체하나'와 '재교육 계획 없음'은 같은 미답의 질문이에요: 사람은 어떻게 되는가.",
+        },
+        evidenceA: { en: "what happens to our jobs", ko: "우리 일자리가 어떻게" },
+        evidenceB: { en: "no plan to retrain anyone", ko: "재교육할 계획 없음" },
+        confidence: 0.83,
+      },
+      {
+        fragmentAId: "ai_cs",
+        fragmentBId: "ai_legal",
+        relationType: "complement",
+        explanation: {
+          en: "Support's 'quality could slip' and Legal's 'who owns a bad output' are two faces of one gap: nobody owns what the AI is accountable for.",
+          ko: "고객지원의 '품질 하락'과 법무의 '잘못된 출력 책임'은 한 공백의 두 얼굴이에요: AI가 무엇에 책임지는지 아무도 안 정함.",
+        },
+        evidenceA: { en: "trust erodes", ko: "신뢰가 무너짐" },
+        evidenceB: { en: "liability is unclear", ko: "책임 소재 불분명" },
+        confidence: 0.76,
+      },
+      // SPINE: the cost push, run through an undefined purpose, produces the fear + risk
+      {
+        fragmentAId: "ai_exec",
+        fragmentBId: "ai_ic",
+        relationType: "dependency",
+        explanation: {
+          en: "The cost-cutting framing, never paired with a jobs answer, is exactly what reads to staff as 'replacing us.'",
+          ko: "일자리에 대한 답 없이 나온 비용 절감 프레임이, 직원에게 '우릴 대체한다'로 읽히는 바로 그 원인이에요.",
+        },
+        evidenceA: { en: "automate the repetitive work", ko: "반복 업무 자동화" },
+        evidenceB: { en: "replacing us", ko: "우릴 대체" },
+        confidence: 0.8,
+      },
+      {
+        fragmentAId: "ai_exec",
+        fragmentBId: "ai_data",
+        relationType: "dependency",
+        explanation: {
+          en: "The promised cost savings depend on data quality the data team says isn't there yet.",
+          ko: "약속된 비용 절감은 데이터팀이 아직 없다고 말하는 데이터 품질에 달려 있어요.",
+        },
+        evidenceA: { en: "margins fall behind", ko: "마진이 뒤처짐" },
+        evidenceB: { en: "won't survive contact with it", ko: "실제 데이터에 닿으면 무너짐" },
+        confidence: 0.78,
+      },
+      {
+        fragmentAId: "ai_legal",
+        fragmentBId: "ai_cs",
+        relationType: "dependency",
+        explanation: {
+          en: "Without a clear accountability line, a slip in quality has no owner — so support absorbs the angry tickets.",
+          ko: "명확한 책임 라인이 없으면 품질 하락에 주인이 없고, 그래서 고객지원이 화난 문의를 떠안아요.",
+        },
+        evidenceA: { en: "can't sign off", ko: "승인 못 함" },
+        evidenceB: { en: "tickets come back angrier", ko: "문의가 더 화나서 돌아옴" },
+        confidence: 0.74,
+      },
+      {
+        fragmentAId: "ai_exec",
+        fragmentBId: "ai_legal",
+        relationType: "dependency",
+        explanation: {
+          en: "Pushing to automate this year without naming who owns the AI's outputs is exactly what leaves Legal unable to sign off.",
+          ko: "AI 출력의 책임자를 정하지 않은 채 올해 자동화를 밀어붙이는 것이, 법무가 승인 못 하게 만드는 바로 그 원인이에요.",
+        },
+        evidenceA: { en: "automate the repetitive work", ko: "반복 업무 자동화" },
+        evidenceB: { en: "can't sign off without an accountability line", ko: "책임 라인 없이 승인 못 함" },
+        confidence: 0.76,
+      },
+      // TENSION: speed vs readiness — kept alive, not resolved
+      {
+        fragmentAId: "ai_exec",
+        fragmentBId: "ai_data",
+        relationType: "tension",
+        explanation: {
+          en: "Leadership wants to move this year; the data team says the ground truth to move on isn't ready. Both can be right.",
+          ko: "경영진은 올해 움직이려 하고, 데이터팀은 움직일 근거가 준비 안 됐다고 해요. 둘 다 맞을 수 있어요.",
+        },
+        evidenceA: { en: "this year", ko: "올해" },
+        evidenceB: { en: "isn't ready", ko: "준비 안 됨" },
+        confidence: 0.8,
+      },
+    ],
+    reveal: {
+      name: { en: "AI without a purpose decided", ko: "목적을 안 정한 AI" },
+      note: {
+        en: "Six functions argued the how before anyone decided what the AI is for.",
+        ko: "여섯 부서가 '무엇을 위한 AI인가'를 정하기도 전에 '어떻게'를 다투고 있었어요.",
+      },
+      readings: [
+        {
+          en: "It looks like a jobs story: a cost-cutting message with no jobs answer, so the best people prepare to leave before the tool even lands.",
+          ko: "일자리 이야기로 보여요: 일자리에 대한 답 없는 비용 절감 메시지라, 도구가 오기도 전에 유능한 사람들이 떠날 준비를 해요.",
+        },
+        {
+          en: "Read as risk, it's an ownership gap: no accountability line means quality and liability quietly fall on whoever's nearest — usually support.",
+          ko: "리스크로 읽으면 소유권 공백이에요: 책임 라인이 없으니 품질과 법적 책임이 가장 가까운 사람, 대개 고객지원에게 조용히 떨어져요.",
+        },
+        {
+          en: "Or it's a readiness bet: the savings leadership is counting on ride on data the data team says will crumble on contact.",
+          ko: "아니면 준비도 내기예요: 경영진이 기대는 절감이, 데이터팀이 닿으면 무너진다고 말하는 데이터 위에 서 있어요.",
+        },
+      ],
+      hypothesis: {
+        en: "The unmade decision is not which AI tool but what AI is FOR here — a governed risk or a shaped tool. If that's the root, then every function's objection is really the same missing answer wearing a different hat: name the purpose (and the jobs, ownership, and readiness that follow from it) once, and cost, trust, and risk stop being separate fights.",
+        ko: "안 내린 결정은 '어떤 AI 도구냐'가 아니라 '여기서 AI가 무엇을 위한 것이냐'예요 — 통제할 리스크인가, 다듬을 도구인가. 그게 뿌리라면 각 부서의 반대는 사실 다른 탈을 쓴 같은 빈 답이에요: 목적(그리고 거기서 따라오는 일자리·책임·준비도)을 한 번 정하면 비용·신뢰·리스크가 따로 싸울 일이 아니게 됩니다.",
+      },
+      verdict: {
+        en: "The core isn't the tool or the timeline — it's that leadership framed AI as a cost move without ever deciding what it's for or who owns its outcomes. Every downstream fear (jobs, liability, quality, bad data) is the cost of that one skipped decision. Pick the purpose first; the tool choice is downstream of it.",
+        ko: "핵심은 도구도 일정도 아니라 — 경영진이 AI가 무엇을 위한 것인지, 그 결과를 누가 책임지는지 정하지 않은 채 '비용 수단'으로 프레임한 거예요. 아래의 모든 두려움(일자리·책임·품질·나쁜 데이터)이 그 건너뛴 결정 하나의 대가고요. 목적을 먼저 정하세요; 도구 선택은 그 다음이에요.",
+      },
+      question: {
+        en: "So the real question is: before choosing any tool, can we state in one sentence what AI is for here — and what that commits us to for people, ownership, and data?",
+        ko: "그래서 진짜 질문은: 어떤 도구를 고르기 전에, 여기서 AI가 무엇을 위한 것인지 한 문장으로 말할 수 있나 — 그리고 그것이 사람·책임·데이터에 대해 우리에게 무엇을 약속하게 하나?",
+      },
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // REDEVELOPMENT / SHELTER — the hardest divergence: stakeholders argue on
+  // incommensurable value axes (safety vs dignity vs revenue vs votes vs need
+  // vs profit). The hidden root is a legitimacy question no process owns:
+  // who counts as belonging to this neighborhood.
+  {
+    id: "shelter",
+    emoji: "🏙️",
+    title: {
+      en: "What goes on the empty downtown lot?",
+      ko: "도심 빈 부지에 무엇을 지을까?",
+    },
+    prompt: {
+      en: "The city must decide the fate of a vacant lot — a proposed homeless shelter, or redevelopment. Six stakeholders each argue from a value the others don't share.",
+      ko: "시(市)가 빈 부지의 운명을 정해야 합니다 — 노숙인 쉼터냐, 재개발이냐. 여섯 이해관계자가 서로 공유하지 않는 가치로 각자 주장해요.",
+    },
+    fragments: [
+      {
+        id: "sh_resident",
+        authorName: "Grace",
+        authorRole: { en: "Resident", ko: "주민" },
+        title: { en: "Will my street be safe?", ko: "우리 동네 안전할까" },
+        body: {
+          en: "I'm not against helping people, but I worry about safety for my kids and what a shelter does to our home's value.",
+          ko: "사람 돕는 걸 반대하진 않아요. 다만 아이들 안전과 집값에 쉼터가 미칠 영향이 걱정돼요.",
+        },
+        x: 0.18, y: 0.20,
+      },
+      {
+        id: "sh_advocate",
+        authorName: "Malik",
+        authorRole: { en: "Homeless advocate", ko: "노숙인 활동가" },
+        title: { en: "People are dying outside", ko: "밖에서 사람이 죽어간다" },
+        body: {
+          en: "This is a dignity and survival issue. Every month without shelter, someone we know doesn't make it through the cold.",
+          ko: "이건 존엄과 생존의 문제예요. 쉼터 없는 매달, 우리가 아는 누군가가 추위를 못 넘겨요.",
+        },
+        x: 0.74, y: 0.22,
+      },
+      {
+        id: "sh_merchant",
+        authorName: "Tomas",
+        authorRole: { en: "Local business", ko: "지역 상인" },
+        title: { en: "Foot traffic keeps us alive", ko: "유동인구가 우릴 살림" },
+        body: {
+          en: "My shop runs on people walking by. I've watched a shelter empty out a block before — I can't survive that here.",
+          ko: "제 가게는 지나가는 사람으로 굴러가요. 쉼터가 한 블록을 비게 만드는 걸 봤어요 — 여기서 그걸 못 견뎌요.",
+        },
+        x: 0.16, y: 0.54,
+      },
+      {
+        id: "sh_council",
+        authorName: "Alderman Reyes",
+        authorRole: { en: "City council", ko: "시의원" },
+        title: { en: "Whatever I pick, I lose voters", ko: "뭘 골라도 표를 잃음" },
+        body: {
+          en: "Half my constituents want compassion, half want property values. Any decision costs me the other half at election.",
+          ko: "제 지역구 절반은 온정을, 절반은 집값을 원해요. 어떤 결정을 해도 선거에서 나머지 절반을 잃어요.",
+        },
+        x: 0.82, y: 0.55,
+      },
+      {
+        id: "sh_social",
+        authorName: "Nadia",
+        authorRole: { en: "Social worker", ko: "사회복지사" },
+        title: { en: "A shelter alone won't fix it", ko: "쉼터만으론 안 됨" },
+        body: {
+          en: "Beds without services just move the problem indoors. Real need is treatment and case work, not just a roof.",
+          ko: "서비스 없는 침대는 문제를 실내로 옮길 뿐이에요. 진짜 필요한 건 지붕만이 아니라 치료와 사례 관리예요.",
+        },
+        x: 0.32, y: 0.80,
+      },
+      {
+        id: "sh_developer",
+        authorName: "Quinn",
+        authorRole: { en: "Developer", ko: "개발업체" },
+        title: { en: "Housing pencils, shelter doesn't", ko: "주택은 수익, 쉼터는 손해" },
+        body: {
+          en: "Mixed-use housing on this lot funds itself and adds tax base. A shelter is a permanent cost the city has to carry.",
+          ko: "이 부지의 복합 주택은 자체 수익이 나고 세수도 늘려요. 쉼터는 시가 계속 떠안아야 하는 영구 비용이고요.",
+        },
+        x: 0.68, y: 0.82,
+      },
+    ],
+    sampleBridges: [
+      // FACET: safety-fear and business-fear are the same fear of "who this lot brings"
+      {
+        fragmentAId: "sh_resident",
+        fragmentBId: "sh_merchant",
+        relationType: "overlap",
+        explanation: {
+          en: "The resident's safety worry and the merchant's foot-traffic worry are the same fear in two vocabularies: who this place brings, and whether they belong.",
+          ko: "주민의 안전 걱정과 상인의 유동인구 걱정은 두 언어로 된 같은 두려움이에요: 이곳이 누구를 부르는가, 그리고 그들이 여기 속하는가.",
+        },
+        evidenceA: { en: "safety for my kids", ko: "아이들 안전" },
+        evidenceB: { en: "empty out a block", ko: "블록을 비게 함" },
+        confidence: 0.75,
+      },
+      {
+        fragmentAId: "sh_advocate",
+        fragmentBId: "sh_social",
+        relationType: "complement",
+        explanation: {
+          en: "The advocate's 'people are dying' and the social worker's 'a shelter alone won't fix it' complete each other: the urgency and the reason a bed alone falls short.",
+          ko: "활동가의 '사람이 죽어간다'와 복지사의 '쉼터만으론 안 됨'은 서로를 보완해요: 절박함과, 침대만으론 부족한 이유.",
+        },
+        evidenceA: { en: "someone doesn't make it", ko: "누군가 못 넘김" },
+        evidenceB: { en: "move the problem indoors", ko: "문제를 실내로 옮김" },
+        confidence: 0.72,
+      },
+      // SPINE: the unowned legitimacy question drives the councilmember's trap
+      {
+        fragmentAId: "sh_resident",
+        fragmentBId: "sh_council",
+        relationType: "dependency",
+        explanation: {
+          en: "The residents' unspoken 'do these people belong here' is exactly what splits the councilmember's base in two.",
+          ko: "주민들의 말 못 한 '이 사람들이 여기 속하나'가 시의원의 지지 기반을 둘로 가르는 바로 그 지점이에요.",
+        },
+        evidenceA: { en: "what a shelter does to our home", ko: "쉼터가 집에 미치는 영향" },
+        evidenceB: { en: "lose the other half", ko: "나머지 절반을 잃음" },
+        confidence: 0.73,
+      },
+      {
+        fragmentAId: "sh_developer",
+        fragmentBId: "sh_council",
+        relationType: "dependency",
+        explanation: {
+          en: "The developer's 'shelter is a permanent cost' hands the councilmember the fiscal argument that makes saying no feel responsible.",
+          ko: "개발업체의 '쉼터는 영구 비용'이, 거절을 책임감 있어 보이게 만드는 재정 논리를 시의원에게 쥐여줘요.",
+        },
+        evidenceA: { en: "permanent cost", ko: "영구 비용" },
+        evidenceB: { en: "any decision costs me", ko: "어떤 결정도 대가가 큼" },
+        confidence: 0.7,
+      },
+      {
+        fragmentAId: "sh_social",
+        fragmentBId: "sh_developer",
+        relationType: "dependency",
+        explanation: {
+          en: "Because services (not just beds) are what actually help, the 'shelter = pure cost' math is only true if the city keeps refusing to fund the services.",
+          ko: "실제로 돕는 건 침대가 아니라 서비스이기 때문에, '쉼터 = 순수 비용' 계산은 시가 서비스 예산을 계속 거부할 때만 참이에요.",
+        },
+        evidenceA: { en: "treatment and case work", ko: "치료와 사례 관리" },
+        evidenceB: { en: "cost the city has to carry", ko: "시가 떠안는 비용" },
+        confidence: 0.68,
+      },
+      // TENSION: dignity vs revenue — genuinely incommensurable, kept alive
+      {
+        fragmentAId: "sh_advocate",
+        fragmentBId: "sh_developer",
+        relationType: "tension",
+        explanation: {
+          en: "One measures the lot in lives saved, the other in tax base added. These value scales don't convert — and pretending they do is how the fight stalls.",
+          ko: "한쪽은 부지를 구한 생명으로, 다른 쪽은 늘어난 세수로 재요. 이 가치 척도는 서로 환산되지 않아요 — 되는 척하는 게 싸움이 멈추는 이유고요.",
+        },
+        evidenceA: { en: "dignity and survival", ko: "존엄과 생존" },
+        evidenceB: { en: "funds itself, adds tax base", ko: "자체 수익, 세수 증가" },
+        confidence: 0.82,
+      },
+    ],
+    reveal: {
+      name: { en: "Who counts as from here", ko: "누가 '여기 사람'인가" },
+      note: {
+        en: "Six people argued lot use on six value scales — but under them sits one unasked question of belonging.",
+        ko: "여섯 사람이 여섯 가치 척도로 부지 용도를 다퉜지만, 그 아래엔 묻지 않은 '소속'의 질문 하나가 있어요.",
+      },
+      readings: [
+        {
+          en: "It looks like a safety-vs-compassion fight, but 'safe for my kids' and 'people are dying outside' are answers to different questions that never actually meet.",
+          ko: "안전 대 온정의 싸움처럼 보이지만, '아이들에게 안전'과 '밖에서 사람이 죽어간다'는 서로 만난 적 없는 다른 질문에 대한 답이에요.",
+        },
+        {
+          en: "Read fiscally, the whole thing turns on a choice the city hides: a shelter is 'pure cost' only because it keeps refusing to fund the services that would make it work.",
+          ko: "재정으로 읽으면, 전체가 시가 숨기는 선택 하나에 달려 있어요: 쉼터가 '순수 비용'인 건 그것이 작동하게 할 서비스 예산을 계속 거부하기 때문일 뿐이에요.",
+        },
+        {
+          en: "Underneath, it's a legitimacy question no process owns: does someone sleeping outside count as a resident of this neighborhood, with a claim on its land?",
+          ko: "그 밑엔 어떤 절차도 책임지지 않는 정당성의 질문이 있어요: 밖에서 자는 사람이 이 동네의 주민으로, 이 땅에 대한 권리를 가진 사람으로 셈해지는가?",
+        },
+      ],
+      hypothesis: {
+        en: "The stuck point isn't the lot — it's an unowned question of belonging: who counts as 'from here.' If that's the root, then safety, foot traffic, votes, and cost are all proxies people reach for because the belonging question is too raw to say out loud. Name it, and the fight becomes about services and design (solvable) instead of worth (not).",
+        ko: "막힌 지점은 부지가 아니라 — 누구도 책임지지 않는 소속의 질문이에요: 누가 '여기 사람'인가. 그게 뿌리라면 안전·유동인구·표·비용은 모두 사람들이 대신 붙드는 대용물이에요, 소속의 질문이 입 밖에 내기엔 너무 날것이라서요. 그걸 이름 붙이면, 싸움은 (풀 수 없는) 가치 문제 대신 (풀 수 있는) 서비스와 설계의 문제가 됩니다.",
+      },
+      verdict: {
+        en: "The core isn't shelter-vs-housing — it's that no one will say out loud who this neighborhood is for. Every value on the table (safety, revenue, votes, dignity) is a stand-in for one unspoken judgment about who belongs. Until the belonging question is named, every 'practical' argument is really that judgment in disguise, and no design will settle it.",
+        ko: "핵심은 쉼터냐 주택이냐가 아니라 — 이 동네가 누구를 위한 곳인지 아무도 소리 내어 말하지 않는다는 거예요. 테이블 위 모든 가치(안전·수익·표·존엄)가 '누가 속하는가'라는 말 못 한 판단의 대역이에요. 소속의 질문에 이름 붙이기 전엔, 모든 '현실적' 논거가 사실 그 판단의 위장이고, 어떤 설계로도 정리되지 않아요.",
+      },
+      question: {
+        en: "So the real question is: before we design anything for this lot, can we say plainly who we think this neighborhood is for — and let that, not the land, be what we're actually deciding?",
+        ko: "그래서 진짜 질문은: 이 부지에 무엇을 설계하기 전에, 우리가 이 동네를 누구를 위한 곳으로 여기는지 솔직히 말할 수 있나 — 그리고 땅이 아니라 그것을 우리가 실제로 정하는 대상으로 삼을 수 있나?",
+      },
+    },
+  },
 ];
 
 export function getScenario(id: string | null): Scenario | undefined {
