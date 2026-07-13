@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { useSession } from "./store";
 
 export type Lang = "en" | "ko";
 
@@ -294,6 +295,9 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     setLangState(l);
     if (typeof window !== "undefined") window.localStorage.setItem("watse-lang", l);
     if (typeof document !== "undefined") document.documentElement.lang = l;
+    // re-project any loaded sample-scenario content (fragments, pre-baked bridges)
+    // into the new language so a mid-test switch actually takes effect.
+    useSession.getState().relocalize(l);
   };
 
   const t = (k: TKey) => dict[k]?.[lang] ?? k;

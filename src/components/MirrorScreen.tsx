@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useSession, scenarioRevealToResult } from "@/lib/store";
 import { getScenario } from "@/lib/scenarios";
@@ -42,6 +42,8 @@ export function MirrorScreen() {
   const [mode, setMode] = useState<RevealMode>("explore");
   const [result, setResult] = useState<NameResult | null>(null);
   const [nameDraft, setNameDraft] = useState("");
+  // remember whether the shown reveal came from a sample scenario (so we can re-project it on language switch)
+  const fromSampleReveal = useRef(false);
 
   const clusters = findClusters(fragments, bridges, 3);
   const main = clusters[0];
@@ -99,9 +101,13 @@ export function MirrorScreen() {
       };
       let res = await fetchName(input, lang, chosen);
       // sample mode → use the scenario's hand-written, sharper reveal if we have one
+      fromSampleReveal.current = false;
       if (res.sample) {
         const sc = getScenario(scenarioId);
-        if (sc?.reveal) res = scenarioRevealToResult(sc.reveal, lang, chosen);
+        if (sc?.reveal) {
+          res = scenarioRevealToResult(sc.reveal, lang, chosen);
+          fromSampleReveal.current = true;
+        }
       }
       setResult(res);
       if (!nameDraft && res.name) setNameDraft(res.name);
@@ -110,6 +116,19 @@ export function MirrorScreen() {
       setLoading(false);
     }
   }
+
+  // when the user switches language mid-test, re-project a sample reveal into the new
+  // language. Live-AI reveals can't be translated, so they're left as-is.
+  useEffect(() => {
+    if (!fromSampleReveal.current) return;
+    const sc = getScenario(scenarioId);
+    if (!sc?.reveal) return;
+    const res = scenarioRevealToResult(sc.reveal, lang, mode);
+    setResult(res);
+    // only refresh the AI-suggested name draft if the team hasn't accepted a name yet
+    if (!named) setNameDraft(res.name);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">

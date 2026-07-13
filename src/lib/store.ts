@@ -12,6 +12,7 @@ import type {
   ScenarioBridge,
   ScenarioReveal,
 } from "./types";
+import { getScenario } from "./scenarios";
 
 /** Turn a scenario's bilingual pre-baked bridges into proposals in one language. */
 export function scenarioBridgesToProposals(
@@ -75,6 +76,8 @@ interface SessionState {
 
   setStep: (s: Step) => void;
   loadScenario: (sc: Scenario, lang: "en" | "ko") => void;
+  /** re-project scenario-derived fragment/bridge text into `lang` (mid-session language switch) */
+  relocalize: (lang: "en" | "ko") => void;
   reset: () => void;
 
   addFragment: (f: Omit<Fragment, "id" | "x" | "y">) => void;
@@ -144,6 +147,48 @@ export const useSession = create<SessionState>((set, get) => ({
       revealView: "crux",
       step: "gather",
     });
+  },
+
+  relocalize: (lang) => {
+    const { scenarioId } = get();
+    const sc = getScenario(scenarioId);
+    if (!sc) return; // blank table / user content — nothing we can translate
+
+    // fragment localized fields, keyed by scenario fragment id
+    const fragText = new Map(
+      sc.fragments.map((f) => [
+        f.id,
+        { authorRole: f.authorRole[lang], title: f.title[lang], body: f.body[lang] },
+      ])
+    );
+    // pre-baked bridge text, keyed by unordered fragment pair
+    const bridgeText = new Map(
+      sc.sampleBridges.map((b) => [
+        pairKey(b.fragmentAId, b.fragmentBId),
+        {
+          explanation: b.explanation[lang],
+          evidenceA: b.evidenceA[lang],
+          evidenceB: b.evidenceB[lang],
+        },
+      ])
+    );
+
+    // only AI bridges that match a pre-baked pair get re-projected;
+    // human/manual and live-AI text can't be translated, so leave those as-is.
+    const relBridge = (b: Bridge): Bridge => {
+      if (b.createdBy !== "ai") return b;
+      const txt = bridgeText.get(pairKey(b.fragmentAId, b.fragmentBId));
+      return txt ? { ...b, ...txt } : b;
+    };
+
+    set((s) => ({
+      fragments: s.fragments.map((f) => {
+        const txt = fragText.get(f.id);
+        return txt ? { ...f, ...txt } : f;
+      }),
+      bridges: s.bridges.map(relBridge),
+      tray: s.tray.map(relBridge),
+    }));
   },
 
   reset: () =>
