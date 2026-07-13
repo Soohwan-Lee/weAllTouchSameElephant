@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useSession, scenarioBridgesToProposals } from "@/lib/store";
 import { getScenario } from "@/lib/scenarios";
+import { countRedundantEdges } from "@/lib/clusters";
 import { fetchBridges } from "@/lib/api";
 import { BridgeCard } from "./BridgeCard";
 import { Hint } from "./Hint";
@@ -56,6 +57,10 @@ export function ConnectScreen() {
   const totalPairs = (fragments.length * (fragments.length - 1)) / 2;
   const moreAvailable = usedPairs < totalPairs;
 
+  // connection budget: how many confirmed edges are "extra" (restate an existing path).
+  // Zero extra with pieces connected = a clean tree; extras are additional claims, not glue.
+  const extraEdges = countRedundantEdges(bridges);
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="animate-fade-up">
@@ -81,12 +86,17 @@ export function ConnectScreen() {
 
         {/* tray */}
         <div className="flex flex-col">
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-1 flex items-center justify-between">
             <span className="text-sm font-semibold text-ink">{t("connect.tray")}</span>
             <span className="text-xs text-ink-faint">
               {bridges.length} {t("bridge.confirmedCount")}
             </span>
           </div>
+          {extraEdges > 0 && (
+            <div className="mb-3 rounded-md bg-amber-50/60 px-2.5 py-1.5 text-[11px] leading-snug text-amber-800">
+              ⚖︎ {extraEdges} {t("budget.extra")}
+            </div>
+          )}
 
           <button
             onClick={suggest}

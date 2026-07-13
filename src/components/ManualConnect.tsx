@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/store";
+import { isReachable } from "@/lib/clusters";
 import { RELATION_META } from "@/lib/relation";
 import { RELATION_TYPES, type RelationType } from "@/lib/types";
 import { PuzzleCanvas } from "./PuzzleCanvas";
@@ -17,6 +18,7 @@ import { PuzzleCanvas } from "./PuzzleCanvas";
 export function ManualConnect() {
   const { t } = useI18n();
   const fragments = useSession((s) => s.fragments);
+  const bridges = useSession((s) => s.bridges);
   const addManualBridge = useSession((s) => s.addManualBridge);
 
   const [mode, setMode] = useState(false);
@@ -26,6 +28,9 @@ export function ManualConnect() {
 
   const byId = (id: string) => fragments.find((f) => f.id === id);
   const ready = picks.length === 2;
+  // redundant = the two picks already connect through other pieces, so this edge
+  // adds no new glue — only a restated relation. We nudge, we don't block.
+  const redundant = ready && isReachable(picks[0], picks[1], bridges);
 
   const pick = (id: string) => {
     setPicks((cur) => {
@@ -85,6 +90,12 @@ export function ManualConnect() {
         </div>
       ) : ready ? (
         <div className="mt-3 animate-fade-up rounded-xl border border-accent/30 bg-accent-soft/40 p-4">
+          {redundant && (
+            <div className="mb-3 rounded-lg border border-amber-300/60 bg-amber-50/70 px-3 py-2 text-xs leading-relaxed text-amber-900">
+              <span className="font-medium">↩︎ {t("nudge.redundant")}</span>{" "}
+              {t("nudge.redundantAsk")}
+            </div>
+          )}
           <div className="text-sm font-medium text-ink">{t("manual.chooseRelation")}</div>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {RELATION_TYPES.map((r) => (
@@ -112,7 +123,7 @@ export function ManualConnect() {
               onClick={create}
               className="rounded-full bg-accent px-4 py-2 text-xs font-semibold text-white transition hover:opacity-95"
             >
-              ✓ {t("manual.create")}
+              ✓ {redundant ? t("nudge.linkAnyway") : t("manual.create")}
             </button>
             <button
               onClick={reset}

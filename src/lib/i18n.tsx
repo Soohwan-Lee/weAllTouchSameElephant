@@ -96,6 +96,29 @@ const dict = {
   "manual.cancel": { en: "Cancel", ko: "취소" },
   "manual.yours": { en: "yours", ko: "직접" },
 
+  // ---- redundancy nudge (minimal edges) ----
+  "nudge.redundant": {
+    en: "These two already connect through the pieces between them.",
+    ko: "이 둘은 사이의 조각들을 통해 이미 이어져 있어요.",
+  },
+  "nudge.redundantAsk": {
+    en: "Is this a genuinely new relation, or the same link said another way?",
+    ko: "정말 새로운 관계인가요, 아니면 같은 연결을 다르게 말한 건가요?",
+  },
+  "nudge.linkAnyway": { en: "Add it anyway", ko: "그래도 연결" },
+  "budget.enough": {
+    en: "Enough links to hold every piece in one shape.",
+    ko: "모든 조각을 한 그림으로 묶기에 충분한 연결이에요.",
+  },
+  "budget.extra": {
+    en: "extra links beyond the minimum — each one is another claim, not more glue.",
+    ko: "개의 연결이 최소보다 많아요 — 하나하나가 접착제가 아니라 또 하나의 주장이에요.",
+  },
+  "budget.need": {
+    en: "more link(s) will hold the connected pieces in one shape.",
+    ko: "개 더 이으면 연결된 조각들이 한 그림으로 묶여요.",
+  },
+
   // relation types
   "rel.overlap": { en: "Same issue, different angle", ko: "같은 문제, 다른 각도" },
   "rel.tension": { en: "Pulling in different directions", ko: "서로 다른 방향" },
