@@ -69,6 +69,8 @@ interface SessionState {
   clusterNames: Record<string, string>;
   /** team-edited "so the real question is…" (per cluster id) */
   clusterQuestions: Record<string, string>;
+  /** team's own next step / decision that answers the real question (per cluster id) */
+  clusterDecisions: Record<string, string>;
   /** whether the reveal ("assemble the elephant") is active */
   assembled: boolean;
   /** which reveal view: "crux" = the synthesis shape, "assembly" = the loose ring */
@@ -87,6 +89,7 @@ interface SessionState {
   setLoadingBridges: (v: boolean) => void;
   setClusterName: (clusterId: string, name: string) => void;
   setClusterQuestion: (clusterId: string, q: string) => void;
+  setClusterDecision: (clusterId: string, d: string) => void;
   setAssembled: (v: boolean) => void;
   setRevealView: (v: "assembly" | "crux") => void;
   addProposals: (proposals: BridgeProposal[]) => number; // returns # added
@@ -114,6 +117,7 @@ export const useSession = create<SessionState>((set, get) => ({
   loadingBridges: false,
   clusterNames: {},
   clusterQuestions: {},
+  clusterDecisions: {},
   assembled: false,
   revealView: "crux",
 
@@ -122,6 +126,8 @@ export const useSession = create<SessionState>((set, get) => ({
     set((s) => ({ clusterNames: { ...s.clusterNames, [clusterId]: name } })),
   setClusterQuestion: (clusterId, q) =>
     set((s) => ({ clusterQuestions: { ...s.clusterQuestions, [clusterId]: q } })),
+  setClusterDecision: (clusterId, d) =>
+    set((s) => ({ clusterDecisions: { ...s.clusterDecisions, [clusterId]: d } })),
   setAssembled: (assembled) => set({ assembled }),
   setRevealView: (revealView) => set({ revealView }),
 
@@ -143,6 +149,7 @@ export const useSession = create<SessionState>((set, get) => ({
       rejectedPairKeys: new Set(),
       clusterNames: {},
       clusterQuestions: {},
+      clusterDecisions: {},
       assembled: false,
       revealView: "crux",
       step: "gather",
@@ -201,6 +208,7 @@ export const useSession = create<SessionState>((set, get) => ({
       rejectedPairKeys: new Set(),
       clusterNames: {},
       clusterQuestions: {},
+      clusterDecisions: {},
       assembled: false,
       revealView: "crux",
       loadingBridges: false,

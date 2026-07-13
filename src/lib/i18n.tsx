@@ -224,6 +224,20 @@ const dict = {
   "crux.downstream": { en: "Visible symptoms", ko: "드러난 증상" },
   "crux.realQuestion": { en: "So the real question is…", ko: "그래서 진짜 질문은…" },
   "crux.editQuestion": { en: "Edit the question", ko: "질문 수정" },
+
+  // ---- decision step (turn the reframed question into the team's own next move) ----
+  "decide.label": { en: "So our next move is…", ko: "그래서 우리의 다음 수는…" },
+  "decide.hint": {
+    en: "The AI reframed the question — the decision is yours. What's the smallest concrete step that answers it, and who owns it?",
+    ko: "AI는 질문을 다시 세웠을 뿐 — 결정은 여러분 몫이에요. 이 질문에 답하는 가장 작은 구체적 한 걸음은 무엇이고, 누가 맡나요?",
+  },
+  "decide.placeholder": {
+    en: "e.g. By Friday, Dana names one owner for the audit log and protects it on the roadmap.",
+    ko: "예: 금요일까지 Dana가 감사 로그 담당자를 한 명 정하고 로드맵에서 보호한다.",
+  },
+  "decide.add": { en: "Write our next move", ko: "다음 수 적기" },
+  "decide.edit": { en: "Edit", ko: "수정" },
+  "decide.saved": { en: "Our decision — not the AI's", ko: "우리의 결정 — AI가 아니라" },
   "crux.stat": { en: "connections", ko: "개 연결" },
   "crux.drives": { en: "drives", ko: "→ 이끔" },
   "crux.noFlow": {

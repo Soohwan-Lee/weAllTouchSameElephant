@@ -37,6 +37,8 @@ export function MirrorScreen() {
   const setClusterName = useSession((s) => s.setClusterName);
   const clusterQuestions = useSession((s) => s.clusterQuestions);
   const setClusterQuestion = useSession((s) => s.setClusterQuestion);
+  const clusterDecisions = useSession((s) => s.clusterDecisions);
+  const setClusterDecision = useSession((s) => s.setClusterDecision);
 
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<RevealMode>("explore");
@@ -51,6 +53,7 @@ export function MirrorScreen() {
 
   const named = main ? clusterNames[main.id] : undefined;
   const question = main ? clusterQuestions[main.id] : undefined;
+  const decision = main ? clusterDecisions[main.id] : undefined;
 
   async function reveal(chosen: RevealMode) {
     if (!main) return;
@@ -209,6 +212,12 @@ export function MirrorScreen() {
                 editLabel={t("crux.editQuestion")}
                 placeholder={lang === "ko" ? "그래서 우리가 먼저 답해야 할 질문은…" : "So the question we must answer first is…"}
               />
+              {!loading && !!question && (
+                <NextStep
+                  value={decision ?? ""}
+                  onChange={(v) => main && setClusterDecision(main.id, v)}
+                />
+              )}
             </>
           ) : (
             <NamePanel
@@ -417,6 +426,53 @@ function RealQuestion({
             {value || placeholder}
           </span>
           <span className="ml-2 whitespace-nowrap text-[11px] font-medium text-accent">✎ {editLabel}</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The last step: turn the AI's reframed question into the team's OWN next move.
+ * Deliberately quieter and ink-toned (not accent) — the reframing was the AI's,
+ * but the decision is the team's, and the UI should make that ownership legible.
+ * The tool proposes a question; it never fills in the answer (WATSE v5).
+ */
+function NextStep({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { t } = useI18n();
+  const [editing, setEditing] = useState(false);
+  const has = !!value.trim();
+  return (
+    <div className="animate-fade-up rounded-xl2 border border-ink/15 bg-paper-card p-5 shadow-card">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+        {t("decide.label")}
+      </div>
+      {editing || !has ? (
+        <>
+          <p className="mt-1.5 text-xs leading-relaxed text-ink-faint">{t("decide.hint")}</p>
+          <textarea
+            autoFocus={editing}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onBlur={() => setEditing(false)}
+            rows={2}
+            placeholder={t("decide.placeholder")}
+            className="mt-2 w-full resize-none rounded-lg border border-line bg-paper px-3 py-2 text-base font-medium text-ink outline-none focus:border-ink/40"
+          />
+          {!has && (
+            <button
+              onClick={() => setEditing(true)}
+              className="mt-2 rounded-full border border-ink/20 px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-ink/40 hover:text-ink"
+            >
+              ✎ {t("decide.add")}
+            </button>
+          )}
+        </>
+      ) : (
+        <button onClick={() => setEditing(true)} className="mt-1.5 block text-left">
+          <span className="text-balance text-base font-semibold leading-snug text-ink">{value}</span>
+          <span className="ml-2 whitespace-nowrap text-[11px] font-medium text-ink-soft">✎ {t("decide.edit")}</span>
+          <div className="mt-2 text-[11px] font-medium text-ink-faint">✓ {t("decide.saved")}</div>
         </button>
       )}
     </div>
