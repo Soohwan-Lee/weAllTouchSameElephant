@@ -210,6 +210,7 @@ const dict = {
   },
   "reveal.thinking": { en: "Reading the picture you built…", ko: "여러분이 만든 그림을 읽는 중…" },
   "reveal.readingsLabel": { en: "A few ways to read it", ko: "이렇게 읽어볼 수 있어요" },
+  "reveal.angleLabel": { en: "Angle", ko: "관점" },
   "reveal.hypothesisLabel": { en: "Worth a closer look", ko: "더 들여다볼 만한 것" },
   "reveal.verdictLabel": { en: "The likely core", ko: "핵심으로 보이는 것" },
   "reveal.verdictCaveat": {
@@ -292,6 +293,8 @@ const dict = {
   "crux.setAsCrux": { en: "Make this the crux", ko: "이걸 핵심으로" },
   "crux.upstream": { en: "Root pressures", ko: "근본 원인" },
   "crux.downstream": { en: "Visible symptoms", ko: "드러난 증상" },
+  "crux.evidenceHeading": { en: "The picture behind it — inspect what you assembled", ko: "그 뒤의 그림 — 여러분이 맞춘 것을 살펴보세요" },
+  "reveal.pickHint": { en: "How would you like to read the whole?", ko: "전체를 어떻게 읽어볼까요?" },
   "crux.realQuestion": { en: "So the real question is…", ko: "그래서 진짜 질문은…" },
   "crux.editQuestion": { en: "Edit the question", ko: "질문 수정" },
 

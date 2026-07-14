@@ -187,16 +187,9 @@ export function MirrorScreen() {
       ) : (
         <div className="mt-6 space-y-5">
           {revealView === "crux" ? (
-            <SynthesisCanvas />
-          ) : (
-            <PuzzleCanvas showCenterName={!!named} />
-          )}
-
-          {revealView === "crux" ? (
             <>
-              {/* narrative-first reading: the causal story you can actually read + inspect */}
-              <StorySpine />
-              <SynthesisSummary />
+              {/* THE READING FIRST — the insight is the payoff of assembling the elephant,
+                  so it leads. The map, story, and stats are the evidence, and follow. */}
               <RevealResult
                 result={result}
                 loading={loading}
@@ -221,18 +214,29 @@ export function MirrorScreen() {
                   onChange={(v) => main && setClusterDecision(main.id, v)}
                 />
               )}
+
+              {/* the evidence behind the reading: the assembled shape you can inspect */}
+              <div className="pt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
+                {t("crux.evidenceHeading")}
+              </div>
+              <SynthesisCanvas />
+              <StorySpine />
+              <SynthesisSummary />
             </>
           ) : (
-            <NamePanel
-              suggested={result?.name ?? ""}
-              note={result?.note ?? ""}
-              draft={nameDraft}
-              named={named}
-              loading={loading}
-              onDraft={setNameDraft}
-              onAccept={() => main && nameDraft.trim() && setClusterName(main.id, nameDraft.trim())}
-              onRedo={() => reveal(mode)}
-            />
+            <>
+              <PuzzleCanvas showCenterName={!!named} />
+              <NamePanel
+                suggested={result?.name ?? ""}
+                note={result?.note ?? ""}
+                draft={nameDraft}
+                named={named}
+                loading={loading}
+                onDraft={setNameDraft}
+                onAccept={() => main && nameDraft.trim() && setClusterName(main.id, nameDraft.trim())}
+                onRedo={() => reveal(mode)}
+              />
+            </>
           )}
 
           <div className="flex items-center gap-3">
@@ -306,73 +310,79 @@ function RevealResult({
   const { t } = useI18n();
   const m = MODE_META[mode];
   return (
-    <div className="animate-fade-up rounded-xl2 border border-accent/30 bg-paper-card p-5 shadow-card">
-      {/* mode switch */}
-      <div className="mb-4 flex flex-wrap items-center gap-1.5">
-        {REVEAL_MODES.map((mm) => {
-          const meta = MODE_META[mm];
-          const active = mm === mode;
-          return (
-            <button
-              key={mm}
-              onClick={() => onPickMode(mm)}
-              disabled={loading}
-              className={[
-                "rounded-full px-3 py-1 text-xs font-semibold transition disabled:opacity-50",
-                active ? "bg-accent text-white" : "bg-paper-sunken text-ink-faint hover:text-ink",
-              ].join(" ")}
-            >
-              {meta.emoji} {t(meta.titleKey as Parameters<typeof t>[0])}
-            </button>
-          );
-        })}
+    <div className="animate-fade-up overflow-hidden rounded-xl2 border border-accent/40 bg-paper-card shadow-lift">
+      {/* big mode tabs — "how would you like to read the whole?" is a first-class choice */}
+      <div className="border-b border-line bg-paper-sunken/40 px-4 pt-3">
+        <div className="mb-2 text-[11px] font-medium text-ink-faint">{t("reveal.pickHint")}</div>
+        <div className="flex flex-wrap gap-1.5">
+          {REVEAL_MODES.map((mm) => {
+            const meta = MODE_META[mm];
+            const active = mm === mode;
+            return (
+              <button
+                key={mm}
+                onClick={() => onPickMode(mm)}
+                disabled={loading}
+                className={[
+                  "group flex items-center gap-2 rounded-t-lg border-b-2 px-3.5 py-2 text-left transition disabled:opacity-50",
+                  active
+                    ? "border-accent bg-paper-card"
+                    : "border-transparent hover:bg-paper-card/60",
+                ].join(" ")}
+              >
+                <span className="text-base leading-none">{meta.emoji}</span>
+                <span>
+                  <span
+                    className={[
+                      "block text-[13px] font-semibold leading-tight",
+                      active ? "text-accent" : "text-ink",
+                    ].join(" ")}
+                  >
+                    {t(meta.titleKey as Parameters<typeof t>[0])}
+                  </span>
+                  <span className="hidden text-[10px] leading-tight text-ink-faint sm:block">
+                    {t(meta.subKey as Parameters<typeof t>[0])}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* the name (editable handle) */}
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-accent">
-          {m.emoji} {t("assemble.namePrompt")}
-        </span>
-        <input
-          value={nameDraft}
-          onChange={(e) => onNameDraft(e.target.value)}
-          placeholder={t("assemble.namePlaceholder")}
-          className="min-w-[180px] flex-1 rounded-lg border border-line bg-paper px-3 py-1.5 text-sm font-semibold text-ink outline-none focus:border-accent/50"
-        />
-        <button
-          onClick={onAcceptName}
-          disabled={!nameDraft.trim()}
-          className="rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold text-white transition enabled:hover:opacity-95 disabled:bg-line disabled:text-ink-faint"
-        >
-          {named && named === nameDraft.trim() ? `✓ ${t("assemble.namedBy")}` : t("assemble.useName")}
-        </button>
-      </div>
-      {result?.note && !loading && <div className="mt-1.5 text-xs text-ink-soft">{result.note}</div>}
-
-      {/* the mode-specific reading */}
-      <div className="mt-4 border-t border-line pt-4">
+      <div className="p-5">
+        {/* THE READING — the star of the screen: big, spacious, easy to read */}
         {loading ? (
-          <div className="text-sm text-ink-faint">{t("reveal.thinking")}</div>
+          <div className="flex items-center gap-2 py-6 text-sm text-ink-faint">
+            <span className="inline-block h-3 w-3 animate-pulse rounded-full bg-accent/50" />
+            {t("reveal.thinking")}
+          </div>
         ) : mode === "explore" ? (
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
               🧭 {t("reveal.readingsLabel")}
             </div>
-            <ul className="mt-2 space-y-2">
+            {/* each competing reading as its own card so "several angles" actually reads that way */}
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {(result?.readings ?? []).map((r, i) => (
-                <li key={i} className="flex gap-2 text-[13px] leading-snug text-ink">
-                  <span className="font-bold text-accent">{i + 1}</span>
-                  <span>{r}</span>
-                </li>
+                <div
+                  key={i}
+                  className="flex flex-col rounded-xl border border-line bg-paper-sunken/40 p-4 transition hover:border-accent/40 hover:shadow-card"
+                >
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-accent">
+                    {t("reveal.angleLabel")} {i + 1}
+                  </span>
+                  <p className="mt-1.5 text-[14px] leading-relaxed text-ink">{r}</p>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         ) : mode === "hypothesis" ? (
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
               💡 {t("reveal.hypothesisLabel")}
             </div>
-            <p className="mt-1.5 text-balance text-[15px] font-medium leading-snug text-ink">
+            <p className="mt-2 text-balance text-xl font-semibold leading-snug text-ink sm:text-2xl">
               {result?.hypothesis}
             </p>
           </div>
@@ -381,10 +391,36 @@ function RevealResult({
             <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
               🎯 {t("reveal.verdictLabel")}
             </div>
-            <p className="mt-1.5 text-balance text-lg font-semibold leading-snug text-ink">
+            <p className="mt-2 text-balance text-2xl font-semibold leading-snug text-ink sm:text-[26px]">
               {result?.verdict}
             </p>
-            <div className="mt-1.5 text-[11px] italic text-ink-faint">{t("reveal.verdictCaveat")}</div>
+            <div className="mt-2 text-[12px] italic text-ink-faint">{t("reveal.verdictCaveat")}</div>
+          </div>
+        )}
+
+        {result?.note && !loading && (
+          <div className="mt-3 text-[12px] leading-relaxed text-ink-soft">{result.note}</div>
+        )}
+
+        {/* the name — a secondary handle, below the reading (the reading is the point) */}
+        {!loading && (
+          <div className="mt-5 flex flex-wrap items-center gap-2.5 border-t border-line pt-4">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-accent">
+              {m.emoji} {t("assemble.namePrompt")}
+            </span>
+            <input
+              value={nameDraft}
+              onChange={(e) => onNameDraft(e.target.value)}
+              placeholder={t("assemble.namePlaceholder")}
+              className="min-w-[180px] flex-1 rounded-lg border border-line bg-paper px-3 py-1.5 text-sm font-semibold text-ink outline-none focus:border-accent/50"
+            />
+            <button
+              onClick={onAcceptName}
+              disabled={!nameDraft.trim()}
+              className="rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold text-white transition enabled:hover:opacity-95 disabled:bg-line disabled:text-ink-faint"
+            >
+              {named && named === nameDraft.trim() ? `✓ ${t("assemble.namedBy")}` : t("assemble.useName")}
+            </button>
           </div>
         )}
       </div>
