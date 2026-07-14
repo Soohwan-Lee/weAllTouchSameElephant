@@ -180,7 +180,7 @@ export function MirrorScreen() {
                 />
               ))}
             </div>
-            {!main && <div className="mt-4"><Hint>{t("mirror.locked")}</Hint></div>}
+            {!main && <div className="mt-4"><Hint>{t("mirror.lockedGroup")}</Hint></div>}
           </div>
         </div>
       ) : (

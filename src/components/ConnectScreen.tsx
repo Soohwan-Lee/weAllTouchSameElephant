@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useSession, scenarioBridgesToProposals } from "@/lib/store";
 import { getScenario } from "@/lib/scenarios";
-import { countRedundantEdges } from "@/lib/clusters";
+import { countRedundantEdges, largestClusterSize } from "@/lib/clusters";
 import { fetchBridges } from "@/lib/api";
 import { BridgeCard } from "./BridgeCard";
 import { Hint } from "./Hint";
@@ -25,7 +25,10 @@ export function ConnectScreen() {
   const [mode, setMode] = useState<string | null>(null);
 
   const byId = (id: string) => fragments.find((f) => f.id === id);
-  const canMirror = bridges.length >= 3;
+  // gate on the biggest connected GROUP, not the raw bridge count (see largestClusterSize).
+  const biggestGroup = largestClusterSize(fragments, bridges);
+  const canMirror = biggestGroup >= 3;
+  const groupNeed = Math.max(0, 3 - biggestGroup);
 
   async function suggest() {
     setLoading(true);
@@ -92,6 +95,39 @@ export function ConnectScreen() {
               {bridges.length} {t("bridge.confirmedCount")}
             </span>
           </div>
+
+          {/* group progress — the REAL gate: one connected group of >= 3 pieces.
+              This is what fixes the "3 links but nothing assembles" dead-end. */}
+          {bridges.length > 0 && (
+            <div
+              className={[
+                "mb-3 rounded-lg border px-3 py-2",
+                canMirror ? "border-accent/30 bg-accent-soft/40" : "border-line bg-paper-sunken/50",
+              ].join(" ")}
+            >
+              <div className="flex items-center justify-between text-[11px] font-medium">
+                <span className="text-ink-soft">{t("group.label")}</span>
+                <span className={canMirror ? "text-accent" : "text-ink-faint"}>
+                  {biggestGroup} {t("group.piecesShort")}
+                </span>
+              </div>
+              <div className="mt-1.5 flex gap-1">
+                {Array.from({ length: Math.max(3, biggestGroup) }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={[
+                      "h-1.5 flex-1 rounded-full",
+                      i < biggestGroup ? (canMirror ? "bg-accent" : "bg-ink/40") : "bg-line",
+                    ].join(" ")}
+                  />
+                ))}
+              </div>
+              <p className="mt-1.5 text-[11px] leading-snug text-ink-faint">
+                {canMirror ? t("group.ready") : t("group.needMore").replace("{n}", String(groupNeed))}
+              </p>
+            </div>
+          )}
+
           {extraEdges > 0 && (
             <div className="mb-3 rounded-md bg-amber-50/60 px-2.5 py-1.5 text-[11px] leading-snug text-amber-800">
               ⚖︎ {extraEdges} {t("budget.extra")}
@@ -141,7 +177,7 @@ export function ConnectScreen() {
           disabled={!canMirror}
           className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-lift transition enabled:hover:opacity-95 disabled:cursor-not-allowed disabled:bg-line disabled:text-ink-faint disabled:shadow-none"
         >
-          {canMirror ? `${t("mirror.reveal")} →` : t("mirror.locked")}
+          {canMirror ? `${t("mirror.reveal")} →` : t("mirror.lockedGroup")}
         </button>
       </div>
     </div>

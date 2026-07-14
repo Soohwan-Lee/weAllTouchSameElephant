@@ -55,6 +55,32 @@ export function findClusters(
 }
 
 /**
+ * The size of the biggest connected group of fragments over confirmed bridges.
+ * This — not the raw bridge count — is what tells us whether an "elephant" can form:
+ * three bridges among three separate pairs make no group of 3, but two bridges chaining
+ * three pieces do. The reveal needs one group of >= 3, so gate on THIS, not bridges.length.
+ */
+export function largestClusterSize(fragments: Fragment[], bridges: Bridge[]): number {
+  if (!fragments.length) return 0;
+  const parent = new Map<string, string>();
+  const find = (x: string): string => {
+    if (!parent.has(x)) parent.set(x, x);
+    if (parent.get(x) !== x) parent.set(x, find(parent.get(x)!));
+    return parent.get(x)!;
+  };
+  for (const f of fragments) parent.set(f.id, f.id);
+  for (const b of bridges) {
+    if (parent.has(b.fragmentAId) && parent.has(b.fragmentBId)) parent.set(find(b.fragmentAId), find(b.fragmentBId));
+  }
+  const counts = new Map<string, number>();
+  for (const f of fragments) {
+    const r = find(f.id);
+    counts.set(r, (counts.get(r) ?? 0) + 1);
+  }
+  return Math.max(0, ...counts.values());
+}
+
+/**
  * Is B already reachable from A over the given (undirected) bridges — WITHOUT using
  * any bridge in `ignore`? Used to detect a redundant link: if A and B are already
  * connected through other pieces, a new A–B edge adds no NEW connection to the

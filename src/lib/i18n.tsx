@@ -119,6 +119,22 @@ const dict = {
     ko: "개 더 이으면 연결된 조각들이 한 그림으로 묶여요.",
   },
 
+  // ---- group-progress guide (fixes "3 links but no elephant") ----
+  "group.label": { en: "Biggest connected group", ko: "가장 큰 연결 묶음" },
+  "group.piecesShort": { en: "pieces", ko: "조각" },
+  "group.needMore": {
+    en: "Link {n} more piece(s) INTO this group to assemble the elephant — scattered links across separate pairs won't form one.",
+    ko: "코끼리를 맞추려면 이 묶음에 조각 {n}개를 더 이어야 해요 — 따로 떨어진 쌍끼리의 연결로는 하나가 안 돼요.",
+  },
+  "group.ready": {
+    en: "This group is big enough to assemble. Add more to make it richer, or head to the whole picture.",
+    ko: "이 묶음은 조립하기에 충분해요. 더 이으면 풍부해지고, 아니면 전체 그림으로 넘어가세요.",
+  },
+  "mirror.lockedGroup": {
+    en: "Link 3 pieces into ONE connected group to reveal the whole — not just 3 links.",
+    ko: "전체를 보려면 조각 3개를 하나의 묶음으로 이어야 해요 — 선 3개가 아니라.",
+  },
+
   // relation types
   "rel.overlap": { en: "Same issue, different angle", ko: "같은 문제, 다른 각도" },
   "rel.tension": { en: "Pulling in different directions", ko: "서로 다른 방향" },
