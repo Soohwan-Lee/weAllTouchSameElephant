@@ -55,6 +55,26 @@ const dict = {
   },
   "gather.remove": { en: "Remove", ko: "삭제" },
 
+  // ---- input scaffolding (kill the blank-card bottleneck) ----
+  "ptype.symptom": { en: "A symptom", ko: "증상" },
+  "ptype.worry": { en: "A worry", ko: "우려" },
+  "ptype.dependency": { en: "A dependency", ko: "의존 관계" },
+  "ptype.outcome": { en: "An outcome", ko: "예상 결과" },
+  "scaffold.typeHeading": { en: "What kind of piece is this?", ko: "이건 어떤 종류의 조각인가요?" },
+  "scaffold.typeHint": {
+    en: "Pick a kind and we'll hand you a starter to fill in — in your own words.",
+    ko: "종류를 고르면 채워 넣을 시작 문장을 드려요 — 당신의 말로 바꾸세요.",
+  },
+  "scaffold.lensLabel": { en: "Answer from your seat", ko: "당신의 자리에서 답하기" },
+  "scaffold.promptLabel": { en: "A question to spark it", ko: "떠올릴 실마리 질문" },
+  "scaffold.useFrame": { en: "Use this starter", ko: "이 시작 문장 쓰기" },
+  "scaffold.shuffle": { en: "Another question", ko: "다른 질문" },
+  "scaffold.yourWords": {
+    en: "This is only a starter — replace the ___ blanks with what you actually see.",
+    ko: "이건 시작 문장일 뿐이에요 — ___ 빈칸을 당신이 실제로 본 것으로 바꾸세요.",
+  },
+  "scaffold.blankStuck": { en: "Not sure what to write?", ko: "뭘 써야 할지 모르겠나요?" },
+
   // ---- connect / bridges ----
   "connect.heading": { en: "How might these connect?", ko: "이것들은 어떻게 이어질까요?" },
   "connect.hint": {

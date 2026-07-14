@@ -3,9 +3,16 @@
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/store";
+import {
+  PIECE_TYPES,
+  PIECE_TYPE_META,
+  ROLE_LENSES,
+  starterFrame,
+  type PieceType,
+} from "@/lib/starters";
 
 export function GatherScreen() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const fragments = useSession((s) => s.fragments);
   const addFragment = useSession((s) => s.addFragment);
   const removeFragment = useSession((s) => s.removeFragment);
@@ -16,7 +23,25 @@ export function GatherScreen() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
 
-  const canAdd = title.trim().length > 0 && body.trim().length > 0;
+  // input scaffolding state: chosen piece type, role lens, and which spark question
+  const [pieceType, setPieceType] = useState<PieceType | null>(null);
+  const [lensId, setLensId] = useState("generic");
+  const [qIdx, setQIdx] = useState(0);
+
+  const lens = ROLE_LENSES.find((l) => l.id === lensId) ?? ROLE_LENSES[0];
+  // the spark question: the chosen type's prompt, else the role lens's rotating question
+  const sparkQuestion = pieceType
+    ? PIECE_TYPE_META[pieceType].prompt[lang]
+    : lens.questions[qIdx % lens.questions.length][lang];
+
+  const applyType = (tp: PieceType) => {
+    setPieceType(tp);
+    if (!body.trim()) setBody(starterFrame(tp, lang));
+  };
+
+  // require the person to have actually filled the frame — an unedited "___" skeleton
+  // is a template, not their perspective, and must not land on the board.
+  const canAdd = title.trim().length > 0 && body.trim().length > 0 && !body.includes("___");
   const canProceed = fragments.length >= 3;
 
   const submit = () => {
@@ -29,6 +54,7 @@ export function GatherScreen() {
     });
     setTitle("");
     setBody("");
+    setPieceType(null);
   };
 
   return (
@@ -41,12 +67,85 @@ export function GatherScreen() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         {/* input card */}
         <div className="animate-fade-up rounded-xl2 border border-line bg-paper-card p-5 shadow-card">
+          {/* ---- scaffolding: kill the blank-card bottleneck ---- */}
+          <div className="mb-4 rounded-xl border border-accent/20 bg-accent-soft/25 p-3.5">
+            <div className="text-[12px] font-semibold text-ink">💡 {t("scaffold.blankStuck")}</div>
+
+            {/* piece-type chips */}
+            <div className="mt-2 text-[11px] font-medium text-ink-soft">{t("scaffold.typeHeading")}</div>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {PIECE_TYPES.map((tp) => {
+                const meta = PIECE_TYPE_META[tp];
+                const active = pieceType === tp;
+                return (
+                  <button
+                    key={tp}
+                    onClick={() => applyType(tp)}
+                    className={[
+                      "rounded-full border px-2.5 py-1 text-[11px] font-medium transition",
+                      active
+                        ? "border-accent bg-accent text-white"
+                        : "border-line bg-paper-card text-ink-soft hover:border-accent/50 hover:text-accent",
+                    ].join(" ")}
+                  >
+                    {meta.emoji} {t(meta.labelKey)}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* role lens */}
+            <div className="mt-3 text-[11px] font-medium text-ink-soft">{t("scaffold.lensLabel")}</div>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {ROLE_LENSES.map((l) => (
+                <button
+                  key={l.id}
+                  onClick={() => {
+                    setLensId(l.id);
+                    setQIdx(0);
+                  }}
+                  className={[
+                    "rounded-full border px-2.5 py-1 text-[11px] font-medium transition",
+                    lensId === l.id
+                      ? "border-ink bg-ink text-paper"
+                      : "border-line bg-paper-card text-ink-faint hover:text-ink",
+                  ].join(" ")}
+                >
+                  {l.label[lang]}
+                </button>
+              ))}
+            </div>
+
+            {/* spark question */}
+            <div className="mt-3 flex items-start justify-between gap-2 rounded-lg bg-paper-card/70 px-3 py-2">
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-accent">
+                  {t("scaffold.promptLabel")}
+                </div>
+                <div className="mt-0.5 text-[12px] leading-snug text-ink">{sparkQuestion}</div>
+              </div>
+              {!pieceType && (
+                <button
+                  onClick={() => setQIdx((i) => i + 1)}
+                  className="shrink-0 rounded-full border border-line px-2 py-1 text-[10px] font-medium text-ink-faint transition hover:text-ink"
+                >
+                  ↻ {t("scaffold.shuffle")}
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <Field label={t("gather.author")} value={authorName} onChange={setAuthorName} placeholder="Jamie" />
             <Field label={t("gather.role")} value={authorRole} onChange={setAuthorRole} placeholder="Sales" />
           </div>
           <div className="mt-3">
-            <Field label={t("gather.title")} value={title} onChange={setTitle} placeholder="…" />
+            <Field
+              label={t("gather.title")}
+              value={title}
+              onChange={setTitle}
+              placeholder={pieceType ? PIECE_TYPE_META[pieceType].titleHint[lang] : "…"}
+            />
           </div>
           <div className="mt-3">
             <label className="mb-1 block text-xs font-medium text-ink-soft">{t("gather.body")}</label>
@@ -58,8 +157,12 @@ export function GatherScreen() {
               }}
               rows={3}
               maxLength={400}
-              className="w-full resize-none rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-ink/40"
+              placeholder={pieceType ? "" : t("scaffold.blankStuck")}
+              className="w-full resize-none rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink outline-none transition placeholder:text-line focus:border-ink/40"
             />
+            {pieceType && body.includes("___") && (
+              <p className="mt-1 text-[11px] leading-snug text-accent">✎ {t("scaffold.yourWords")}</p>
+            )}
           </div>
           <button
             onClick={submit}
