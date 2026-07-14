@@ -1,10 +1,10 @@
 import type { Fragment, RelationType, RevealMode } from "./types";
 
-const RELATION_GUIDE = `Relation types (choose exactly one per bridge):
-- "overlap": the two pieces describe the SAME underlying issue from different angles.
-- "tension": the two pieces pull in CONFLICTING directions.
-- "dependency": one piece causes, blocks, enables, or affects the other.
-- "complement": one piece adds MISSING context the other needs.`;
+const RELATION_GUIDE = `Relation types — pick the ONE that is truest, in this priority when more than one seems to fit:
+- "dependency": one piece CAUSES, drives, blocks, or enables the other. Prefer this whenever there's any cause→effect direction — it's what reveals root vs symptom. Put the CAUSE/root as fragmentA and the EFFECT/symptom as fragmentB (direction matters).
+- "tension": the two pieces pull in genuinely CONFLICTING directions — satisfying one costs the other. Only if a real trade-off exists, not just different topics.
+- "overlap": the two are the SAME underlying issue in two vocabularies — one could be rephrased into the other. Use sparingly; this FUSES them into one side.
+- "complement": one adds the MISSING context the other needs to make sense — different facets of one situation, neither causing the other.`;
 
 export function bridgePrompt(fragments: Fragment[], lang: "en" | "ko", maxBridges: number) {
   const list = fragments
@@ -13,15 +13,20 @@ export function bridgePrompt(fragments: Fragment[], lang: "en" | "ko", maxBridge
 
   const language = lang === "ko" ? "Korean" : "English";
 
-  return `You are helping a team see how their scattered fragments connect into one bigger picture — the "blind men and the elephant" problem. Each teammate wrote a partial view. Your ONLY job is to propose plausible CONNECTIONS (bridges) between PAIRS of fragments.
+  return `You are helping a team see how their scattered fragments connect into ONE bigger picture — the "blind men and the elephant" problem. Each teammate wrote a partial view of the same situation. Your ONLY job is to propose the connections (bridges) that assemble those views into a single coherent shape.
+
+Think first, then propose:
+1. Read all fragments as partial views of ONE underlying situation. What is the situation?
+2. Find the CAUSAL SPINE: which piece is a root pressure, which are downstream symptoms of it? Direction is the most valuable thing you can surface — it's what tells the team what's a cause vs a symptom.
+3. Propose bridges that CONNECT THE PICTURE TOGETHER (prefer links that grow one connected group over links between already-linked pieces or isolated side-pairs).
 
 Hard rules:
-- You do NOT summarize, conclude, or recommend a decision. Only propose bridges.
-- Propose at most ${maxBridges} bridges, the strongest ones. Fewer is fine.
-- A bridge connects exactly TWO different fragments by id.
-- Ground each bridge: quote or closely paraphrase a short snippet from EACH fragment as evidence.
-- If two fragments are only loosely or superficially related (shared keyword, generic theme), DO NOT force a bridge. It is correct and expected to return few or zero bridges.
-- Write explanation and evidence in ${language}.
+- You do NOT summarize, conclude, or recommend a decision. Only propose bridges between PAIRS of fragments (by id).
+- Propose at most ${maxBridges} bridges — the ones that most reveal the shape. Fewer, sharper bridges beat many weak ones.
+- QUALITY BAR — reject weak bridges. A bridge is weak (do NOT propose it) if it rests on a shared keyword, a generic theme ("both about the team", "both are problems"), or a link so obvious it tells the team nothing. Every bridge must say something the team might NOT already see.
+- Each explanation must name the SPECIFIC relationship in ONE concrete sentence — not "these are related" but *how* and, for dependency, *which way*. Ground it: quote a short real snippet from EACH fragment as evidence.
+- It is correct to return few or zero bridges if the fragments don't genuinely connect. Do not force coverage.
+- Write explanation and evidence in ${language}. Evidence snippets stay in the fragment's own words.
 
 ${RELATION_GUIDE}
 
@@ -29,7 +34,7 @@ Fragments:
 ${list}
 
 Return ONLY valid JSON of this exact shape (no prose, no markdown):
-{"bridges":[{"fragmentAId":"<id>","fragmentBId":"<id>","relationType":"overlap|tension|dependency|complement","explanation":"<one sentence in ${language}>","evidenceA":"<short snippet from A>","evidenceB":"<short snippet from B>","confidence":<0..1>}]}
+{"bridges":[{"fragmentAId":"<cause/root id for dependency>","fragmentBId":"<effect/symptom id for dependency>","relationType":"dependency|tension|overlap|complement","explanation":"<one concrete sentence in ${language} naming the specific relationship and, for dependency, the direction>","evidenceA":"<short snippet from A>","evidenceB":"<short snippet from B>","confidence":<0..1>}]}
 If there are no strong bridges, return {"bridges":[]}.`;
 }
 
