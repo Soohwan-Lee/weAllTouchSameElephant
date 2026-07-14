@@ -197,6 +197,40 @@ const dict = {
     ko: "반박해볼 출발점이에요 — 정답이 아니라. 언제든 다른 각도로 볼 수 있어요.",
   },
 
+  // ---- story spine (narrative-first reading of the assembled elephant) ----
+  "story.heading": { en: "How your pieces fit together", ko: "여러분의 조각이 맞물리는 방식" },
+  "story.sub": {
+    en: "Read left to right: the root pressure on the left drives the symptoms on the right. Tap any side to see its pieces and why they connect.",
+    ko: "왼쪽에서 오른쪽으로 읽으세요: 왼쪽의 근본 압력이 오른쪽의 증상들을 이끕니다. 어느 면이든 눌러 조각과 연결 이유를 보세요.",
+  },
+  "story.rootBadge": { en: "the root", ko: "뿌리" },
+  "story.symptomBadge": { en: "symptom", ko: "증상" },
+  "story.middleBadge": { en: "in between", ko: "중간" },
+  "story.drives": { en: "drives", ko: "이끔" },
+  "story.tapHint": { en: "tap to open", ko: "눌러서 열기" },
+  "story.piecesInSide": { en: "Pieces on this side", ko: "이 면의 조각들" },
+  "story.whyConnect": { en: "Why these connect", ko: "이것들이 이어지는 이유" },
+  "story.noReason": { en: "Connected by the team (no note added).", ko: "팀이 연결함 (메모 없음)." },
+  "story.close": { en: "Close", ko: "닫기" },
+  "story.rootWhy": {
+    en: "Few links, but nothing upstream drives it — so the rest seem to grow from here.",
+    ko: "연결은 적지만 위에서 이걸 이끄는 게 없어요 — 그래서 나머지가 여기서 자라난 듯 보여요.",
+  },
+  "story.singleFacet": {
+    en: "Everything fused into one side — no root-to-symptom flow yet. Mark a link as “one affects the other” to reveal direction.",
+    ko: "모든 게 한 면으로 묶였어요 — 아직 뿌리→증상 흐름이 없어요. 연결 하나를 “하나가 다른 것에 영향”으로 표시하면 방향이 드러나요.",
+  },
+  "story.looseHeading": { en: "Not yet in the picture", ko: "아직 그림에 없는 것" },
+  "story.looseHint": {
+    en: "These pieces are on their own. Go back and connect one to bring it in.",
+    ko: "이 조각들은 아직 따로 있어요. 뒤로 가서 하나를 이어 그림에 넣으세요.",
+  },
+  "story.tensionHeading": { en: "Held in tension", ko: "긴장으로 남은 것" },
+  "story.tensionHint": {
+    en: "Kept, not resolved — two pieces that genuinely pull apart.",
+    ko: "없애지 않고 그대로 — 진짜로 서로 당기는 두 조각.",
+  },
+
   // ---- synthesis (the assembled elephant) ----
   "synth.roots": { en: "Root pressures", ko: "근본 압력" },
   "synth.symptoms": { en: "Visible symptoms", ko: "드러난 증상" },

@@ -12,6 +12,7 @@ import type { NameResult, RevealMode } from "@/lib/types";
 import { REVEAL_MODES } from "@/lib/types";
 import { PuzzleCanvas } from "./PuzzleCanvas";
 import { SynthesisCanvas } from "./SynthesisCanvas";
+import { StorySpine } from "./StorySpine";
 import { SynthesisSummary } from "./SynthesisSummary";
 import { Hint } from "./Hint";
 
@@ -193,6 +194,8 @@ export function MirrorScreen() {
 
           {revealView === "crux" ? (
             <>
+              {/* narrative-first reading: the causal story you can actually read + inspect */}
+              <StorySpine />
               <SynthesisSummary />
               <RevealResult
                 result={result}
