@@ -75,6 +75,22 @@ const dict = {
   },
   "scaffold.blankStuck": { en: "Not sure what to write?", ko: "뭘 써야 할지 모르겠나요?" },
 
+  // ---- participants ----
+  "people.heading": { en: "Who's at the table?", ko: "테이블에 누가 있나요?" },
+  "people.hint": {
+    en: "Add each person and their role. Pick who's adding pieces right now — it stamps their name on what they contribute.",
+    ko: "각자 이름과 역할을 더하세요. 지금 조각을 올리는 사람을 고르면, 그 사람 이름이 기여에 새겨져요.",
+  },
+  "people.add": { en: "Add person", ko: "사람 추가" },
+  "people.namePlaceholder": { en: "Name", ko: "이름" },
+  "people.rolePlaceholder": { en: "Role / seat", ko: "역할 / 자리" },
+  "people.adding": { en: "Adding as", ko: "지금 추가하는 사람" },
+  "people.empty": {
+    en: "No one added yet — or skip and add pieces anonymously.",
+    ko: "아직 아무도 없어요 — 건너뛰고 익명으로 조각을 더해도 돼요.",
+  },
+  "people.remove": { en: "Remove", ko: "빼기" },
+
   // ---- gather: decision anchor + entry modes ----
   "decision.label": { en: "What are we deciding?", ko: "우리가 정하려는 건?" },
   "decision.placeholder": {

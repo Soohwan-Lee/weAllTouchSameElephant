@@ -5,6 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/store";
 import { fetchSeeds, fetchTalkQuestions, fetchTalkExtract } from "@/lib/api";
 import type { CardCandidate, SeedSuggestion } from "@/lib/prompts";
+import { ParticipantBar } from "./ParticipantBar";
 import {
   PIECE_TYPES,
   PIECE_TYPE_META,
@@ -36,6 +37,9 @@ export function GatherScreen() {
   const decisionPrompt = useSession((s) => s.decisionPrompt);
   const setDecisionPrompt = useSession((s) => s.setDecisionPrompt);
   const scenarioId = useSession((s) => s.scenarioId);
+  const participants = useSession((s) => s.participants);
+  const activeParticipantId = useSession((s) => s.activeParticipantId);
+  const activePerson = participants.find((p) => p.id === activeParticipantId) ?? null;
 
   // entry mode: write directly (know what to say) / seeds (pick angles) / talk (figure out)
   const [entryMode, setEntryMode] = useState<EntryMode>("write");
@@ -105,6 +109,11 @@ export function GatherScreen() {
       <div className="animate-fade-up">
         <h2 className="text-2xl font-semibold tracking-tight text-ink">{t("gather.heading")}</h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-faint">{t("gather.hint")}</p>
+      </div>
+
+      {/* ---- who's at the table ---- */}
+      <div className="mt-5">
+        <ParticipantBar />
       </div>
 
       {/* ---- decision anchor: the one question the pieces are views on ---- */}
@@ -238,10 +247,22 @@ export function GatherScreen() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label={t("gather.author")} value={authorName} onChange={setAuthorName} placeholder="Jamie" />
-            <Field label={t("gather.role")} value={authorRole} onChange={setAuthorRole} placeholder="Sales" />
-          </div>
+          {activePerson ? (
+            <div className="flex items-center gap-2 rounded-lg border border-line bg-paper-sunken/50 px-3 py-2 text-[12px]">
+              <span className="text-ink-faint">{t("people.adding")}</span>
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full ring-1 ring-black/10"
+                style={{ backgroundColor: activePerson.color }}
+              />
+              <span className="font-semibold text-ink">{activePerson.name}</span>
+              <span className="text-ink-faint">· {activePerson.role}</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t("gather.author")} value={authorName} onChange={setAuthorName} placeholder="Jamie" />
+              <Field label={t("gather.role")} value={authorRole} onChange={setAuthorRole} placeholder="Sales" />
+            </div>
+          )}
           <div className="mt-3">
             <Field
               label={t("gather.title")}
@@ -301,7 +322,13 @@ export function GatherScreen() {
                     <div className="min-w-0">
                       <div className="text-sm font-semibold text-ink">{f.title}</div>
                       <div className="mt-1 text-sm leading-relaxed text-ink-soft">{f.body}</div>
-                      <div className="mt-2 text-[11px] font-medium uppercase tracking-wide text-ink-faint">
+                      <div className="mt-2 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-faint">
+                        {(() => {
+                          const color = participants.find((p) => p.id === f.authorId)?.color;
+                          return color ? (
+                            <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+                          ) : null;
+                        })()}
                         {f.authorName} · {f.authorRole}
                       </div>
                     </div>

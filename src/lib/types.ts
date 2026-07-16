@@ -20,8 +20,22 @@ export const RELATION_TYPES: RelationType[] = [
   "complement",
 ];
 
+/** A person at the table. Locally-modeled multi-person now; the seam a future
+ *  "each participant connects from their own device" build attaches to. */
+export interface Participant {
+  id: string;
+  name: string;
+  role: string;
+  /** a stable accent color (hex) so each voice is visible on the board */
+  color: string;
+}
+
 export interface Fragment {
   id: string;
+  /** the participant who added this piece (when the table has participants).
+   *  authorName/authorRole stay as denormalized display copies so scenarios and
+   *  mid-session relocalize keep working without a participant lookup. */
+  authorId?: string;
   authorName: string;
   authorRole: string;
   title: string;
@@ -46,6 +60,8 @@ export interface Bridge {
   confidence: number; // 0..1
   status: BridgeStatus;
   createdBy: "ai" | "human";
+  /** the participant who confirmed/edited/drew this bridge (the acting human). */
+  actorId?: string;
 }
 
 /** What the AI returns from /api/bridges (before we assign ids/status). */

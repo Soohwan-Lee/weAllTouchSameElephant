@@ -6,6 +6,7 @@ import type {
   BridgeProposal,
   Fragment,
   NameResult,
+  Participant,
   RelationType,
   RevealMode,
   Scenario,
@@ -13,6 +14,18 @@ import type {
   ScenarioReveal,
 } from "./types";
 import { getScenario } from "./scenarios";
+
+/** Distinct, legible accent colors handed to participants in order. */
+const PARTICIPANT_COLORS = [
+  "#2563eb", // blue
+  "#db2777", // pink
+  "#059669", // green
+  "#d97706", // amber
+  "#7c3aed", // violet
+  "#0891b2", // cyan
+  "#dc2626", // red
+  "#65a30d", // lime
+];
 
 /** Turn a scenario's bilingual pre-baked bridges into proposals in one language. */
 export function scenarioBridgesToProposals(
@@ -62,6 +75,10 @@ interface SessionState {
    *  Prefilled from a scenario's title; on a blank table the team types it. AI
    *  seed/conversation input scaffolds lean on this so suggestions are on-topic. */
   decisionPrompt: string;
+  /** people at the table. Locally-modeled multi-person (no backend yet). */
+  participants: Participant[];
+  /** whose turn it is to add/act — stamps authorId/actorId on their actions. */
+  activeParticipantId: string | null;
   fragments: Fragment[];
   /** bridges proposed by AI, awaiting human action */
   tray: Bridge[];
@@ -82,6 +99,10 @@ interface SessionState {
 
   setStep: (s: Step) => void;
   setDecisionPrompt: (q: string) => void;
+  /** add a person; returns the new participant id. First one becomes active. */
+  addParticipant: (name: string, role: string) => string;
+  removeParticipant: (id: string) => void;
+  setActiveParticipant: (id: string | null) => void;
   loadScenario: (sc: Scenario, lang: "en" | "ko") => void;
   /** re-project scenario-derived fragment/bridge text into `lang` (mid-session language switch) */
   relocalize: (lang: "en" | "ko") => void;
@@ -116,6 +137,8 @@ export const useSession = create<SessionState>((set, get) => ({
   step: "start",
   scenarioId: null,
   decisionPrompt: "",
+  participants: [],
+  activeParticipantId: null,
   fragments: [],
   tray: [],
   bridges: [],
@@ -129,6 +152,28 @@ export const useSession = create<SessionState>((set, get) => ({
 
   setStep: (step) => set({ step }),
   setDecisionPrompt: (decisionPrompt) => set({ decisionPrompt }),
+
+  addParticipant: (name, role) => {
+    const id = uid("person");
+    set((s) => {
+      const color = PARTICIPANT_COLORS[s.participants.length % PARTICIPANT_COLORS.length];
+      const p: Participant = { id, name: name.trim() || "—", role: role.trim() || "—", color };
+      return {
+        participants: [...s.participants, p],
+        // first person added becomes the active actor
+        activeParticipantId: s.activeParticipantId ?? id,
+      };
+    });
+    return id;
+  },
+  removeParticipant: (id) =>
+    set((s) => {
+      const participants = s.participants.filter((p) => p.id !== id);
+      const activeParticipantId =
+        s.activeParticipantId === id ? participants[0]?.id ?? null : s.activeParticipantId;
+      return { participants, activeParticipantId };
+    }),
+  setActiveParticipant: (activeParticipantId) => set({ activeParticipantId }),
   setClusterName: (clusterId, name) =>
     set((s) => ({ clusterNames: { ...s.clusterNames, [clusterId]: name } })),
   setClusterQuestion: (clusterId, q) =>
@@ -139,8 +184,21 @@ export const useSession = create<SessionState>((set, get) => ({
   setRevealView: (revealView) => set({ revealView }),
 
   loadScenario: (sc, lang) => {
+    // synthesize one participant per distinct author, so canned data reads as a
+    // multi-person table and the fragments carry authorId.
+    const participants: Participant[] = [];
+    const byName = new Map<string, string>(); // authorName -> participant id
+    sc.fragments.forEach((f) => {
+      if (!byName.has(f.authorName)) {
+        const id = uid("person");
+        const color = PARTICIPANT_COLORS[participants.length % PARTICIPANT_COLORS.length];
+        participants.push({ id, name: f.authorName, role: f.authorRole[lang], color });
+        byName.set(f.authorName, id);
+      }
+    });
     const fragments: Fragment[] = sc.fragments.map((f) => ({
       id: f.id,
+      authorId: byName.get(f.authorName),
       authorName: f.authorName,
       authorRole: f.authorRole[lang],
       title: f.title[lang],
@@ -151,6 +209,8 @@ export const useSession = create<SessionState>((set, get) => ({
     set({
       scenarioId: sc.id,
       decisionPrompt: sc.title[lang],
+      participants,
+      activeParticipantId: participants[0]?.id ?? null,
       fragments,
       tray: [],
       bridges: [],
@@ -196,6 +256,13 @@ export const useSession = create<SessionState>((set, get) => ({
       return txt ? { ...b, ...txt } : b;
     };
 
+    // participant roles are localized too (a scenario participant's role differs by lang).
+    // key by the author name → the scenario's role text in the target language.
+    const roleByName = new Map<string, string>();
+    sc.fragments.forEach((f) => {
+      if (!roleByName.has(f.authorName)) roleByName.set(f.authorName, f.authorRole[lang]);
+    });
+
     set((s) => ({
       // re-project the decision prompt too — but only if it's still the scenario's
       // own title (untouched). If the team edited it, keep their wording.
@@ -203,6 +270,10 @@ export const useSession = create<SessionState>((set, get) => ({
         s.decisionPrompt === sc.title.en || s.decisionPrompt === sc.title.ko
           ? sc.title[lang]
           : s.decisionPrompt,
+      participants: s.participants.map((p) => {
+        const role = roleByName.get(p.name);
+        return role ? { ...p, role } : p;
+      }),
       fragments: s.fragments.map((f) => {
         const txt = fragText.get(f.id);
         return txt ? { ...f, ...txt } : f;
@@ -217,6 +288,8 @@ export const useSession = create<SessionState>((set, get) => ({
       step: "start",
       scenarioId: null,
       decisionPrompt: "",
+      participants: [],
+      activeParticipantId: null,
       fragments: [],
       tray: [],
       bridges: [],
@@ -236,12 +309,28 @@ export const useSession = create<SessionState>((set, get) => ({
     const radius = 0.22 + (n % 3) * 0.08;
     const x = 0.5 + Math.cos(angle) * radius;
     const y = 0.5 + Math.sin(angle) * radius;
-    set((s) => ({
-      fragments: [
-        ...s.fragments,
-        { ...f, id: uid("frag"), x: Math.min(0.9, Math.max(0.1, x)), y: Math.min(0.9, Math.max(0.12, y)) },
-      ],
-    }));
+    set((s) => {
+      // when there's an active participant, stamp their id and prefer their name/role
+      // (the caller may still pass explicit name/role, e.g. blank-table fallback).
+      const active = s.participants.find((p) => p.id === s.activeParticipantId);
+      const authorId = active?.id;
+      const authorName = active ? active.name : f.authorName;
+      const authorRole = active ? active.role : f.authorRole;
+      return {
+        fragments: [
+          ...s.fragments,
+          {
+            ...f,
+            authorId,
+            authorName,
+            authorRole,
+            id: uid("frag"),
+            x: Math.min(0.9, Math.max(0.1, x)),
+            y: Math.min(0.9, Math.max(0.12, y)),
+          },
+        ],
+      };
+    });
   },
 
   removeFragment: (id) =>
@@ -296,6 +385,7 @@ export const useSession = create<SessionState>((set, get) => ({
         ...b,
         ...patch,
         status: patch ? "edited" : "confirmed",
+        actorId: s.activeParticipantId ?? undefined,
       };
       return {
         tray: s.tray.filter((x) => x.id !== id),
@@ -333,6 +423,7 @@ export const useSession = create<SessionState>((set, get) => ({
       confidence: 1,
       status: "edited",
       createdBy: "human",
+      actorId: s.activeParticipantId ?? undefined,
     };
     set({ bridges: [...s.bridges, manual] });
     return true;
