@@ -52,6 +52,18 @@ export function MirrorScreen() {
   const aiName = useRef("");
   const aiQuestion = useRef("");
   const logEvent = useSession((s) => s.logEvent);
+  const exportSession = useSession((s) => s.exportSession);
+
+  const downloadSession = () => {
+    const data = exportSession();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `watse-session-${data.scenarioId ?? "custom"}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const clusters = findClusters(fragments, bridges, 3);
   const main = clusters[0];
@@ -174,6 +186,14 @@ export function MirrorScreen() {
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-faint">{t("mirror.hint")}</p>
         </div>
         {assembled && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={downloadSession}
+              title={t("export.hint")}
+              className="rounded-full border border-line bg-paper-card px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-accent hover:text-accent"
+            >
+              ⤓ {t("export.button")}
+            </button>
           <div className="flex items-center rounded-full border border-line bg-paper-card p-0.5 text-xs font-semibold">
             <button
               onClick={() => setRevealView("crux")}
@@ -193,6 +213,7 @@ export function MirrorScreen() {
             >
               🔗 {t("crux.viewAssembly")}
             </button>
+          </div>
           </div>
         )}
       </div>

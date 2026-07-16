@@ -68,6 +68,21 @@ export type Step = "start" | "gather" | "connect" | "mirror";
 type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : never;
 export type EventPayload = DistributiveOmit<SessionEvent, "id" | "seq" | "t" | "actorId">;
 
+/** A full session snapshot for research analysis / handoff. */
+export interface SessionExport {
+  version: 1;
+  scenarioId: string | null;
+  decisionPrompt: string;
+  participants: Participant[];
+  fragments: Fragment[];
+  bridges: Bridge[];
+  rejectedPairKeys: string[];
+  clusterNames: Record<string, string>;
+  clusterQuestions: Record<string, string>;
+  clusterDecisions: Record<string, string>;
+  events: SessionEvent[];
+}
+
 function uid(prefix: string): string {
   // deterministic-ish unique id without external deps
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}${(idCounter++).toString(36)}`;
@@ -121,6 +136,8 @@ interface SessionState {
   setActiveParticipant: (id: string | null) => void;
   /** append a boundary-work event (meta id/seq/t/actorId is stamped for you). */
   logEvent: (e: EventPayload) => void;
+  /** serialize the whole session (participants, board, events, decisions) for a researcher. */
+  exportSession: () => SessionExport;
   loadScenario: (sc: Scenario, lang: "en" | "ko") => void;
   /** re-project scenario-derived fragment/bridge text into `lang` (mid-session language switch) */
   relocalize: (lang: "en" | "ko") => void;
@@ -200,6 +217,23 @@ export const useSession = create<SessionState>((set, get) => ({
     set((s) => ({
       events: [...s.events, { ...(e as SessionEvent), ...nextEventMeta(s.activeParticipantId) }],
     })),
+
+  exportSession: () => {
+    const s = get();
+    return {
+      version: 1,
+      scenarioId: s.scenarioId,
+      decisionPrompt: s.decisionPrompt,
+      participants: s.participants,
+      fragments: s.fragments,
+      bridges: s.bridges,
+      rejectedPairKeys: [...s.rejectedPairKeys],
+      clusterNames: s.clusterNames,
+      clusterQuestions: s.clusterQuestions,
+      clusterDecisions: s.clusterDecisions,
+      events: s.events,
+    };
+  },
   setClusterName: (clusterId, name) =>
     set((s) => ({ clusterNames: { ...s.clusterNames, [clusterId]: name } })),
   setClusterQuestion: (clusterId, q) =>

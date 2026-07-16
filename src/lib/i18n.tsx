@@ -75,6 +75,13 @@ const dict = {
   },
   "scaffold.blankStuck": { en: "Not sure what to write?", ko: "뭘 써야 할지 모르겠나요?" },
 
+  // ---- export ----
+  "export.button": { en: "Export session", ko: "세션 내보내기" },
+  "export.hint": {
+    en: "Download everything — pieces, connections, who did what, and the decision — as a JSON file.",
+    ko: "조각·연결·누가 무엇을 했는지·결정까지 전부 JSON 파일로 내려받아요.",
+  },
+
   // ---- participants ----
   "people.heading": { en: "Who's at the table?", ko: "테이블에 누가 있나요?" },
   "people.hint": {
