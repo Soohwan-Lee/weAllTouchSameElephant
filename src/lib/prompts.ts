@@ -205,3 +205,37 @@ Sorting rule (each link goes in exactly ONE list, never both):
 - Every other link → put it ONLY in "connected".
 - Each unconnected fragment → put it in "separate".`;
 }
+
+/** One "angle seed" — a possible vantage on the decision, NOT a finished fragment.
+ *  The person picks one and rewrites it in their own words before it becomes a card. */
+export interface SeedSuggestion {
+  /** a short handle for the angle (becomes a title draft) */
+  angle: string;
+  /** a one-line nudge that opens the angle — a prompt to answer, not a claim to keep */
+  nudge: string;
+  /** which vantage this angle comes from (e.g. "frontline", "customer") — for grouping */
+  lens: string;
+}
+
+/**
+ * SEEDS prompt — for the person who's stuck on a blank card. The model does NOT write
+ * their perspective; it scatters SHORT possible ANGLES on the decision, each from a
+ * different vantage, so the person can pick one and fill it in themselves. This keeps the
+ * "everyone touched a different side" premise real: the seed is a doorway, not the room.
+ */
+export function seedsPrompt(decision: string, lang: "en" | "ko", maxSeeds: number) {
+  const language = lang === "ko" ? "Korean" : "English";
+  return `A team is deciding: "${decision}". One member is stuck on a blank card — they can't tell what part of this THEY see. Your job is to offer ${maxSeeds} short possible ANGLES on this decision, each from a DIFFERENT vantage (e.g. frontline worker, customer/user, decision-maker, builder, someone affected but unheard).
+
+CRUCIAL — you are NOT writing their perspective for them. Each angle is a DOORWAY: a short handle + a one-line question that opens it. It must be generic enough that the person has to fill in their OWN specifics — never a finished opinion they could just accept. Think "a lens to look through", not "a view to adopt".
+
+Rules:
+- ${maxSeeds} angles, each a genuinely different vantage. Spread them — do not give three flavors of one seat.
+- "angle": 2–5 words, a neutral handle (e.g. "The daily grind", "What users feel", "The trade-off nobody names").
+- "nudge": ONE open question that makes the person supply their own content (e.g. "What part of this do you deal with that others don't see?"). Never a claim, never an answer.
+- Stay on THIS decision. Do not invent facts about the team.
+- Write in ${language}.
+
+Return ONLY valid JSON of this exact shape (no prose, no markdown):
+{"seeds":[{"angle":"<2-5 word handle in ${language}>","nudge":"<one open question in ${language}>","lens":"<one-word vantage tag>"}]}`;
+}

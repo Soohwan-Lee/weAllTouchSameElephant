@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/store";
+import { fetchSeeds } from "@/lib/api";
+import type { SeedSuggestion } from "@/lib/prompts";
 import {
   PIECE_TYPES,
   PIECE_TYPE_META,
@@ -51,6 +53,22 @@ export function GatherScreen() {
   // the decision prompt is read-only when it came from a scenario; editable on a blank table
   const decisionEditable = !scenarioId;
 
+  // when the write form was seeded from a chosen angle, remember the angle to nudge the
+  // person to rewrite it in their own words (the angle handle, not any AI-written content).
+  const [seededFromAngle, setSeededFromAngle] = useState<string | null>(null);
+
+  // pick a seed → prefill the write form (title = angle draft, body left EMPTY with the
+  // nudge as placeholder so the person supplies their own words) and switch to write mode.
+  const pickSeed = (angle: string, nudge: string) => {
+    setTitle(angle);
+    setBody("");
+    setPieceType(null);
+    setSeededFromAngle(angle);
+    setSeedNudge(nudge);
+    setEntryMode("write");
+  };
+  const [seedNudge, setSeedNudge] = useState<string>("");
+
   const lens = ROLE_LENSES.find((l) => l.id === lensId) ?? ROLE_LENSES[0];
   // the spark question: the chosen type's prompt, else the role lens's rotating question
   const sparkQuestion = pieceType
@@ -78,6 +96,8 @@ export function GatherScreen() {
     setTitle("");
     setBody("");
     setPieceType(null);
+    setSeededFromAngle(null);
+    setSeedNudge("");
   };
 
   return (
@@ -133,13 +153,13 @@ export function GatherScreen() {
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        {/* input card — WRITE mode (seeds/talk panels land in later commits) */}
-        {entryMode !== "write" ? (
+        {/* input card — the panel depends on entry mode */}
+        {entryMode === "seeds" ? (
+          <SeedsPanel decision={decisionPrompt} lang={lang} onPick={pickSeed} onBack={() => setEntryMode("write")} />
+        ) : entryMode === "talk" ? (
           <div className="animate-fade-up rounded-xl2 border border-dashed border-line bg-paper-sunken/40 p-8 text-center">
-            <div className="text-3xl">{entryMode === "seeds" ? "💡" : "💬"}</div>
-            <div className="mt-3 text-sm font-semibold text-ink">
-              {t(entryMode === "seeds" ? "entry.seeds" : "entry.talk")}
-            </div>
+            <div className="text-3xl">💬</div>
+            <div className="mt-3 text-sm font-semibold text-ink">{t("entry.talk")}</div>
             <div className="mt-1 text-xs text-ink-faint">{t("entry.comingSoon")}</div>
             <button
               onClick={() => setEntryMode("write")}
@@ -150,6 +170,11 @@ export function GatherScreen() {
           </div>
         ) : (
         <div className="animate-fade-up rounded-xl2 border border-line bg-paper-card p-5 shadow-card">
+          {seededFromAngle && (
+            <div className="mb-4 rounded-xl border border-accent/30 bg-accent-soft/40 px-3.5 py-2.5 text-[12px] leading-snug text-ink">
+              💡 <span className="font-medium">{seededFromAngle}</span> — {t("seeds.picked")}
+            </div>
+          )}
           {/* ---- scaffolding: kill the blank-card bottleneck ---- */}
           <div className="mb-4 rounded-xl border border-accent/20 bg-accent-soft/25 p-3.5">
             <div className="text-[12px] font-semibold text-ink">💡 {t("scaffold.blankStuck")}</div>
@@ -240,7 +265,7 @@ export function GatherScreen() {
               }}
               rows={3}
               maxLength={400}
-              placeholder={pieceType ? "" : t("scaffold.blankStuck")}
+              placeholder={pieceType ? "" : seedNudge || t("scaffold.blankStuck")}
               className="w-full resize-none rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink outline-none transition placeholder:text-line focus:border-ink/40"
             />
             {pieceType && body.includes("___") && (
@@ -333,6 +358,102 @@ function Field({
         placeholder={placeholder}
         className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink outline-none transition placeholder:text-line focus:border-ink/40"
       />
+    </div>
+  );
+}
+
+/**
+ * SEEDS panel — for the person stuck on a blank card. Fetches short possible ANGLES on the
+ * decision (each a doorway, not a finished view) and lets them pick one. Picking prefills the
+ * write form and hands control back to the person, who must supply their own words.
+ */
+function SeedsPanel({
+  decision,
+  lang,
+  onPick,
+  onBack,
+}: {
+  decision: string;
+  lang: "en" | "ko";
+  onPick: (angle: string, nudge: string) => void;
+  onBack: () => void;
+}) {
+  const { t } = useI18n();
+  const [seeds, setSeeds] = useState<SeedSuggestion[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [asked, setAsked] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const { seeds: s } = await fetchSeeds(decision, lang, 5);
+      setSeeds(s);
+      setAsked(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="animate-fade-up rounded-xl2 border border-line bg-paper-card p-5 shadow-card">
+      <p className="text-[12px] leading-snug text-ink-soft">{t("seeds.intro")}</p>
+
+      {!asked ? (
+        <div className="mt-4 flex items-center gap-2">
+          <button
+            onClick={load}
+            disabled={loading}
+            className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper transition enabled:hover:opacity-90 disabled:bg-line disabled:text-ink-faint"
+          >
+            💡 {loading ? t("seeds.loading") : t("seeds.get")}
+          </button>
+          <button
+            onClick={onBack}
+            className="rounded-full px-3 py-2 text-xs font-medium text-ink-faint transition hover:text-ink"
+          >
+            ← {t("entry.write")}
+          </button>
+        </div>
+      ) : (
+        <>
+          <ul className="mt-4 space-y-2">
+            {seeds.map((s, i) => (
+              <li
+                key={`${s.angle}-${i}`}
+                className="animate-fade-up rounded-xl border border-line bg-paper p-3.5 transition hover:border-accent/50"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-ink">{s.angle}</div>
+                    <div className="mt-1 text-[13px] leading-snug text-ink-soft">{s.nudge}</div>
+                  </div>
+                  <button
+                    onClick={() => onPick(s.angle, s.nudge)}
+                    className="shrink-0 rounded-full border border-accent/40 px-3 py-1.5 text-[11px] font-medium text-accent transition hover:bg-accent hover:text-white"
+                  >
+                    {t("seeds.pick")} →
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              onClick={load}
+              disabled={loading}
+              className="rounded-full border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition enabled:hover:text-ink disabled:text-line"
+            >
+              ↻ {loading ? t("seeds.loading") : t("seeds.regen")}
+            </button>
+            <button
+              onClick={onBack}
+              className="rounded-full px-3 py-1.5 text-xs font-medium text-ink-faint transition hover:text-ink"
+            >
+              ← {t("entry.write")}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

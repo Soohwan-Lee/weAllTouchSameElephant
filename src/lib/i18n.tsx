@@ -93,6 +93,18 @@ const dict = {
   "entry.talk": { en: "Talk it through", ko: "대화로 풀기" },
   "entry.talkSub": { en: "Help me figure out what I see", ko: "뭘 보는지 같이 찾아줘요" },
   "entry.comingSoon": { en: "Coming up next", ko: "곧 추가돼요" },
+  "seeds.intro": {
+    en: "Angles you might be seeing. Pick one that fits — then say it in your own words.",
+    ko: "당신이 보고 있을 법한 각도들이에요. 맞는 걸 고른 뒤, 당신의 말로 바꿔 쓰세요.",
+  },
+  "seeds.get": { en: "Show me angles", ko: "각도 보여줘" },
+  "seeds.regen": { en: "Other angles", ko: "다른 각도" },
+  "seeds.loading": { en: "Finding angles…", ko: "각도를 찾는 중…" },
+  "seeds.pick": { en: "Use this angle", ko: "이 각도 쓰기" },
+  "seeds.picked": {
+    en: "Now write what YOU see from this angle — the angle is just a doorway.",
+    ko: "이제 이 각도에서 당신이 본 것을 쓰세요 — 각도는 문일 뿐이에요.",
+  },
 
   // ---- connect / bridges ----
   "connect.heading": { en: "How might these connect?", ko: "이것들은 어떻게 이어질까요?" },
