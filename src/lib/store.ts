@@ -58,6 +58,10 @@ let idCounter = 0;
 interface SessionState {
   step: Step;
   scenarioId: string | null;
+  /** the question the team is deciding together ("Should we redesign the park?").
+   *  Prefilled from a scenario's title; on a blank table the team types it. AI
+   *  seed/conversation input scaffolds lean on this so suggestions are on-topic. */
+  decisionPrompt: string;
   fragments: Fragment[];
   /** bridges proposed by AI, awaiting human action */
   tray: Bridge[];
@@ -77,6 +81,7 @@ interface SessionState {
   revealView: "assembly" | "crux";
 
   setStep: (s: Step) => void;
+  setDecisionPrompt: (q: string) => void;
   loadScenario: (sc: Scenario, lang: "en" | "ko") => void;
   /** re-project scenario-derived fragment/bridge text into `lang` (mid-session language switch) */
   relocalize: (lang: "en" | "ko") => void;
@@ -110,6 +115,7 @@ function pairKey(a: string, b: string) {
 export const useSession = create<SessionState>((set, get) => ({
   step: "start",
   scenarioId: null,
+  decisionPrompt: "",
   fragments: [],
   tray: [],
   bridges: [],
@@ -122,6 +128,7 @@ export const useSession = create<SessionState>((set, get) => ({
   revealView: "crux",
 
   setStep: (step) => set({ step }),
+  setDecisionPrompt: (decisionPrompt) => set({ decisionPrompt }),
   setClusterName: (clusterId, name) =>
     set((s) => ({ clusterNames: { ...s.clusterNames, [clusterId]: name } })),
   setClusterQuestion: (clusterId, q) =>
@@ -143,6 +150,7 @@ export const useSession = create<SessionState>((set, get) => ({
     }));
     set({
       scenarioId: sc.id,
+      decisionPrompt: sc.title[lang],
       fragments,
       tray: [],
       bridges: [],
@@ -189,6 +197,12 @@ export const useSession = create<SessionState>((set, get) => ({
     };
 
     set((s) => ({
+      // re-project the decision prompt too — but only if it's still the scenario's
+      // own title (untouched). If the team edited it, keep their wording.
+      decisionPrompt:
+        s.decisionPrompt === sc.title.en || s.decisionPrompt === sc.title.ko
+          ? sc.title[lang]
+          : s.decisionPrompt,
       fragments: s.fragments.map((f) => {
         const txt = fragText.get(f.id);
         return txt ? { ...f, ...txt } : f;
@@ -202,6 +216,7 @@ export const useSession = create<SessionState>((set, get) => ({
     set({
       step: "start",
       scenarioId: null,
+      decisionPrompt: "",
       fragments: [],
       tray: [],
       bridges: [],

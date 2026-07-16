@@ -11,12 +11,32 @@ import {
   type PieceType,
 } from "@/lib/starters";
 
+/** How the person adds pieces — chosen by "how stuck am I?" */
+type EntryMode = "write" | "seeds" | "talk";
+
+const ENTRY_MODES: Array<{
+  id: EntryMode;
+  emoji: string;
+  labelKey: "entry.write" | "entry.seeds" | "entry.talk";
+  subKey: "entry.writeSub" | "entry.seedsSub" | "entry.talkSub";
+}> = [
+  { id: "write", emoji: "✍️", labelKey: "entry.write", subKey: "entry.writeSub" },
+  { id: "seeds", emoji: "💡", labelKey: "entry.seeds", subKey: "entry.seedsSub" },
+  { id: "talk", emoji: "💬", labelKey: "entry.talk", subKey: "entry.talkSub" },
+];
+
 export function GatherScreen() {
   const { t, lang } = useI18n();
   const fragments = useSession((s) => s.fragments);
   const addFragment = useSession((s) => s.addFragment);
   const removeFragment = useSession((s) => s.removeFragment);
   const setStep = useSession((s) => s.setStep);
+  const decisionPrompt = useSession((s) => s.decisionPrompt);
+  const setDecisionPrompt = useSession((s) => s.setDecisionPrompt);
+  const scenarioId = useSession((s) => s.scenarioId);
+
+  // entry mode: write directly (know what to say) / seeds (pick angles) / talk (figure out)
+  const [entryMode, setEntryMode] = useState<EntryMode>("write");
 
   const [authorName, setAuthorName] = useState("");
   const [authorRole, setAuthorRole] = useState("");
@@ -27,6 +47,9 @@ export function GatherScreen() {
   const [pieceType, setPieceType] = useState<PieceType | null>(null);
   const [lensId, setLensId] = useState("generic");
   const [qIdx, setQIdx] = useState(0);
+
+  // the decision prompt is read-only when it came from a scenario; editable on a blank table
+  const decisionEditable = !scenarioId;
 
   const lens = ROLE_LENSES.find((l) => l.id === lensId) ?? ROLE_LENSES[0];
   // the spark question: the chosen type's prompt, else the role lens's rotating question
@@ -64,8 +87,68 @@ export function GatherScreen() {
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-faint">{t("gather.hint")}</p>
       </div>
 
+      {/* ---- decision anchor: the one question the pieces are views on ---- */}
+      <div className="mt-5 animate-fade-up rounded-xl2 border border-line bg-paper-sunken/40 p-4">
+        <label className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
+          {t("decision.label")}
+        </label>
+        {decisionEditable ? (
+          <input
+            value={decisionPrompt}
+            onChange={(e) => setDecisionPrompt(e.target.value)}
+            placeholder={t("decision.placeholder")}
+            className="mt-1.5 w-full rounded-lg border border-line bg-paper px-3 py-2 text-[15px] font-medium text-ink outline-none transition placeholder:text-line focus:border-ink/40"
+          />
+        ) : (
+          <div className="mt-1 text-[15px] font-semibold text-ink">{decisionPrompt || "—"}</div>
+        )}
+        <p className="mt-1.5 text-[11px] leading-snug text-ink-faint">{t("decision.hint")}</p>
+      </div>
+
+      {/* ---- entry mode: how stuck are you? ---- */}
+      <div className="mt-5 animate-fade-up">
+        <div className="mb-2 text-[12px] font-medium text-ink-soft">{t("entry.heading")}</div>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {ENTRY_MODES.map((m) => {
+            const active = entryMode === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => setEntryMode(m.id)}
+                className={[
+                  "rounded-xl border p-3 text-left transition",
+                  active
+                    ? "border-accent bg-accent-soft/40 shadow-card"
+                    : "border-line bg-paper-card hover:border-accent/40",
+                ].join(" ")}
+              >
+                <div className="text-sm font-semibold text-ink">
+                  {m.emoji} {t(m.labelKey)}
+                </div>
+                <div className="mt-0.5 text-[11px] leading-snug text-ink-faint">{t(m.subKey)}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        {/* input card */}
+        {/* input card — WRITE mode (seeds/talk panels land in later commits) */}
+        {entryMode !== "write" ? (
+          <div className="animate-fade-up rounded-xl2 border border-dashed border-line bg-paper-sunken/40 p-8 text-center">
+            <div className="text-3xl">{entryMode === "seeds" ? "💡" : "💬"}</div>
+            <div className="mt-3 text-sm font-semibold text-ink">
+              {t(entryMode === "seeds" ? "entry.seeds" : "entry.talk")}
+            </div>
+            <div className="mt-1 text-xs text-ink-faint">{t("entry.comingSoon")}</div>
+            <button
+              onClick={() => setEntryMode("write")}
+              className="mt-4 rounded-full border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-accent hover:text-accent"
+            >
+              ← {t("entry.write")}
+            </button>
+          </div>
+        ) : (
         <div className="animate-fade-up rounded-xl2 border border-line bg-paper-card p-5 shadow-card">
           {/* ---- scaffolding: kill the blank-card bottleneck ---- */}
           <div className="mb-4 rounded-xl border border-accent/20 bg-accent-soft/25 p-3.5">
@@ -172,6 +255,7 @@ export function GatherScreen() {
             + {t("gather.add")}
           </button>
         </div>
+        )}
 
         {/* fragment list */}
         <div>

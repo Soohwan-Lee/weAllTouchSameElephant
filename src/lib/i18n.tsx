@@ -75,6 +75,25 @@ const dict = {
   },
   "scaffold.blankStuck": { en: "Not sure what to write?", ko: "뭘 써야 할지 모르겠나요?" },
 
+  // ---- gather: decision anchor + entry modes ----
+  "decision.label": { en: "What are we deciding?", ko: "우리가 정하려는 건?" },
+  "decision.placeholder": {
+    en: "e.g. Should we redesign the neighborhood park?",
+    ko: "예: 동네 공원을 다시 설계해야 할까?",
+  },
+  "decision.hint": {
+    en: "One question the team is trying to answer. Your pieces are the views you each hold on it.",
+    ko: "팀이 답하려는 하나의 질문. 조각은 각자 그것에 대해 가진 관점이에요.",
+  },
+  "entry.heading": { en: "How do you want to add your pieces?", ko: "조각을 어떻게 더할까요?" },
+  "entry.write": { en: "Write directly", ko: "직접 쓰기" },
+  "entry.writeSub": { en: "I know what I want to say", ko: "무엇을 쓸지 알아요" },
+  "entry.seeds": { en: "Get suggestions", ko: "제안 받기" },
+  "entry.seedsSub": { en: "Show me angles I can pick from", ko: "고를 각도를 보여줘요" },
+  "entry.talk": { en: "Talk it through", ko: "대화로 풀기" },
+  "entry.talkSub": { en: "Help me figure out what I see", ko: "뭘 보는지 같이 찾아줘요" },
+  "entry.comingSoon": { en: "Coming up next", ko: "곧 추가돼요" },
+
   // ---- connect / bridges ----
   "connect.heading": { en: "How might these connect?", ko: "이것들은 어떻게 이어질까요?" },
   "connect.hint": {
