@@ -9,8 +9,16 @@ import { Tour } from "./Tour";
 export function StartScreen() {
   const { t, lang } = useI18n();
   const loadScenario = useSession((s) => s.loadScenario);
-  const setStep = useSession((s) => s.setStep);
+  const reset = useSession((s) => s.reset);
   const [showTour, setShowTour] = useState(false);
+
+  // Blank start must clear any leftover scenario pieces. Returning home (🐘) only
+  // sets step "start" without wiping state, so a previously-loaded scenario's
+  // fragments/bridges would otherwise bleed into a fresh "blank table."
+  const startBlank = () => {
+    reset();
+    useSession.getState().setStep("gather");
+  };
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:py-16">
@@ -69,7 +77,7 @@ export function StartScreen() {
       <div className="mt-10 flex flex-col items-center gap-3 border-t border-line pt-8">
         <span className="text-xs text-ink-faint">{t("start.orBlank")}</span>
         <button
-          onClick={() => setStep("gather")}
+          onClick={startBlank}
           className="rounded-full border border-ink/15 px-5 py-2 text-sm font-medium text-ink transition hover:bg-ink hover:text-paper"
         >
           {t("start.blankBtn")}
