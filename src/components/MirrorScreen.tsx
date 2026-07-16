@@ -47,6 +47,11 @@ export function MirrorScreen() {
   const [nameDraft, setNameDraft] = useState("");
   // remember whether the shown reveal came from a sample scenario (so we can re-project it on language switch)
   const fromSampleReveal = useRef(false);
+  // the AI's ORIGINAL name/question, kept so we can log accept-vs-override (the key
+  // boundary-work signal: did the team keep the AI's framing or change it?).
+  const aiName = useRef("");
+  const aiQuestion = useRef("");
+  const logEvent = useSession((s) => s.logEvent);
 
   const clusters = findClusters(fragments, bridges, 3);
   const main = clusters[0];
@@ -61,6 +66,7 @@ export function MirrorScreen() {
     setMode(chosen);
     setLoading(true);
     setAssembled(true);
+    logEvent({ type: "reveal_mode_chosen", mode: chosen });
     try {
       const synth = computeSynthesis(fragments, bridges, main);
       const keystone = synth.facets.find((f) => f.id === synth.keystoneFacetId);
@@ -114,12 +120,38 @@ export function MirrorScreen() {
         }
       }
       setResult(res);
+      // capture the AI's originals so we can later detect if the team overrode them
+      if (res.name) aiName.current = res.name;
+      if (res.question) aiQuestion.current = res.question;
       if (!nameDraft && res.name) setNameDraft(res.name);
       if (main && res.question && !clusterQuestions[main.id]) setClusterQuestion(main.id, res.question);
     } finally {
       setLoading(false);
     }
   }
+
+  // Accept the framing: commit the name, and log both name + question as accepted with
+  // their AI originals so a researcher can tell "kept the AI's framing" from "overrode it".
+  const acceptFraming = () => {
+    if (!main || !nameDraft.trim()) return;
+    const finalName = nameDraft.trim();
+    setClusterName(main.id, finalName);
+    logEvent({
+      type: "name_accepted",
+      aiOriginal: aiName.current,
+      humanFinal: finalName,
+      changed: aiName.current.trim() !== finalName,
+    });
+    const finalQuestion = (clusterQuestions[main.id] ?? "").trim();
+    if (finalQuestion || aiQuestion.current) {
+      logEvent({
+        type: "question_accepted",
+        aiOriginal: aiQuestion.current,
+        humanFinal: finalQuestion,
+        changed: aiQuestion.current.trim() !== finalQuestion,
+      });
+    }
+  };
 
   // when the user switches language mid-test, re-project a sample reveal into the new
   // language. Live-AI reveals can't be translated, so they're left as-is.
@@ -198,7 +230,7 @@ export function MirrorScreen() {
                 nameDraft={nameDraft}
                 onNameDraft={setNameDraft}
                 named={named}
-                onAcceptName={() => main && nameDraft.trim() && setClusterName(main.id, nameDraft.trim())}
+                onAcceptName={acceptFraming}
               />
               <RealQuestion
                 value={question ?? ""}
@@ -212,6 +244,7 @@ export function MirrorScreen() {
                 <NextStep
                   value={decision ?? ""}
                   onChange={(v) => main && setClusterDecision(main.id, v)}
+                  onCommit={(v) => logEvent({ type: "decision_written", text: v })}
                 />
               )}
 
@@ -233,7 +266,7 @@ export function MirrorScreen() {
                 named={named}
                 loading={loading}
                 onDraft={setNameDraft}
-                onAccept={() => main && nameDraft.trim() && setClusterName(main.id, nameDraft.trim())}
+                onAccept={acceptFraming}
                 onRedo={() => reveal(mode)}
               />
             </>
@@ -477,7 +510,15 @@ function RealQuestion({
  * but the decision is the team's, and the UI should make that ownership legible.
  * The tool proposes a question; it never fills in the answer (WATSE v5).
  */
-function NextStep({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function NextStep({
+  value,
+  onChange,
+  onCommit,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onCommit: (v: string) => void;
+}) {
   const { t } = useI18n();
   const [editing, setEditing] = useState(false);
   const has = !!value.trim();
@@ -493,7 +534,10 @@ function NextStep({ value, onChange }: { value: string; onChange: (v: string) =>
             autoFocus={editing}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            onBlur={() => setEditing(false)}
+            onBlur={() => {
+              setEditing(false);
+              if (value.trim()) onCommit(value.trim());
+            }}
             rows={2}
             placeholder={t("decide.placeholder")}
             className="mt-2 w-full resize-none rounded-lg border border-line bg-paper px-3 py-2 text-base font-medium text-ink outline-none focus:border-ink/40"

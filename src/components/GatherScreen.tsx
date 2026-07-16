@@ -91,12 +91,15 @@ export function GatherScreen() {
 
   const submit = () => {
     if (!canAdd) return;
-    addFragment({
-      authorName: authorName.trim() || "—",
-      authorRole: authorRole.trim() || "—",
-      title: title.trim(),
-      body: body.trim(),
-    });
+    addFragment(
+      {
+        authorName: authorName.trim() || "—",
+        authorRole: authorRole.trim() || "—",
+        title: title.trim(),
+        body: body.trim(),
+      },
+      seededFromAngle ? "seed" : "write"
+    );
     setTitle("");
     setBody("");
     setPieceType(null);
@@ -169,7 +172,7 @@ export function GatherScreen() {
           <TalkPanel
             decision={decisionPrompt}
             lang={lang}
-            onAddCard={(title, body) => addFragment({ authorName: authorName.trim() || "—", authorRole: authorRole.trim() || "—", title, body })}
+            onAddCard={(title, body) => addFragment({ authorName: authorName.trim() || "—", authorRole: authorRole.trim() || "—", title, body }, "talk")}
             onBack={() => setEntryMode("write")}
           />
         ) : (

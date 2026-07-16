@@ -48,7 +48,7 @@ export function ManualConnect() {
 
   const create = () => {
     if (!ready) return;
-    const ok = addManualBridge(picks[0], picks[1], rel, note.trim());
+    const ok = addManualBridge(picks[0], picks[1], rel, note.trim(), redundant);
     if (ok) {
       reset();
       setMode(false);

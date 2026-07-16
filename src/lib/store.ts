@@ -12,6 +12,7 @@ import type {
   Scenario,
   ScenarioBridge,
   ScenarioReveal,
+  SessionEvent,
 } from "./types";
 import { getScenario } from "./scenarios";
 
@@ -62,11 +63,24 @@ export function scenarioRevealToResult(
 
 export type Step = "start" | "gather" | "connect" | "mirror";
 
+/** An event to log, without the meta the store stamps (id/seq/t/actorId).
+ *  Distributive so each union member keeps its OWN discriminated fields. */
+type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : never;
+export type EventPayload = DistributiveOmit<SessionEvent, "id" | "seq" | "t" | "actorId">;
+
 function uid(prefix: string): string {
   // deterministic-ish unique id without external deps
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}${(idCounter++).toString(36)}`;
 }
 let idCounter = 0;
+
+// Event clock: a monotonic seq + a wall-clock stamp captured lazily at first event
+// (never at module init, to stay SSR-safe). t is ms since epoch; seq guarantees order.
+let eventSeq = 0;
+function nextEventMeta(actorId: string | null): { id: string; seq: number; t: number; actorId?: string } {
+  const t = typeof Date !== "undefined" ? Date.now() : 0;
+  return { id: uid("evt"), seq: eventSeq++, t, actorId: actorId ?? undefined };
+}
 
 interface SessionState {
   step: Step;
@@ -79,6 +93,8 @@ interface SessionState {
   participants: Participant[];
   /** whose turn it is to add/act — stamps authorId/actorId on their actions. */
   activeParticipantId: string | null;
+  /** append-only boundary-work event log (the research payload). */
+  events: SessionEvent[];
   fragments: Fragment[];
   /** bridges proposed by AI, awaiting human action */
   tray: Bridge[];
@@ -103,12 +119,14 @@ interface SessionState {
   addParticipant: (name: string, role: string) => string;
   removeParticipant: (id: string) => void;
   setActiveParticipant: (id: string | null) => void;
+  /** append a boundary-work event (meta id/seq/t/actorId is stamped for you). */
+  logEvent: (e: EventPayload) => void;
   loadScenario: (sc: Scenario, lang: "en" | "ko") => void;
   /** re-project scenario-derived fragment/bridge text into `lang` (mid-session language switch) */
   relocalize: (lang: "en" | "ko") => void;
   reset: () => void;
 
-  addFragment: (f: Omit<Fragment, "id" | "x" | "y">) => void;
+  addFragment: (f: Omit<Fragment, "id" | "x" | "y">, source?: "write" | "seed" | "talk") => void;
   removeFragment: (id: string) => void;
   moveFragment: (id: string, x: number, y: number) => void;
 
@@ -125,7 +143,9 @@ interface SessionState {
     aId: string,
     bId: string,
     relationType: RelationType,
-    explanation: string
+    explanation: string,
+    /** did the two ends already connect through other pieces? (kept-redundant = boundary data) */
+    wasRedundant?: boolean
   ) => boolean;
 }
 
@@ -139,6 +159,7 @@ export const useSession = create<SessionState>((set, get) => ({
   decisionPrompt: "",
   participants: [],
   activeParticipantId: null,
+  events: [],
   fragments: [],
   tray: [],
   bridges: [],
@@ -174,6 +195,11 @@ export const useSession = create<SessionState>((set, get) => ({
       return { participants, activeParticipantId };
     }),
   setActiveParticipant: (activeParticipantId) => set({ activeParticipantId }),
+
+  logEvent: (e) =>
+    set((s) => ({
+      events: [...s.events, { ...(e as SessionEvent), ...nextEventMeta(s.activeParticipantId) }],
+    })),
   setClusterName: (clusterId, name) =>
     set((s) => ({ clusterNames: { ...s.clusterNames, [clusterId]: name } })),
   setClusterQuestion: (clusterId, q) =>
@@ -211,6 +237,7 @@ export const useSession = create<SessionState>((set, get) => ({
       decisionPrompt: sc.title[lang],
       participants,
       activeParticipantId: participants[0]?.id ?? null,
+      events: [],
       fragments,
       tray: [],
       bridges: [],
@@ -290,6 +317,7 @@ export const useSession = create<SessionState>((set, get) => ({
       decisionPrompt: "",
       participants: [],
       activeParticipantId: null,
+      events: [],
       fragments: [],
       tray: [],
       bridges: [],
@@ -302,7 +330,7 @@ export const useSession = create<SessionState>((set, get) => ({
       loadingBridges: false,
     }),
 
-  addFragment: (f) => {
+  addFragment: (f, source = "write") => {
     // place new fragments in a loose ring so the board isn't a pile
     const n = get().fragments.length;
     const angle = (n * 2.399963) % (Math.PI * 2); // golden angle spread
@@ -316,6 +344,13 @@ export const useSession = create<SessionState>((set, get) => ({
       const authorId = active?.id;
       const authorName = active ? active.name : f.authorName;
       const authorRole = active ? active.role : f.authorRole;
+      const fragId = uid("frag");
+      const evt: SessionEvent = {
+        ...nextEventMeta(s.activeParticipantId),
+        type: "fragment_added",
+        fragmentId: fragId,
+        source,
+      };
       return {
         fragments: [
           ...s.fragments,
@@ -324,11 +359,12 @@ export const useSession = create<SessionState>((set, get) => ({
             authorId,
             authorName,
             authorRole,
-            id: uid("frag"),
+            id: fragId,
             x: Math.min(0.9, Math.max(0.1, x)),
             y: Math.min(0.9, Math.max(0.12, y)),
           },
         ],
+        events: [...s.events, evt],
       };
     });
   },
@@ -373,7 +409,21 @@ export const useSession = create<SessionState>((set, get) => ({
         createdBy: "ai",
       });
     }
-    if (fresh.length) set((s) => ({ tray: [...s.tray, ...fresh] }));
+    if (fresh.length)
+      set((s) => ({
+        tray: [...s.tray, ...fresh],
+        events: [
+          ...s.events,
+          ...fresh.map(
+            (b): SessionEvent => ({
+              ...nextEventMeta(s.activeParticipantId),
+              type: "bridge_proposed",
+              pairKey: pairKey(b.fragmentAId, b.fragmentBId),
+              relationType: b.relationType,
+            })
+          ),
+        ],
+      }));
     return fresh.length;
   },
 
@@ -387,9 +437,17 @@ export const useSession = create<SessionState>((set, get) => ({
         status: patch ? "edited" : "confirmed",
         actorId: s.activeParticipantId ?? undefined,
       };
+      const evt: SessionEvent = {
+        ...nextEventMeta(s.activeParticipantId),
+        type: "bridge_confirmed",
+        pairKey: pairKey(b.fragmentAId, b.fragmentBId),
+        relationType: confirmed.relationType,
+        edited: !!patch,
+      };
       return {
         tray: s.tray.filter((x) => x.id !== id),
         bridges: [...s.bridges, confirmed],
+        events: [...s.events, evt],
       };
     }),
 
@@ -399,10 +457,24 @@ export const useSession = create<SessionState>((set, get) => ({
       if (!b) return {};
       const next = new Set(s.rejectedPairKeys);
       next.add(pairKey(b.fragmentAId, b.fragmentBId));
-      return { tray: s.tray.filter((x) => x.id !== id), rejectedPairKeys: next };
+      // preserve the discarded proposal — this was destroyed before, and it's the
+      // single most important boundary-work signal (what the team refused).
+      const evt: SessionEvent = {
+        ...nextEventMeta(s.activeParticipantId),
+        type: "bridge_rejected",
+        pairKey: pairKey(b.fragmentAId, b.fragmentBId),
+        relationType: b.relationType,
+        explanation: b.explanation,
+        createdBy: b.createdBy,
+      };
+      return {
+        tray: s.tray.filter((x) => x.id !== id),
+        rejectedPairKeys: next,
+        events: [...s.events, evt],
+      };
     }),
 
-  addManualBridge: (aId, bId, relationType, explanation) => {
+  addManualBridge: (aId, bId, relationType, explanation, wasRedundant = false) => {
     if (aId === bId) return false;
     const key = pairKey(aId, bId);
     const s = get();
@@ -425,7 +497,14 @@ export const useSession = create<SessionState>((set, get) => ({
       createdBy: "human",
       actorId: s.activeParticipantId ?? undefined,
     };
-    set({ bridges: [...s.bridges, manual] });
+    const evt: SessionEvent = {
+      ...nextEventMeta(s.activeParticipantId),
+      type: "manual_bridge_added",
+      pairKey: key,
+      relationType,
+      wasRedundant,
+    };
+    set({ bridges: [...s.bridges, manual], events: [...s.events, evt] });
     return true;
   },
 }));

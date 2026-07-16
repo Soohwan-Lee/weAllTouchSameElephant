@@ -64,6 +64,24 @@ export interface Bridge {
   actorId?: string;
 }
 
+/**
+ * Boundary-work event log — the research payload. Append-only, timestamped record of the
+ * moves that matter for studying "Integration Boundary Work": which AI proposals a team
+ * confirmed / edited / REJECTED, who acted, which redundant links they kept on purpose, the
+ * reveal mode they asked for, and — the key signal — whether they accepted the AI's framing
+ * (name/question) or overrode it. None of this was recoverable before; rejections were deleted.
+ */
+export type SessionEvent =
+  | { id: string; seq: number; t: number; actorId?: string; type: "fragment_added"; fragmentId: string; source: "write" | "seed" | "talk" }
+  | { id: string; seq: number; t: number; actorId?: string; type: "bridge_proposed"; pairKey: string; relationType: RelationType }
+  | { id: string; seq: number; t: number; actorId?: string; type: "bridge_confirmed"; pairKey: string; relationType: RelationType; edited: boolean }
+  | { id: string; seq: number; t: number; actorId?: string; type: "bridge_rejected"; pairKey: string; relationType: RelationType; explanation: string; createdBy: "ai" | "human" }
+  | { id: string; seq: number; t: number; actorId?: string; type: "manual_bridge_added"; pairKey: string; relationType: RelationType; wasRedundant: boolean }
+  | { id: string; seq: number; t: number; actorId?: string; type: "reveal_mode_chosen"; mode: RevealMode }
+  | { id: string; seq: number; t: number; actorId?: string; type: "name_accepted"; aiOriginal: string; humanFinal: string; changed: boolean }
+  | { id: string; seq: number; t: number; actorId?: string; type: "question_accepted"; aiOriginal: string; humanFinal: string; changed: boolean }
+  | { id: string; seq: number; t: number; actorId?: string; type: "decision_written"; text: string };
+
 /** What the AI returns from /api/bridges (before we assign ids/status). */
 export interface BridgeProposal {
   fragmentAId: string;
