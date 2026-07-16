@@ -239,3 +239,51 @@ Rules:
 Return ONLY valid JSON of this exact shape (no prose, no markdown):
 {"seeds":[{"angle":"<2-5 word handle in ${language}>","nudge":"<one open question in ${language}>","lens":"<one-word vantage tag>"}]}`;
 }
+
+/** A card candidate extracted from what the person SAID — a draft they then edit/approve. */
+export interface CardCandidate {
+  title: string;
+  body: string;
+}
+
+/**
+ * TALK: opening questions. For the person who can't yet name what they see, the model asks
+ * a few short questions to draw it out — it does NOT answer for them. One round, 2–3 questions.
+ */
+export function talkQuestionsPrompt(decision: string, lang: "en" | "ko") {
+  const language = lang === "ko" ? "Korean" : "English";
+  return `A team is deciding: "${decision}". One member can't yet put their finger on what THEY see about it. Ask 2–3 SHORT, open questions to draw out their own perspective — the kind a good facilitator asks. Do NOT suggest answers, do NOT hint at a "right" view. Each question should pull a concrete, first-hand observation from where they sit.
+
+Rules:
+- 2–3 questions, each one sentence, genuinely different (not rephrasings).
+- Open and specific-to-this-decision; never yes/no, never leading.
+- Write in ${language}.
+
+Return ONLY valid JSON (no prose, no markdown):
+{"questions":["<one open question in ${language}>"]}`;
+}
+
+/**
+ * TALK: extract card candidates. Given what the person WROTE in answer, pull out the distinct
+ * perspectives THEY expressed as short card drafts. This is extraction/paraphrase of THEIR
+ * words — never invention. The person edits/approves each before it becomes a fragment.
+ */
+export function talkExtractPrompt(decision: string, answer: string, lang: "en" | "ko") {
+  const language = lang === "ko" ? "Korean" : "English";
+  return `A team is deciding: "${decision}". A member was asked what they see, and answered:
+
+"""
+${answer}
+"""
+
+Pull out the DISTINCT perspectives THEY expressed, as short card drafts. This is extraction of THEIR OWN words — paraphrase tightly, never add a view they didn't state, never invent facts. If they expressed one thing, return one card; if several, split them.
+
+Rules:
+- Each card: a short "title" (2–6 words) + a "body" (1–2 sentences) drawn only from what they wrote.
+- Do NOT merge genuinely different points into one card; do NOT pad a thin answer into many.
+- If the answer has no substantive perspective, return an empty list.
+- Write in ${language}, staying close to their phrasing.
+
+Return ONLY valid JSON (no prose, no markdown):
+{"cards":[{"title":"<2-6 words in ${language}>","body":"<1-2 sentences in ${language}>"}]}`;
+}

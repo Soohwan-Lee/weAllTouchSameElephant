@@ -1,7 +1,34 @@
 import type { BridgeProposal, Fragment, MirrorReflection, NameResult, RevealMode } from "./types";
-import type { MirrorInput, NameInput, SeedSuggestion } from "./prompts";
+import type { CardCandidate, MirrorInput, NameInput, SeedSuggestion } from "./prompts";
 
 export type BridgeMode = "live" | "sample" | "empty" | "error";
+
+export async function fetchTalkQuestions(
+  decision: string,
+  lang: "en" | "ko"
+): Promise<{ questions: string[]; mode: string }> {
+  const res = await fetch("/api/talk", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "questions", decision, lang }),
+  });
+  if (!res.ok) return { questions: [], mode: "error" };
+  return res.json();
+}
+
+export async function fetchTalkExtract(
+  decision: string,
+  answer: string,
+  lang: "en" | "ko"
+): Promise<{ cards: CardCandidate[]; mode: string }> {
+  const res = await fetch("/api/talk", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "extract", decision, answer, lang }),
+  });
+  if (!res.ok) return { cards: [], mode: "error" };
+  return res.json();
+}
 
 export async function fetchSeeds(
   decision: string,

@@ -105,6 +105,26 @@ const dict = {
     en: "Now write what YOU see from this angle — the angle is just a doorway.",
     ko: "이제 이 각도에서 당신이 본 것을 쓰세요 — 각도는 문일 뿐이에요.",
   },
+  "talk.intro": {
+    en: "Not sure what you see? Answer a couple of questions in your own words — we'll turn your answer into draft cards you can edit.",
+    ko: "뭘 보는지 모르겠나요? 몇 가지 질문에 당신의 말로 답해보세요 — 답을 편집 가능한 초안 카드로 바꿔드려요.",
+  },
+  "talk.start": { en: "Ask me questions", ko: "질문 받기" },
+  "talk.loadingQ": { en: "Thinking of questions…", ko: "질문을 고르는 중…" },
+  "talk.answerLabel": { en: "Your answer (your own words)", ko: "당신의 답 (당신의 말로)" },
+  "talk.answerPlaceholder": {
+    en: "Write freely — a few sentences about what you notice.",
+    ko: "자유롭게 — 당신이 알아챈 것을 몇 문장으로.",
+  },
+  "talk.extract": { en: "Turn into cards", ko: "카드로 만들기" },
+  "talk.extracting": { en: "Reading your answer…", ko: "답을 읽는 중…" },
+  "talk.draftsHeading": { en: "Draft cards from your answer — edit, then add", ko: "당신의 답에서 뽑은 초안 — 고친 뒤 추가" },
+  "talk.addDraft": { en: "Add to table", ko: "테이블에 추가" },
+  "talk.noDrafts": {
+    en: "Couldn't find a clear perspective yet — try saying a bit more.",
+    ko: "아직 뚜렷한 관점을 찾지 못했어요 — 조금 더 말해보세요.",
+  },
+  "talk.restart": { en: "Start over", ko: "다시 시작" },
 
   // ---- connect / bridges ----
   "connect.heading": { en: "How might these connect?", ko: "이것들은 어떻게 이어질까요?" },

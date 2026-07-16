@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/store";
-import { fetchSeeds } from "@/lib/api";
-import type { SeedSuggestion } from "@/lib/prompts";
+import { fetchSeeds, fetchTalkQuestions, fetchTalkExtract } from "@/lib/api";
+import type { CardCandidate, SeedSuggestion } from "@/lib/prompts";
 import {
   PIECE_TYPES,
   PIECE_TYPE_META,
@@ -157,17 +157,12 @@ export function GatherScreen() {
         {entryMode === "seeds" ? (
           <SeedsPanel decision={decisionPrompt} lang={lang} onPick={pickSeed} onBack={() => setEntryMode("write")} />
         ) : entryMode === "talk" ? (
-          <div className="animate-fade-up rounded-xl2 border border-dashed border-line bg-paper-sunken/40 p-8 text-center">
-            <div className="text-3xl">💬</div>
-            <div className="mt-3 text-sm font-semibold text-ink">{t("entry.talk")}</div>
-            <div className="mt-1 text-xs text-ink-faint">{t("entry.comingSoon")}</div>
-            <button
-              onClick={() => setEntryMode("write")}
-              className="mt-4 rounded-full border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-accent hover:text-accent"
-            >
-              ← {t("entry.write")}
-            </button>
-          </div>
+          <TalkPanel
+            decision={decisionPrompt}
+            lang={lang}
+            onAddCard={(title, body) => addFragment({ authorName: authorName.trim() || "—", authorRole: authorRole.trim() || "—", title, body })}
+            onBack={() => setEntryMode("write")}
+          />
         ) : (
         <div className="animate-fade-up rounded-xl2 border border-line bg-paper-card p-5 shadow-card">
           {seededFromAngle && (
@@ -449,6 +444,174 @@ function SeedsPanel({
               onClick={onBack}
               className="rounded-full px-3 py-1.5 text-xs font-medium text-ink-faint transition hover:text-ink"
             >
+              ← {t("entry.write")}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/**
+ * TALK panel — for the person who can't yet name what they see. The AI asks a few questions;
+ * the person answers in their OWN words; the AI extracts card DRAFTS from that answer, which
+ * the person edits before adding. Extraction paraphrases their words — it never invents a view.
+ */
+function TalkPanel({
+  decision,
+  lang,
+  onAddCard,
+  onBack,
+}: {
+  decision: string;
+  lang: "en" | "ko";
+  onAddCard: (title: string, body: string) => void;
+  onBack: () => void;
+}) {
+  const { t } = useI18n();
+  const [phase, setPhase] = useState<"intro" | "answer" | "drafts">("intro");
+  const [questions, setQuestions] = useState<string[]>([]);
+  const [answer, setAnswer] = useState("");
+  const [drafts, setDrafts] = useState<CardCandidate[]>([]);
+  const [added, setAdded] = useState<Set<number>>(new Set());
+  const [loading, setLoading] = useState(false);
+
+  const start = async () => {
+    setLoading(true);
+    try {
+      const { questions: qs } = await fetchTalkQuestions(decision, lang);
+      setQuestions(qs);
+      setPhase("answer");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const extract = async () => {
+    if (answer.trim().length < 8) return;
+    setLoading(true);
+    try {
+      const { cards } = await fetchTalkExtract(decision, answer.trim(), lang);
+      setDrafts(cards);
+      setAdded(new Set());
+      setPhase("drafts");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const editDraft = (i: number, patch: Partial<CardCandidate>) =>
+    setDrafts((d) => d.map((c, j) => (j === i ? { ...c, ...patch } : c)));
+
+  const restart = () => {
+    setPhase("intro");
+    setQuestions([]);
+    setAnswer("");
+    setDrafts([]);
+    setAdded(new Set());
+  };
+
+  return (
+    <div className="animate-fade-up rounded-xl2 border border-line bg-paper-card p-5 shadow-card">
+      {phase === "intro" && (
+        <>
+          <p className="text-[12px] leading-snug text-ink-soft">{t("talk.intro")}</p>
+          <div className="mt-4 flex items-center gap-2">
+            <button
+              onClick={start}
+              disabled={loading}
+              className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper transition enabled:hover:opacity-90 disabled:bg-line disabled:text-ink-faint"
+            >
+              💬 {loading ? t("talk.loadingQ") : t("talk.start")}
+            </button>
+            <button onClick={onBack} className="rounded-full px-3 py-2 text-xs font-medium text-ink-faint transition hover:text-ink">
+              ← {t("entry.write")}
+            </button>
+          </div>
+        </>
+      )}
+
+      {phase === "answer" && (
+        <>
+          <ul className="space-y-1.5">
+            {questions.map((q, i) => (
+              <li key={i} className="flex gap-2 text-[13px] leading-snug text-ink">
+                <span className="text-accent">•</span>
+                <span>{q}</span>
+              </li>
+            ))}
+          </ul>
+          <label className="mt-4 block text-[11px] font-medium text-ink-soft">{t("talk.answerLabel")}</label>
+          <textarea
+            value={answer}
+            onChange={(e) => setAnswer(e.target.value)}
+            rows={5}
+            maxLength={1200}
+            placeholder={t("talk.answerPlaceholder")}
+            className="mt-1 w-full resize-none rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink outline-none transition placeholder:text-line focus:border-ink/40"
+          />
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              onClick={extract}
+              disabled={loading || answer.trim().length < 8}
+              className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition enabled:hover:opacity-95 disabled:bg-line disabled:text-ink-faint"
+            >
+              {loading ? t("talk.extracting") : `${t("talk.extract")} →`}
+            </button>
+            <button onClick={onBack} className="rounded-full px-3 py-2 text-xs font-medium text-ink-faint transition hover:text-ink">
+              ← {t("entry.write")}
+            </button>
+          </div>
+        </>
+      )}
+
+      {phase === "drafts" && (
+        <>
+          {drafts.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-line bg-paper-sunken/40 p-5 text-center text-[13px] text-ink-faint">
+              {t("talk.noDrafts")}
+            </div>
+          ) : (
+            <>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
+                {t("talk.draftsHeading")}
+              </div>
+              <ul className="mt-2 space-y-3">
+                {drafts.map((c, i) => (
+                  <li key={i} className="animate-fade-up rounded-xl border border-line bg-paper p-3">
+                    <input
+                      value={c.title}
+                      onChange={(e) => editDraft(i, { title: e.target.value })}
+                      className="w-full rounded-md border border-line bg-paper-card px-2.5 py-1.5 text-sm font-semibold text-ink outline-none focus:border-ink/40"
+                    />
+                    <textarea
+                      value={c.body}
+                      onChange={(e) => editDraft(i, { body: e.target.value })}
+                      rows={2}
+                      className="mt-1.5 w-full resize-none rounded-md border border-line bg-paper-card px-2.5 py-1.5 text-[13px] text-ink-soft outline-none focus:border-ink/40"
+                    />
+                    <button
+                      onClick={() => {
+                        if (added.has(i) || !c.title.trim() || !c.body.trim()) return;
+                        onAddCard(c.title.trim(), c.body.trim());
+                        setAdded((s) => new Set(s).add(i));
+                      }}
+                      disabled={added.has(i) || !c.title.trim() || !c.body.trim()}
+                      className="mt-2 rounded-full border border-accent/40 px-3 py-1.5 text-[11px] font-medium text-accent transition enabled:hover:bg-accent enabled:hover:text-white disabled:border-line disabled:text-ink-faint"
+                    >
+                      {added.has(i) ? `✓ ${t("decide.saved")}` : `+ ${t("talk.addDraft")}`}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          <div className="mt-3 flex items-center gap-2">
+            <button onClick={restart} className="rounded-full border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:text-ink">
+              ↻ {t("talk.restart")}
+            </button>
+            <button onClick={onBack} className="rounded-full px-3 py-1.5 text-xs font-medium text-ink-faint transition hover:text-ink">
               ← {t("entry.write")}
             </button>
           </div>
