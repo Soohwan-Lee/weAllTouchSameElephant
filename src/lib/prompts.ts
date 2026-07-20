@@ -148,12 +148,13 @@ CRUCIAL — anchor on the ROOT, not the loudest symptom: the side tagged [ROOT] 
 
 MODE = ${spec.label}. ${spec.instruction}
 
-Then, separately, propose ONE "so the real question is…" QUESTION: the single highest-leverage thing this team should decide next. It must be an open QUESTION they can actually answer, grounded in the keystone/tension — never a recommendation, never an answer.
+Then, separately, propose ONE QUESTION: the single highest-leverage thing this team should decide next. It must be an open QUESTION they can actually answer, grounded in the keystone/tension — never a recommendation, never an answer.
 
 Hard rules:
 - Ground everything in the pieces and the shape. Do NOT invent facts beyond them.
 - Honor the sides — do not silently collapse a real tension into one winner.
 - The question is a QUESTION, not "you should…".
+- Start the question with its OWN first word. The UI already prints the "so the real question is…" framing above it, so any lead-in ("So the real question is", "그래서 진짜 질문은", "The question is") would read twice. Open on the substance.
 - Write everything in ${language}. Keep each sentence tight.
 
 Fragments in this cluster:
@@ -163,7 +164,7 @@ Confirmed connections:
 ${links}${shapeBlock}
 
 Return ONLY valid JSON of this exact shape (no prose, no markdown):
-{"name":"<2-5 word handle for the elephant in ${language}>","note":"<one short clause on why this name, in ${language}>",${spec.shape.replace(/<([^>]+)>/g, (_m, d) => `<${d}, in ${language}>`)},"question":"<one open 'so the real question is…' question in ${language}>"}`;
+{"name":"<2-5 word handle for the elephant in ${language}>","note":"<one short clause on why this name, in ${language}>",${spec.shape.replace(/<([^>]+)>/g, (_m, d) => `<${d}, in ${language}>`)},"question":"<one open question in ${language}, with NO 'so the real question is' lead-in>"}`;
 }
 
 export interface MirrorInput {

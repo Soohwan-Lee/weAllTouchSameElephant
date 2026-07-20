@@ -259,7 +259,7 @@ export function MirrorScreen() {
                 onChange={(v) => main && setClusterQuestion(main.id, v)}
                 label={t("crux.realQuestion")}
                 editLabel={t("crux.editQuestion")}
-                placeholder={lang === "ko" ? "그래서 우리가 먼저 답해야 할 질문은…" : "So the question we must answer first is…"}
+                placeholder={lang === "ko" ? "우리가 먼저 답해야 할 것은…" : "What we must answer first is…"}
               />
               {!loading && !!question && (
                 <NextStep

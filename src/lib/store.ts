@@ -14,6 +14,7 @@ import type {
   ScenarioReveal,
   SessionEvent,
 } from "./types";
+import { stripQuestionLeadIn } from "./types";
 import { getScenario } from "./scenarios";
 
 /** Distinct, legible accent colors handed to participants in order. */
@@ -53,7 +54,8 @@ export function scenarioRevealToResult(
   const base: NameResult = {
     name: reveal.name[lang],
     note: reveal.note[lang],
-    question: reveal.question[lang],
+    // the panel label already reads "So the real question is…" — don't say it twice
+    question: stripQuestionLeadIn(reveal.question[lang]),
     mode,
   };
   if (mode === "explore") return { ...base, readings: reveal.readings.map((r) => r[lang]) };

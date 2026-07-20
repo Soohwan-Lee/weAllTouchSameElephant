@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { namePrompt, type NameInput } from "@/lib/prompts";
 import type { NameResult, RevealMode } from "@/lib/types";
-import { REVEAL_MODES } from "@/lib/types";
+import { REVEAL_MODES, stripQuestionLeadIn } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -34,14 +34,15 @@ function localName(input: NameInput, lang: "en" | "ko", mode: RevealMode): NameR
     lang === "ko"
       ? `${input.fragments.length}개 조각이 이 하나로 모였어요.`
       : `${input.fragments.length} fragments gathered into one.`;
+  // no "so the real question is…" lead-in — the result panel's label already says that.
   const question =
     lang === "ko"
       ? crux
-        ? `그래서 진짜 질문은: “${crux}”을(를) 먼저 풀면 나머지도 풀릴까요?`
-        : `그래서 진짜 질문은: 이 중에서 무엇을 먼저 풀어야 할까요?`
+        ? `“${crux}”을(를) 먼저 풀면 나머지도 풀릴까요?`
+        : `이 중에서 무엇을 먼저 풀어야 할까요?`
       : crux
-      ? `So the real question is: if we resolve “${crux}” first, does the rest follow?`
-      : `So the real question is: which of these should we resolve first?`;
+      ? `If we resolve “${crux}” first, does the rest follow?`
+      : `Which of these should we resolve first?`;
 
   const base = { name, note, question, mode };
   if (mode === "explore") {
@@ -120,7 +121,8 @@ export async function POST(req: NextRequest) {
     const name = String(parsed.name ?? "").trim().slice(0, 60);
     if (!name) return NextResponse.json({ ...localName(input, lang, mode), mode });
     const question =
-      String(parsed.question ?? "").trim().slice(0, 220) || localName(input, lang, mode).question;
+      stripQuestionLeadIn(String(parsed.question ?? "").trim()).slice(0, 220) ||
+      localName(input, lang, mode).question;
 
     const out: Record<string, unknown> = {
       name,

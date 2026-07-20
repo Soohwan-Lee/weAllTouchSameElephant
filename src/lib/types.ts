@@ -162,3 +162,19 @@ export interface Scenario {
   /** pre-written reveal (name + 3 modes) so sample mode is a first-class experience */
   reveal?: ScenarioReveal;
 }
+
+/**
+ * The result screen already prints "So the real question is…" as the panel's label, so a
+ * question that *also* opens with that phrase reads it twice ("So the real question is… /
+ * So the real question is: which…"). Strip any such lead-in — from the LLM, from the sample
+ * fallback, or from the hand-written scenario reveals — so the question opens on substance.
+ */
+const QUESTION_LEAD_IN =
+  /^\s*(?:so[, ]+)?(?:the\s+)?real\s+question\s+is\s*[::,—-]*\s*|^\s*그래서\s*(?:진짜\s*)?질문은\s*[::,—-]*\s*|^\s*진짜\s*질문은\s*[::,—-]*\s*/i;
+
+export function stripQuestionLeadIn(q: string): string {
+  const out = q.replace(QUESTION_LEAD_IN, "").trim();
+  if (!out) return q.trim();
+  // keep the sentence readable after the cut: re-capitalize a latin opener
+  return /^[a-z]/.test(out) ? out.charAt(0).toUpperCase() + out.slice(1) : out;
+}
