@@ -97,6 +97,12 @@ const dict = {
     ko: "아직 아무도 없어요 — 건너뛰고 익명으로 조각을 더해도 돼요.",
   },
   "people.remove": { en: "Remove", ko: "빼기" },
+  "people.switch": { en: "Switch", ko: "바꾸기" },
+  "people.switchHint": {
+    en: "Whose piece is this? Pick the person entering it.",
+    ko: "이건 누구의 조각인가요? 지금 입력하는 사람을 고르세요.",
+  },
+  "people.anon": { en: "Anonymous", ko: "익명" },
 
   // ---- gather: decision anchor + entry modes ----
   "decision.label": { en: "What are we deciding?", ko: "우리가 정하려는 건?" },

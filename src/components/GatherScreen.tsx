@@ -38,8 +38,6 @@ export function GatherScreen() {
   const setDecisionPrompt = useSession((s) => s.setDecisionPrompt);
   const scenarioId = useSession((s) => s.scenarioId);
   const participants = useSession((s) => s.participants);
-  const activeParticipantId = useSession((s) => s.activeParticipantId);
-  const activePerson = participants.find((p) => p.id === activeParticipantId) ?? null;
 
   // entry mode: write directly (know what to say) / seeds (pick angles) / talk (figure out)
   const [entryMode, setEntryMode] = useState<EntryMode>("write");
@@ -250,16 +248,8 @@ export function GatherScreen() {
             </div>
           </div>
 
-          {activePerson ? (
-            <div className="flex items-center gap-2 rounded-lg border border-line bg-paper-sunken/50 px-3 py-2 text-[12px]">
-              <span className="text-ink-faint">{t("people.adding")}</span>
-              <span
-                className="inline-block h-2.5 w-2.5 rounded-full ring-1 ring-black/10"
-                style={{ backgroundColor: activePerson.color }}
-              />
-              <span className="font-semibold text-ink">{activePerson.name}</span>
-              <span className="text-ink-faint">· {activePerson.role}</span>
-            </div>
+          {participants.length > 0 ? (
+            <AuthorSwitcher />
           ) : (
             <div className="grid grid-cols-2 gap-3">
               <Field label={t("gather.author")} value={authorName} onChange={setAuthorName} placeholder="Jamie" />
@@ -359,6 +349,93 @@ export function GatherScreen() {
           {canProceed ? `${t("gather.toConnect")} →` : t("gather.needMore")}
         </button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Who is entering THIS card — switchable right at the input, not only up in the ParticipantBar.
+ * A co-located session passes one keyboard around, so the author changes far more often than
+ * the roster does; making the switch reachable from the form is what keeps attribution honest.
+ */
+function AuthorSwitcher() {
+  const { t } = useI18n();
+  const participants = useSession((s) => s.participants);
+  const activeId = useSession((s) => s.activeParticipantId);
+  const setActive = useSession((s) => s.setActiveParticipant);
+  const active = participants.find((p) => p.id === activeId) ?? null;
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="rounded-lg border border-line bg-paper-sunken/50 px-3 py-2">
+      <div className="flex flex-wrap items-center gap-2 text-[12px]">
+        <span className="text-ink-faint">{t("people.adding")}</span>
+        {active ? (
+          <>
+            <span
+              className="inline-block h-2.5 w-2.5 rounded-full ring-1 ring-black/10"
+              style={{ backgroundColor: active.color }}
+            />
+            <span className="font-semibold text-ink">{active.name}</span>
+            <span className="text-ink-faint">· {active.role}</span>
+          </>
+        ) : (
+          <span className="font-medium text-ink-faint">{t("people.anon")}</span>
+        )}
+        <button
+          onClick={() => setOpen((o) => !o)}
+          className="ml-auto rounded-full border border-line bg-paper px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-accent hover:text-accent"
+        >
+          {open ? "▴" : "▾"} {t("people.switch")}
+        </button>
+      </div>
+
+      {open && (
+        <div className="mt-2 border-t border-line pt-2">
+          <div className="text-[11px] text-ink-faint">{t("people.switchHint")}</div>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {participants.map((p) => {
+              const on = p.id === activeId;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    setActive(p.id);
+                    setOpen(false);
+                  }}
+                  className={[
+                    "flex items-center gap-1.5 rounded-full border py-1 pl-2 pr-2.5 text-[12px] transition",
+                    on ? "border-transparent text-white" : "border-line bg-paper text-ink-soft hover:border-ink/30",
+                  ].join(" ")}
+                  style={on ? { backgroundColor: p.color } : undefined}
+                >
+                  <span
+                    className="inline-block h-2.5 w-2.5 rounded-full ring-1 ring-black/10"
+                    style={{ backgroundColor: on ? "rgba(255,255,255,0.9)" : p.color }}
+                  />
+                  <span className="font-semibold">{p.name}</span>
+                  <span className={on ? "text-white/80" : "text-ink-faint"}>· {p.role}</span>
+                </button>
+              );
+            })}
+            {/* an unattributed piece stays possible even with a roster present */}
+            <button
+              onClick={() => {
+                setActive(null);
+                setOpen(false);
+              }}
+              className={[
+                "rounded-full border px-2.5 py-1 text-[12px] font-medium transition",
+                activeId === null
+                  ? "border-ink bg-ink text-paper"
+                  : "border-line bg-paper text-ink-faint hover:text-ink",
+              ].join(" ")}
+            >
+              {t("people.anon")}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
