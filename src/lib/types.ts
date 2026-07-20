@@ -77,6 +77,10 @@ export type SessionEvent =
   | { id: string; seq: number; t: number; actorId?: string; type: "bridge_confirmed"; pairKey: string; relationType: RelationType; edited: boolean }
   | { id: string; seq: number; t: number; actorId?: string; type: "bridge_rejected"; pairKey: string; relationType: RelationType; explanation: string; createdBy: "ai" | "human" }
   | { id: string; seq: number; t: number; actorId?: string; type: "manual_bridge_added"; pairKey: string; relationType: RelationType; wasRedundant: boolean }
+  // reversals are boundary work too — a team that confirms a link and then takes it back
+  // has negotiated something. Logged as its own event rather than erasing the original.
+  | { id: string; seq: number; t: number; actorId?: string; type: "bridge_unconfirmed"; pairKey: string; relationType: RelationType }
+  | { id: string; seq: number; t: number; actorId?: string; type: "rejection_undone"; pairKey: string }
   | { id: string; seq: number; t: number; actorId?: string; type: "reveal_mode_chosen"; mode: RevealMode }
   | { id: string; seq: number; t: number; actorId?: string; type: "name_accepted"; aiOriginal: string; humanFinal: string; changed: boolean }
   | { id: string; seq: number; t: number; actorId?: string; type: "question_accepted"; aiOriginal: string; humanFinal: string; changed: boolean }
@@ -107,6 +111,8 @@ export interface NameResult {
   verdict?: string;
   /** true when this came from the local fallback (no API key) — client may swap in a scenario reveal */
   sample?: boolean;
+  /** the call FAILED — distinct from "the AI had nothing to say", which the UI must not conflate */
+  error?: boolean;
 }
 
 /** Structured, non-authoritative reflection from /api/mirror. */

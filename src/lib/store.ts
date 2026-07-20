@@ -158,6 +158,10 @@ interface SessionState {
   addProposals: (proposals: BridgeProposal[]) => number; // returns # added
   confirmBridge: (id: string, patch?: Partial<Pick<Bridge, "relationType" | "explanation">>) => void;
   rejectBridge: (id: string) => void;
+  /** take a confirmed link back off the board — AI proposals return to the tray */
+  unconfirmBridge: (id: string) => void;
+  /** un-block a pair the team dismissed, so the AI may propose it again */
+  undoRejection: (pairKey: string) => void;
   addManualBridge: (
     aId: string,
     bId: string,
@@ -507,6 +511,41 @@ export const useSession = create<SessionState>((set, get) => ({
         tray: s.tray.filter((x) => x.id !== id),
         rejectedPairKeys: next,
         events: [...s.events, evt],
+      };
+    }),
+
+  // A single click used to put a link on the board forever — there was no way to take one
+  // back, which made a misclick permanent and left the "too many links" warning with no
+  // remedy. An AI proposal goes back to the tray (so it can be reconsidered or dismissed);
+  // a hand-drawn one just disappears, since its author can simply draw it again.
+  unconfirmBridge: (id) =>
+    set((s) => {
+      const b = s.bridges.find((x) => x.id === id);
+      if (!b) return {};
+      const evt: SessionEvent = {
+        ...nextEventMeta(s.activeParticipantId),
+        type: "bridge_unconfirmed",
+        pairKey: pairKey(b.fragmentAId, b.fragmentBId),
+        relationType: b.relationType,
+      };
+      return {
+        bridges: s.bridges.filter((x) => x.id !== id),
+        tray: b.createdBy === "ai" ? [...s.tray, { ...b, status: "proposed" as const }] : s.tray,
+        events: [...s.events, evt],
+      };
+    }),
+
+  undoRejection: (key) =>
+    set((s) => {
+      if (!s.rejectedPairKeys.has(key)) return {};
+      const next = new Set(s.rejectedPairKeys);
+      next.delete(key);
+      return {
+        rejectedPairKeys: next,
+        events: [
+          ...s.events,
+          { ...nextEventMeta(s.activeParticipantId), type: "rejection_undone", pairKey: key },
+        ],
       };
     }),
 

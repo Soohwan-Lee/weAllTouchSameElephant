@@ -33,6 +33,7 @@ export function GatherScreen() {
   const fragments = useSession((s) => s.fragments);
   const addFragment = useSession((s) => s.addFragment);
   const removeFragment = useSession((s) => s.removeFragment);
+  const bridges = useSession((s) => s.bridges);
   const setStep = useSession((s) => s.setStep);
   const decisionPrompt = useSession((s) => s.decisionPrompt);
   const setDecisionPrompt = useSession((s) => s.setDecisionPrompt);
@@ -326,8 +327,17 @@ export function GatherScreen() {
                       </div>
                     </div>
                     <button
-                      onClick={() => removeFragment(f.id)}
-                      className="shrink-0 rounded-md px-2 py-1 text-[11px] text-ink-faint opacity-0 transition hover:bg-paper-sunken hover:text-tension group-hover:opacity-100"
+                      onClick={() => {
+                        // removing a piece silently took its confirmed links with it —
+                        // name that cost before it happens, since it can drop the team
+                        // back below the connect gate for no visible reason.
+                        const linked = bridges.filter(
+                          (b) => b.fragmentAId === f.id || b.fragmentBId === f.id
+                        ).length;
+                        if (linked > 0 && !confirm(t("gather.removeWarn").replace("{n}", String(linked)))) return;
+                        removeFragment(f.id);
+                      }}
+                      className="shrink-0 rounded-md px-2 py-1 text-[11px] text-ink-faint opacity-60 transition hover:bg-paper-sunken hover:text-tension group-hover:opacity-100"
                     >
                       {t("gather.remove")}
                     </button>
@@ -346,7 +356,11 @@ export function GatherScreen() {
           disabled={!canProceed}
           className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-lift transition enabled:hover:opacity-95 disabled:cursor-not-allowed disabled:bg-line disabled:text-ink-faint disabled:shadow-none"
         >
-          {canProceed ? `${t("gather.toConnect")} →` : t("gather.needMore")}
+          {canProceed
+            ? `${t("gather.toConnect")} →`
+            : t("gather.needMoreN")
+                .replace("{n}", String(fragments.length))
+                .replace("{r}", String(3 - fragments.length))}
         </button>
       </div>
     </div>

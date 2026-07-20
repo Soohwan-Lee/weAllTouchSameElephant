@@ -54,6 +54,14 @@ const dict = {
     ko: "아직 조각이 없어요. 첫 조각을 추가하거나 위에서 샘플을 불러오세요.",
   },
   "gather.remove": { en: "Remove", ko: "삭제" },
+  "gather.removeWarn": {
+    en: "This piece has {n} confirmed connection(s). Removing it deletes them too. Continue?",
+    ko: "이 조각에는 확정된 연결이 {n}개 있어요. 삭제하면 그 연결도 함께 사라집니다. 계속할까요?",
+  },
+  "gather.needMoreN": {
+    en: "{n} of 3 — add {r} more to begin connecting",
+    ko: "3개 중 {n}개 — 잇기를 시작하려면 {r}개 더",
+  },
 
   // ---- input scaffolding (kill the blank-card bottleneck) ----
   "ptype.symptom": { en: "A symptom", ko: "증상" },
@@ -186,6 +194,17 @@ const dict = {
   "bridge.evidenceA": { en: "From the first piece", ko: "첫 번째 조각에서" },
   "bridge.evidenceB": { en: "From the second piece", ko: "두 번째 조각에서" },
   "bridge.confirmedCount": { en: "connections confirmed", ko: "개의 연결 확인됨" },
+  "bridge.onBoard": { en: "On the board", ko: "지금 보드 위의 연결" },
+  "bridge.unconfirm": { en: "Take back", ko: "되돌리기" },
+  "bridge.unconfirmHint": {
+    en: "Remove this connection from the board",
+    ko: "이 연결을 보드에서 빼기",
+  },
+  "bridge.dismissedCount": {
+    en: "{n} pair(s) dismissed — the AI won't suggest them again.",
+    ko: "{n}개의 짝을 치웠어요 — AI가 다시 제안하지 않아요.",
+  },
+  "bridge.undoAllRejections": { en: "Allow them again", ko: "다시 허용하기" },
   "bridge.addManual": { en: "Connect two yourself", ko: "직접 두 조각 잇기" },
   "manual.start": { en: "+ Draw your own connection", ko: "+ 내가 직접 연결 그리기" },
   "manual.pickFirst": { en: "Click the first piece on the table", ko: "테이블에서 첫 번째 조각을 클릭하세요" },
@@ -438,6 +457,11 @@ const dict = {
     ko: "API 키가 없어 — 연결은 미리 준비된 시나리오에서 나옵니다.",
   },
   "common.liveMode": { en: "Live AI", ko: "실시간 AI" },
+  "common.aiFailed": {
+    en: "The AI couldn't be reached — this isn't about your pieces. Check the connection and try again.",
+    ko: "AI에 연결하지 못했어요 — 조각의 문제가 아니에요. 연결을 확인하고 다시 시도해 주세요.",
+  },
+  "common.retry": { en: "Try again", ko: "다시 시도" },
 
   // ---- onboarding tour ----
   "tour.skip": { en: "Skip", ko: "건너뛰기" },

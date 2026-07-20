@@ -18,10 +18,13 @@ export function ConnectScreen() {
   const scenarioId = useSession((s) => s.scenarioId);
   const rejectedPairKeys = useSession((s) => s.rejectedPairKeys);
   const addProposals = useSession((s) => s.addProposals);
+  const unconfirmBridge = useSession((s) => s.unconfirmBridge);
+  const undoRejection = useSession((s) => s.undoRejection);
   const setStep = useSession((s) => s.setStep);
 
   const [loading, setLoading] = useState(false);
   const [emptyResult, setEmptyResult] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [mode, setMode] = useState<string | null>(null);
 
   const byId = (id: string) => fragments.find((f) => f.id === id);
@@ -33,10 +36,17 @@ export function ConnectScreen() {
   async function suggest() {
     setLoading(true);
     setEmptyResult(false);
+    setFailed(false);
     try {
       // scale the ask to the table: more pieces → more bridges per round (cap 6)
       const max = Math.min(6, Math.max(3, Math.round(fragments.length / 2)));
       const { bridges: proposals, mode: apiMode } = await fetchBridges(fragments, lang, max);
+      // a failed call on a blank table used to render as "no strong connections found",
+      // sending people off to edit perfectly good pieces to fix a network error.
+      if (apiMode === "error" && !getScenario(scenarioId)) {
+        setFailed(true);
+        return;
+      }
       let added = 0;
       if (apiMode === "live" && proposals.length) {
         setMode("live");
@@ -98,7 +108,9 @@ export function ConnectScreen() {
 
           {/* group progress — the REAL gate: one connected group of >= 3 pieces.
               This is what fixes the "3 links but nothing assembles" dead-end. */}
-          {bridges.length > 0 && (
+          {/* shown from the start: the gate that blocks the proceed button must be legible
+              BEFORE you've guessed your way past it, not only after the first confirm. */}
+          {fragments.length > 0 && (
             <div
               className={[
                 "mb-3 rounded-lg border px-3 py-2",
@@ -152,6 +164,17 @@ export function ConnectScreen() {
                 {t("connect.trayEmpty")}
               </div>
             )}
+            {failed && (
+              <div className="rounded-xl border border-tension/40 bg-tension/5 p-4 text-center text-[13px] leading-snug text-ink">
+                ⚠︎ {t("common.aiFailed")}
+                <button
+                  onClick={suggest}
+                  className="mt-2 block w-full rounded-full border border-line py-1.5 text-[12px] font-medium text-ink-soft transition hover:text-ink"
+                >
+                  ↻ {t("common.retry")}
+                </button>
+              </div>
+            )}
             {emptyResult && tray.length === 0 && (
               <div className="rounded-xl border border-dashed border-line bg-paper-sunken/40 p-6 text-center text-sm text-ink-faint">
                 {moreAvailable ? t("connect.none") : t("connect.allDone")}
@@ -161,6 +184,48 @@ export function ConnectScreen() {
               <BridgeCard key={b.id} bridge={b} fragA={byId(b.fragmentAId)} fragB={byId(b.fragmentBId)} />
             ))}
           </div>
+
+          {/* what's already on the board, and the way back off it. Confirming used to be a
+              one-way door: a misclick was permanent, and the "extra links" warning above had
+              no remedy to point at. */}
+          {bridges.length > 0 && (
+            <div className="mt-4 rounded-lg border border-line bg-paper-sunken/40 p-3">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
+                {t("bridge.onBoard")}
+              </div>
+              <ul className="mt-2 space-y-1.5">
+                {bridges.map((b) => (
+                  <li key={b.id} className="group flex items-start gap-2 text-[12px] leading-snug">
+                    <span className="min-w-0 flex-1 text-ink-soft">
+                      <span className="font-medium text-ink">{byId(b.fragmentAId)?.title ?? "?"}</span>
+                      {" — "}
+                      <span className="font-medium text-ink">{byId(b.fragmentBId)?.title ?? "?"}</span>
+                    </span>
+                    <button
+                      onClick={() => unconfirmBridge(b.id)}
+                      title={t("bridge.unconfirmHint")}
+                      className="shrink-0 rounded px-1.5 py-0.5 text-[11px] text-ink-faint opacity-60 transition hover:bg-paper hover:text-tension group-hover:opacity-100"
+                    >
+                      {t("bridge.unconfirm")}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* pairs the team dismissed — blocked from future AI rounds until taken back */}
+          {rejectedPairKeys.size > 0 && (
+            <div className="mt-3 text-[11px] leading-snug text-ink-faint">
+              {t("bridge.dismissedCount").replace("{n}", String(rejectedPairKeys.size))}{" "}
+              <button
+                onClick={() => rejectedPairKeys.forEach((k) => undoRejection(k))}
+                className="font-medium text-accent underline-offset-2 hover:underline"
+              >
+                {t("bridge.undoAllRejections")}
+              </button>
+            </div>
+          )}
 
           {mode && (
             <div className="mt-4 text-center text-[11px] text-ink-faint">
