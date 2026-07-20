@@ -72,6 +72,21 @@ export function GatherScreen() {
   };
   const [seedNudge, setSeedNudge] = useState<string>("");
 
+  // talk-mode state lives here, not in TalkPanel — see TalkState. Switching entry modes
+  // unmounts the panel, and a half-finished answer must not die with it.
+  const [talkPhase, setTalkPhase] = useState<"intro" | "answer" | "drafts">("intro");
+  const [talkQuestions, setTalkQuestions] = useState<string[]>([]);
+  const [talkAnswer, setTalkAnswer] = useState("");
+  const [talkDrafts, setTalkDrafts] = useState<CardCandidate[]>([]);
+  const [talkAdded, setTalkAdded] = useState<Set<number>>(new Set());
+  const talkState: TalkState = {
+    phase: talkPhase, setPhase: setTalkPhase,
+    questions: talkQuestions, setQuestions: setTalkQuestions,
+    answer: talkAnswer, setAnswer: setTalkAnswer,
+    drafts: talkDrafts, setDrafts: setTalkDrafts,
+    added: talkAdded, setAdded: setTalkAdded,
+  };
+
   const lens = ROLE_LENSES.find((l) => l.id === lensId) ?? ROLE_LENSES[0];
   // the spark question: the chosen type's prompt, else the role lens's rotating question
   const sparkQuestion = pieceType
@@ -173,6 +188,7 @@ export function GatherScreen() {
             lang={lang}
             onAddCard={(title, body) => addFragment({ authorName: authorName.trim() || "—", authorRole: authorRole.trim() || "—", title, body }, "talk")}
             onBack={() => setEntryMode("write")}
+            talk={talkState}
           />
         ) : (
         <div className="animate-fade-up rounded-xl2 border border-line bg-paper-card p-5 shadow-card">
@@ -498,11 +514,18 @@ function SeedsPanel({
   const [seeds, setSeeds] = useState<SeedSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [asked, setAsked] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const load = async () => {
     setLoading(true);
+    setFailed(false);
     try {
-      const { seeds: s } = await fetchSeeds(decision, lang, 5);
+      const { seeds: s, mode } = await fetchSeeds(decision, lang, 5);
+      // a failed call used to land the person on a silent empty list with no message
+      if (mode === "error" || s.length === 0) {
+        setFailed(true);
+        return;
+      }
       setSeeds(s);
       setAsked(true);
     } finally {
@@ -513,6 +536,12 @@ function SeedsPanel({
   return (
     <div className="animate-fade-up rounded-xl2 border border-line bg-paper-card p-5 shadow-card">
       <p className="text-[12px] leading-snug text-ink-soft">{t("seeds.intro")}</p>
+
+      {failed && (
+        <div className="mt-3 rounded-lg border border-tension/40 bg-tension/5 px-3 py-2 text-[12px] leading-snug text-ink">
+          ⚠︎ {t("common.aiFailed")}
+        </div>
+      )}
 
       {!asked ? (
         <div className="mt-4 flex items-center gap-2">
@@ -579,29 +608,50 @@ function SeedsPanel({
  * the person answers in their OWN words; the AI extracts card DRAFTS from that answer, which
  * the person edits before adding. Extraction paraphrases their words — it never invents a view.
  */
+/** Talk-mode state, owned by GatherScreen so it survives entry-mode switches. */
+interface TalkState {
+  phase: "intro" | "answer" | "drafts";
+  setPhase: (p: "intro" | "answer" | "drafts") => void;
+  questions: string[];
+  setQuestions: (q: string[]) => void;
+  answer: string;
+  setAnswer: (a: string) => void;
+  drafts: CardCandidate[];
+  setDrafts: (d: CardCandidate[] | ((prev: CardCandidate[]) => CardCandidate[])) => void;
+  added: Set<number>;
+  setAdded: (s: Set<number> | ((prev: Set<number>) => Set<number>)) => void;
+}
+
 function TalkPanel({
   decision,
   lang,
   onAddCard,
   onBack,
+  talk,
 }: {
   decision: string;
   lang: "en" | "ko";
   onAddCard: (title: string, body: string) => void;
   onBack: () => void;
+  talk: TalkState;
 }) {
   const { t } = useI18n();
-  const [phase, setPhase] = useState<"intro" | "answer" | "drafts">("intro");
-  const [questions, setQuestions] = useState<string[]>([]);
-  const [answer, setAnswer] = useState("");
-  const [drafts, setDrafts] = useState<CardCandidate[]>([]);
-  const [added, setAdded] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+  // phase/questions/answer/drafts live in the PARENT: they used to be local state, so
+  // clicking any entry-mode button unmounted this panel and silently destroyed a long
+  // answer and any drafts not yet added. Switching modes must not cost you your words.
+  const { phase, setPhase, questions, setQuestions, answer, setAnswer, drafts, setDrafts, added, setAdded } = talk;
 
   const start = async () => {
     setLoading(true);
+    setFailed(false);
     try {
-      const { questions: qs } = await fetchTalkQuestions(decision, lang);
+      const { questions: qs, mode } = await fetchTalkQuestions(decision, lang);
+      if (mode === "error" || qs.length === 0) {
+        setFailed(true);
+        return;
+      }
       setQuestions(qs);
       setPhase("answer");
     } finally {
@@ -612,8 +662,15 @@ function TalkPanel({
   const extract = async () => {
     if (answer.trim().length < 8) return;
     setLoading(true);
+    setFailed(false);
     try {
-      const { cards } = await fetchTalkExtract(decision, answer.trim(), lang);
+      const { cards, mode } = await fetchTalkExtract(decision, answer.trim(), lang);
+      // don't drop them into an empty "drafts" screen when the call simply failed —
+      // their answer is still in the box and retrying must stay possible.
+      if (mode === "error") {
+        setFailed(true);
+        return;
+      }
       setDrafts(cards);
       setAdded(new Set());
       setPhase("drafts");
@@ -635,6 +692,11 @@ function TalkPanel({
 
   return (
     <div className="animate-fade-up rounded-xl2 border border-line bg-paper-card p-5 shadow-card">
+      {failed && (
+        <div className="mb-3 rounded-lg border border-tension/40 bg-tension/5 px-3 py-2 text-[12px] leading-snug text-ink">
+          ⚠︎ {t("common.aiFailed")}
+        </div>
+      )}
       {phase === "intro" && (
         <>
           <p className="text-[12px] leading-snug text-ink-soft">{t("talk.intro")}</p>

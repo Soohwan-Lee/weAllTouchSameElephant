@@ -10,7 +10,15 @@ export function StartScreen() {
   const { t, lang } = useI18n();
   const loadScenario = useSession((s) => s.loadScenario);
   const reset = useSession((s) => s.reset);
+  const setStep = useSession((s) => s.setStep);
+  const fragments = useSession((s) => s.fragments);
+  const bridges = useSession((s) => s.bridges);
   const [showTour, setShowTour] = useState(false);
+
+  // Tapping the 🐘 to see what it does used to strand you here: the only ways forward
+  // both destroy the board (a scenario overwrites it, blank start resets it). Offer the
+  // way back, so curiosity doesn't cost the session.
+  const hasSession = fragments.length > 0;
 
   // Blank start must clear any leftover scenario pieces. Returning home (🐘) only
   // sets step "start" without wiping state, so a previously-loaded scenario's
@@ -42,6 +50,23 @@ export function StartScreen() {
           {lang === "ko" ? "어떻게 작동하나요? (30초)" : "How does it work? (30s)"}
         </button>
       </div>
+
+      {hasSession && (
+        <div className="mt-8 animate-fade-up rounded-xl2 border border-accent/40 bg-accent-soft/40 p-4 text-center">
+          <div className="text-sm font-medium text-ink">
+            {t("start.resumeHint")
+              .replace("{f}", String(fragments.length))
+              .replace("{b}", String(bridges.length))}
+          </div>
+          <button
+            onClick={() => setStep(bridges.length > 0 ? "connect" : "gather")}
+            className="mt-2.5 rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white shadow-lift transition hover:opacity-95"
+          >
+            ← {t("start.resume")}
+          </button>
+          <p className="mt-2 text-[11px] leading-snug text-ink-faint">{t("start.resumeWarn")}</p>
+        </div>
+      )}
 
       {/* sample scenarios */}
       <div className="mt-12">

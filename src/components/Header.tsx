@@ -38,18 +38,27 @@ export function Header() {
         </button>
 
         {step !== "start" && (
-          <nav className="ml-2 hidden items-center gap-1 md:flex">
+          // shown on mobile too (it was md:flex): below 768px the logo was the ONLY way
+          // back, and the logo strands you on the start screen.
+          <nav className="ml-1 flex items-center gap-0.5 sm:ml-2 sm:gap-1">
             {STEP_ORDER.map((s, i) => {
               const active = s === step;
               const reachable =
                 s === "gather" || (s === "connect" && canConnect) || (s === "mirror" && canMirror);
+              // a greyed-out step used to give no reason at all for being unreachable
+              const why = reachable
+                ? undefined
+                : s === "connect"
+                ? t("gather.needMore")
+                : t("mirror.lockedGroup");
               return (
                 <button
                   key={s}
                   disabled={!reachable}
+                  title={why}
                   onClick={() => reachable && setStep(s)}
                   className={[
-                    "rounded-full px-3 py-1 text-xs font-medium transition",
+                    "rounded-full px-2 py-1 text-xs font-medium transition sm:px-3",
                     active
                       ? "bg-ink text-paper"
                       : reachable
@@ -57,7 +66,9 @@ export function Header() {
                       : "cursor-not-allowed text-line",
                   ].join(" ")}
                 >
-                  {t(stepKey(s) as never)}
+                  {/* full label on wide screens, just the step number on phones */}
+                  <span className="hidden md:inline">{t(stepKey(s) as never)}</span>
+                  <span className="md:hidden">{i + 1}</span>
                 </button>
               );
             })}

@@ -45,6 +45,7 @@ export function MirrorScreen() {
   const [mode, setMode] = useState<RevealMode>("explore");
   const [result, setResult] = useState<NameResult | null>(null);
   const [nameDraft, setNameDraft] = useState("");
+  const [revealFailed, setRevealFailed] = useState(false);
   // remember whether the shown reveal came from a sample scenario (so we can re-project it on language switch)
   const fromSampleReveal = useRef(false);
   // the AI's ORIGINAL name/question, kept so we can log accept-vs-override (the key
@@ -122,6 +123,14 @@ export function MirrorScreen() {
         wholeness: Math.round(synth.coverage.wholeness * 100),
       };
       let res = await fetchName(input, lang, chosen);
+      // a failed reveal used to render as an assembled screen with a blank reading and no
+      // explanation. Say the call failed and leave the board where it was.
+      if (res.error) {
+        setRevealFailed(true);
+        setAssembled(false);
+        return;
+      }
+      setRevealFailed(false);
       // sample mode → use the scenario's hand-written, sharper reveal if we have one
       fromSampleReveal.current = false;
       if (res.sample) {
@@ -185,15 +194,19 @@ export function MirrorScreen() {
           <h2 className="text-2xl font-semibold tracking-tight text-ink">{t("mirror.heading")}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-faint">{t("mirror.hint")}</p>
         </div>
+        <div className="flex items-center gap-2">
+          {/* export was locked behind `assembled`, so a session abandoned earlier — event
+              log and all — could only be discarded, never saved. */}
+          <button
+            onClick={downloadSession}
+            title={t("export.hint")}
+            className="rounded-full border border-line bg-paper-card px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-accent hover:text-accent"
+          >
+            ⤓ {t("export.button")}
+          </button>
+        </div>
         {assembled && (
           <div className="flex items-center gap-2">
-            <button
-              onClick={downloadSession}
-              title={t("export.hint")}
-              className="rounded-full border border-line bg-paper-card px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-accent hover:text-accent"
-            >
-              ⤓ {t("export.button")}
-            </button>
           <div className="flex items-center rounded-full border border-line bg-paper-card p-0.5 text-xs font-semibold">
             <button
               onClick={() => setRevealView("crux")}
@@ -234,6 +247,11 @@ export function MirrorScreen() {
                 />
               ))}
             </div>
+            {revealFailed && (
+              <div className="mt-4 w-full max-w-xs rounded-lg border border-tension/40 bg-tension/5 px-3 py-2 text-[12px] leading-snug text-ink">
+                ⚠︎ {t("common.aiFailed")}
+              </div>
+            )}
             {!main && <div className="mt-4"><Hint>{t("mirror.lockedGroup")}</Hint></div>}
           </div>
         </div>
@@ -514,7 +532,12 @@ function RealQuestion({
           className="mt-2 w-full resize-none rounded-lg border border-line bg-paper px-3 py-2 text-lg font-medium text-ink outline-none focus:border-accent/50"
         />
       ) : (
-        <button onClick={() => setEditing(true)} className="mt-1.5 block text-left">
+        // styled as an actual editable surface — it read as static AI output before,
+        // so people never discovered the question was theirs to rewrite.
+        <button
+          onClick={() => setEditing(true)}
+          className="mt-1.5 block w-full rounded-lg border border-dashed border-accent/40 px-3 py-2 text-left transition hover:border-accent hover:bg-paper/60"
+        >
           <span className="text-balance text-lg font-semibold leading-snug text-ink">
             {value || placeholder}
           </span>
@@ -543,6 +566,26 @@ function NextStep({
   const { t } = useI18n();
   const [editing, setEditing] = useState(false);
   const has = !!value.trim();
+
+  // The decision text is stored on every keystroke, but the decision_written EVENT only
+  // fired on blur — so someone who typed their next move and closed the tab left no trace
+  // in the log. Commit on the way out too. (Idempotent: the log tolerates a repeat.)
+  const committed = useRef("");
+  useEffect(() => {
+    const flush = () => {
+      const v = value.trim();
+      if (v && v !== committed.current) {
+        committed.current = v;
+        onCommit(v);
+      }
+    };
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [value, onCommit]);
+
   return (
     <div className="animate-fade-up rounded-xl2 border border-ink/15 bg-paper-card p-5 shadow-card">
       <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
@@ -557,7 +600,11 @@ function NextStep({
             onChange={(e) => onChange(e.target.value)}
             onBlur={() => {
               setEditing(false);
-              if (value.trim()) onCommit(value.trim());
+              const v = value.trim();
+              if (v && v !== committed.current) {
+                committed.current = v;
+                onCommit(v);
+              }
             }}
             rows={2}
             placeholder={t("decide.placeholder")}

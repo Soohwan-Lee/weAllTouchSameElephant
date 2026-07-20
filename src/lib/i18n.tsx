@@ -31,6 +31,15 @@ const dict = {
     ko: "예: “앱이 자꾸 늦고, 기능은 많고, 사용자는 헤매고, 재작업만 반복” → 핵심은 어쩌면: 대상 사용자 미합의.",
   },
   "start.trySample": { en: "Try a ready-made example", ko: "미리 준비된 예시로 시작" },
+  "start.resumeHint": {
+    en: "You have a session in progress — {f} pieces, {b} connections.",
+    ko: "진행 중인 세션이 있어요 — 조각 {f}개, 연결 {b}개.",
+  },
+  "start.resume": { en: "Back to my session", ko: "내 세션으로 돌아가기" },
+  "start.resumeWarn": {
+    en: "Opening an example or a blank table below will replace it.",
+    ko: "아래에서 예시나 빈 테이블을 열면 지금 세션이 사라져요.",
+  },
   "start.orBlank": { en: "or start from a blank table", ko: "또는 빈 테이블에서 시작" },
   "start.blankBtn": { en: "Start blank", ko: "빈 테이블로 시작" },
   "start.samplePick": { en: "Pick a scenario", ko: "시나리오 선택" },
