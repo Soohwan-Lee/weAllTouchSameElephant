@@ -41,7 +41,13 @@ export function GatherScreen() {
   const participants = useSession((s) => s.participants);
 
   // entry mode: write directly (know what to say) / seeds (pick angles) / talk (figure out)
-  const [entryMode, setEntryMode] = useState<EntryMode>("write");
+  // Default to TALK on an empty table. The blank card is the hardest thing in the whole
+  // tool, and "write directly" — which hands you exactly that — used to be where everyone
+  // landed, with the two easier doors sitting unnoticed beside it. Once pieces exist the
+  // person has found their footing, so the fast path (write) becomes the sensible default.
+  const [entryMode, setEntryMode] = useState<EntryMode>(() =>
+    fragments.length === 0 ? "talk" : "write"
+  );
 
   const [authorName, setAuthorName] = useState("");
   const [authorRole, setAuthorRole] = useState("");

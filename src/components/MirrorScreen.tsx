@@ -48,6 +48,8 @@ export function MirrorScreen() {
   const [revealFailed, setRevealFailed] = useState(false);
   // remember whether the shown reveal came from a sample scenario (so we can re-project it on language switch)
   const fromSampleReveal = useRef(false);
+  // one cached reading per reveal mode, so the three can be compared without re-fetching
+  const cachedByMode = useRef<Partial<Record<RevealMode, NameResult>>>({});
   // the AI's ORIGINAL name/question, kept so we can log accept-vs-override (the key
   // boundary-work signal: did the team keep the AI's framing or change it?).
   const aiName = useRef("");
@@ -61,12 +63,24 @@ export function MirrorScreen() {
   const question = main ? clusterQuestions[main.id] : undefined;
   const decision = main ? clusterDecisions[main.id] : undefined;
 
-  async function reveal(chosen: RevealMode) {
+  async function reveal(chosen: RevealMode, force = false) {
     if (!main) return;
     setMode(chosen);
-    setLoading(true);
     setAssembled(true);
     logEvent({ type: "reveal_mode_chosen", mode: chosen });
+
+    // Switching modes used to re-fetch and overwrite, so going verdict → explore → verdict
+    // cost two API calls and lost the first verdict. The whole point of three modes is to
+    // hold them side by side, so serve a mode you've already seen from cache.
+    const cached = cachedByMode.current[chosen];
+    if (cached && !force) {
+      setResult(cached);
+      if (cached.name) aiName.current = cached.name;
+      if (cached.question) aiQuestion.current = cached.question;
+      return;
+    }
+
+    setLoading(true);
     try {
       const synth = computeSynthesis(fragments, bridges, main);
       const keystone = synth.facets.find((f) => f.id === synth.keystoneFacetId);
@@ -128,6 +142,7 @@ export function MirrorScreen() {
         }
       }
       setResult(res);
+      cachedByMode.current[chosen] = res;
       // Record the shape AND the reading, unconditionally — not only if someone later
       // presses "Use this name". This is what the team was looking at when they argued.
       logEvent({
@@ -180,6 +195,13 @@ export function MirrorScreen() {
       });
     }
   };
+
+  // The cache describes ONE board. If the team goes back and edits the pieces or links,
+  // every cached reading is about a shape that no longer exists — drop them all.
+  // (also on language change: a cached English reading must not be served in Korean)
+  useEffect(() => {
+    cachedByMode.current = {};
+  }, [fragments, bridges, lang]);
 
   // when the user switches language mid-test, re-project a sample reveal into the new
   // language. Live-AI reveals can't be translated, so they're left as-is.
@@ -302,7 +324,7 @@ export function MirrorScreen() {
                 loading={loading}
                 onDraft={setNameDraft}
                 onAccept={acceptFraming}
-                onRedo={() => reveal(mode)}
+                onRedo={() => reveal(mode, true)}
               />
             </>
           )}
