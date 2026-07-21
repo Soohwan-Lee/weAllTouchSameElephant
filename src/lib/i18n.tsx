@@ -518,6 +518,9 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     setLangState(l);
     if (typeof window !== "undefined") window.localStorage.setItem("watse-lang", l);
     if (typeof document !== "undefined") document.documentElement.lang = l;
+    // record the switch first — relocalize early-returns on a blank table, so it can't
+    // be the thing that logs this, and a mixed-language export needs the provenance.
+    useSession.getState().setLang(l);
     // re-project any loaded sample-scenario content (fragments, pre-baked bridges)
     // into the new language so a mid-test switch actually takes effect.
     useSession.getState().relocalize(l);

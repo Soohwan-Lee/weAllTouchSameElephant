@@ -53,19 +53,6 @@ export function MirrorScreen() {
   const aiName = useRef("");
   const aiQuestion = useRef("");
   const logEvent = useSession((s) => s.logEvent);
-  const exportSession = useSession((s) => s.exportSession);
-
-  const downloadSession = () => {
-    const data = exportSession();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `watse-session-${data.scenarioId ?? "custom"}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   const clusters = findClusters(fragments, bridges, 3);
   const main = clusters[0];
   const byId = (id: string) => fragments.find((f) => f.id === id);
@@ -141,6 +128,26 @@ export function MirrorScreen() {
         }
       }
       setResult(res);
+      // Record the shape AND the reading, unconditionally — not only if someone later
+      // presses "Use this name". This is what the team was looking at when they argued.
+      logEvent({
+        type: "reveal_computed",
+        mode: chosen,
+        fragmentCount: clusterFrags.length,
+        bridgeCount: clusterBridges.length,
+        wholeness: input.wholeness,
+        keystoneTitle: cruxTitle,
+        facets: facets.map((f) => ({ anchor: f.anchor, members: f.members, depth: f.depth })),
+        spine,
+        tensionCount: tensions.length,
+        aiName: res.name,
+        aiNote: res.note,
+        aiQuestion: res.question,
+        aiReadings: res.readings,
+        aiHypothesis: res.hypothesis,
+        aiVerdict: res.verdict,
+        sample: fromSampleReveal.current,
+      });
       // capture the AI's originals so we can later detect if the team overrode them
       if (res.name) aiName.current = res.name;
       if (res.question) aiQuestion.current = res.question;
@@ -193,17 +200,6 @@ export function MirrorScreen() {
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-ink">{t("mirror.heading")}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-faint">{t("mirror.hint")}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* export was locked behind `assembled`, so a session abandoned earlier — event
-              log and all — could only be discarded, never saved. */}
-          <button
-            onClick={downloadSession}
-            title={t("export.hint")}
-            className="rounded-full border border-line bg-paper-card px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-accent hover:text-accent"
-          >
-            ⤓ {t("export.button")}
-          </button>
         </div>
         {assembled && (
           <div className="flex items-center gap-2">

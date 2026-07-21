@@ -74,9 +74,14 @@ export interface Bridge {
 export type SessionEvent =
   | { id: string; seq: number; t: number; actorId?: string; type: "fragment_added"; fragmentId: string; source: "write" | "seed" | "talk" }
   | { id: string; seq: number; t: number; actorId?: string; type: "bridge_proposed"; pairKey: string; relationType: RelationType }
-  | { id: string; seq: number; t: number; actorId?: string; type: "bridge_confirmed"; pairKey: string; relationType: RelationType; edited: boolean }
-  | { id: string; seq: number; t: number; actorId?: string; type: "bridge_rejected"; pairKey: string; relationType: RelationType; explanation: string; createdBy: "ai" | "human" }
-  | { id: string; seq: number; t: number; actorId?: string; type: "manual_bridge_added"; pairKey: string; relationType: RelationType; wasRedundant: boolean }
+  // Keeping a connection but REWRITING what it means is the finest-grained boundary work
+  // there is, so the AI's original text and type are preserved beside the human's final
+  // version — `edited` alone couldn't tell a substantive rewrite from a no-op re-save.
+  | { id: string; seq: number; t: number; actorId?: string; bridgeId: string; type: "bridge_confirmed"; pairKey: string; relationType: RelationType; aiRelationType: RelationType; aiExplanation: string; humanExplanation: string; edited: boolean; retypedRelation: boolean }
+  | { id: string; seq: number; t: number; actorId?: string; bridgeId: string; type: "bridge_rejected"; pairKey: string; relationType: RelationType; explanation: string; createdBy: "ai" | "human" }
+  // a hand-drawn link carries the team's OWN words for why these two belong together —
+  // the most theoretically loaded text in a session, and it used to go unrecorded.
+  | { id: string; seq: number; t: number; actorId?: string; bridgeId: string; type: "manual_bridge_added"; pairKey: string; relationType: RelationType; explanation: string; wasRedundant: boolean }
   // reversals are boundary work too — a team that confirms a link and then takes it back
   // has negotiated something. Logged as its own event rather than erasing the original.
   | { id: string; seq: number; t: number; actorId?: string; type: "bridge_unconfirmed"; pairKey: string; relationType: RelationType }
@@ -84,7 +89,34 @@ export type SessionEvent =
   | { id: string; seq: number; t: number; actorId?: string; type: "reveal_mode_chosen"; mode: RevealMode }
   | { id: string; seq: number; t: number; actorId?: string; type: "name_accepted"; aiOriginal: string; humanFinal: string; changed: boolean }
   | { id: string; seq: number; t: number; actorId?: string; type: "question_accepted"; aiOriginal: string; humanFinal: string; changed: boolean }
-  | { id: string; seq: number; t: number; actorId?: string; type: "decision_written"; text: string };
+  | { id: string; seq: number; t: number; actorId?: string; type: "decision_written"; text: string }
+  | { id: string; seq: number; t: number; actorId?: string; type: "language_switched"; lang: "en" | "ko" }
+  // The shape the team was actually looking at, plus what the AI said about it — captured
+  // unconditionally at reveal time. Both used to be lost: the synthesis was recomputed from
+  // the CURRENT board (which the team may have edited afterwards), and the AI's reading was
+  // recorded only if someone pressed "Use this name". A team that read a verdict, argued
+  // with it, and moved on left no trace that the AI had said anything at all.
+  | {
+      id: string; seq: number; t: number; actorId?: string;
+      type: "reveal_computed";
+      mode: RevealMode;
+      fragmentCount: number;
+      bridgeCount: number;
+      wholeness: number;
+      keystoneTitle?: string;
+      facets: Array<{ anchor: string; members: string[]; depth: number }>;
+      spine: string[][];
+      tensionCount: number;
+      /** the AI's full reading, verbatim */
+      aiName: string;
+      aiNote: string;
+      aiQuestion: string;
+      aiReadings?: string[];
+      aiHypothesis?: string;
+      aiVerdict?: string;
+      /** true when this came from a scenario's hand-written reveal (sample mode) */
+      sample: boolean;
+    };
 
 /** What the AI returns from /api/bridges (before we assign ids/status). */
 export interface BridgeProposal {

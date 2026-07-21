@@ -72,7 +72,17 @@ export type EventPayload = DistributiveOmit<SessionEvent, "id" | "seq" | "t" | "
 
 /** A full session snapshot for research analysis / handoff. */
 export interface SessionExport {
-  version: 1;
+  version: 2;
+  /** stable per-run id — without it, exports from different teams can't be told apart
+   *  or joined, and two sessions on one scenario used to overwrite each other's file. */
+  sessionId: string;
+  /** clock origin, so the log can be aligned against a session recording */
+  startedAt: number;
+  exportedAt: number;
+  tzOffsetMinutes: number;
+  /** the UI language at export; `relocalize` can leave a session's text mixed, so
+   *  analysis needs to know this was in play. */
+  lang: "en" | "ko";
   scenarioId: string | null;
   decisionPrompt: string;
   participants: Participant[];
@@ -99,6 +109,23 @@ function nextEventMeta(actorId: string | null): { id: string; seq: number; t: nu
   return { id: uid("evt"), seq: eventSeq++, t, actorId: actorId ?? undefined };
 }
 
+// Session identity, established lazily on first use (never at module init — that would
+// run during SSR and hand every visitor the server's id). `reset()` starts a new run.
+let sessionId = "";
+let startedAt = 0;
+function sessionMeta() {
+  if (!sessionId) {
+    sessionId = uid("sess");
+    startedAt = typeof Date !== "undefined" ? Date.now() : 0;
+  }
+  return { sessionId, startedAt };
+}
+export function newSessionIdentity() {
+  sessionId = "";
+  startedAt = 0;
+  eventSeq = 0;
+}
+
 interface SessionState {
   step: Step;
   scenarioId: string | null;
@@ -112,6 +139,8 @@ interface SessionState {
   activeParticipantId: string | null;
   /** append-only boundary-work event log (the research payload). */
   events: SessionEvent[];
+  /** UI language, mirrored into the store so the export records it (i18n owns the toggle) */
+  lang: "en" | "ko";
   fragments: Fragment[];
   /** bridges proposed by AI, awaiting human action */
   tray: Bridge[];
@@ -143,6 +172,8 @@ interface SessionState {
   loadScenario: (sc: Scenario, lang: "en" | "ko") => void;
   /** re-project scenario-derived fragment/bridge text into `lang` (mid-session language switch) */
   relocalize: (lang: "en" | "ko") => void;
+  /** record the active language + log the switch (relocalize early-returns on blank tables) */
+  setLang: (lang: "en" | "ko") => void;
   reset: () => void;
 
   addFragment: (f: Omit<Fragment, "id" | "x" | "y">, source?: "write" | "seed" | "talk") => void;
@@ -183,6 +214,7 @@ export const useSession = create<SessionState>((set, get) => ({
   participants: [],
   activeParticipantId: null,
   events: [],
+  lang: "en",
   fragments: [],
   tray: [],
   bridges: [],
@@ -226,8 +258,14 @@ export const useSession = create<SessionState>((set, get) => ({
 
   exportSession: () => {
     const s = get();
+    const meta = sessionMeta();
     return {
-      version: 1,
+      version: 2 as const,
+      sessionId: meta.sessionId,
+      startedAt: meta.startedAt,
+      exportedAt: typeof Date !== "undefined" ? Date.now() : 0,
+      tzOffsetMinutes: typeof Date !== "undefined" ? new Date().getTimezoneOffset() : 0,
+      lang: s.lang,
       scenarioId: s.scenarioId,
       decisionPrompt: s.decisionPrompt,
       participants: s.participants,
@@ -291,6 +329,20 @@ export const useSession = create<SessionState>((set, get) => ({
     });
   },
 
+  setLang: (lang) =>
+    set((s) => {
+      if (s.lang === lang) return {};
+      // a mid-session switch can leave human/live-AI text in the old language while
+      // scenario text reprojects — analysis needs to know it happened, and when.
+      return {
+        lang,
+        events: [
+          ...s.events,
+          { ...nextEventMeta(s.activeParticipantId), type: "language_switched" as const, lang },
+        ],
+      };
+    }),
+
   relocalize: (lang) => {
     const { scenarioId } = get();
     const sc = getScenario(scenarioId);
@@ -350,7 +402,10 @@ export const useSession = create<SessionState>((set, get) => ({
     }));
   },
 
-  reset: () =>
+  reset: () => {
+    // a reset is a new run — give it its own id and clock so two teams on one machine
+    // don't export sessions that look like the same one.
+    newSessionIdentity();
     set({
       step: "start",
       scenarioId: null,
@@ -368,7 +423,8 @@ export const useSession = create<SessionState>((set, get) => ({
       assembled: false,
       revealView: "crux",
       loadingBridges: false,
-    }),
+    });
+  },
 
   addFragment: (f, source = "write") => {
     // place new fragments in a loose ring so the board isn't a pile
@@ -477,12 +533,21 @@ export const useSession = create<SessionState>((set, get) => ({
         status: patch ? "edited" : "confirmed",
         actorId: s.activeParticipantId ?? undefined,
       };
+      // Keep the AI's original beside the human's final. `edited: !!patch` couldn't tell a
+      // real rewrite from opening the editor and saving unchanged — and a relation RETYPE
+      // (overlap→tension = "that's not the same thing, it's a tradeoff") is the sharpest
+      // boundary-work signal there is, so record the from-type, not just the to-type.
       const evt: SessionEvent = {
         ...nextEventMeta(s.activeParticipantId),
+        bridgeId: b.id,
         type: "bridge_confirmed",
         pairKey: pairKey(b.fragmentAId, b.fragmentBId),
         relationType: confirmed.relationType,
-        edited: !!patch,
+        aiRelationType: b.relationType,
+        aiExplanation: b.explanation,
+        humanExplanation: confirmed.explanation,
+        edited: b.explanation !== confirmed.explanation || b.relationType !== confirmed.relationType,
+        retypedRelation: b.relationType !== confirmed.relationType,
       };
       return {
         tray: s.tray.filter((x) => x.id !== id),
@@ -501,6 +566,7 @@ export const useSession = create<SessionState>((set, get) => ({
       // single most important boundary-work signal (what the team refused).
       const evt: SessionEvent = {
         ...nextEventMeta(s.activeParticipantId),
+        bridgeId: b.id,
         type: "bridge_rejected",
         pairKey: pairKey(b.fragmentAId, b.fragmentBId),
         relationType: b.relationType,
@@ -574,9 +640,11 @@ export const useSession = create<SessionState>((set, get) => ({
     };
     const evt: SessionEvent = {
       ...nextEventMeta(s.activeParticipantId),
+      bridgeId: manual.id,
       type: "manual_bridge_added",
       pairKey: key,
       relationType,
+      explanation,
       wasRedundant,
     };
     set({ bridges: [...s.bridges, manual], events: [...s.events, evt] });

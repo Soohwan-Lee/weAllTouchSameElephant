@@ -40,14 +40,20 @@ export function findClusters(
   }
 
   const clusters: Cluster[] = [];
-  let i = 0;
-  for (const [root, ids] of groups) {
+  for (const [, ids] of groups) {
     if (ids.length < minSize) continue;
     const idSet = new Set(ids);
     const bridgeIds = bridges
       .filter((b) => idSet.has(b.fragmentAId) && idSet.has(b.fragmentBId))
       .map((b) => b.id);
-    clusters.push({ id: `cluster_${root}_${i++}`, fragmentIds: ids, bridgeIds });
+    // Identify a cluster by its SMALLEST member id — stable under growth. The old
+    // `cluster_${root}_${i}` changed whenever a bridge was added (both the union-find root
+    // and the size ordering shift), and clusterNames/Questions/Decisions are keyed by this,
+    // so a team that named the elephant, went back, and linked one more piece silently lost
+    // their name. A content hash would have the same flaw; the min-id survives absorption
+    // as long as the founding piece stays, which is what "the same elephant" means here.
+    const anchorId = [...ids].sort()[0];
+    clusters.push({ id: `cluster_${anchorId}`, fragmentIds: ids, bridgeIds });
   }
   // largest first
   clusters.sort((a, b) => b.fragmentIds.length - a.fragmentIds.length);
