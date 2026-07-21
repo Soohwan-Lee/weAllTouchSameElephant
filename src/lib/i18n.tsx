@@ -268,10 +268,16 @@ const dict = {
   "rel.tension": { en: "Pulling in different directions", ko: "서로 다른 방향" },
   "rel.dependency": { en: "One affects the other", ko: "하나가 다른 것에 영향" },
   "rel.complement": { en: "One completes the other", ko: "하나가 다른 것을 보완" },
+  "rel.separate": { en: "Must stay separate", ko: "따로 두어야 함" },
   "rel.overlap.short": { en: "Overlap", ko: "겹침" },
   "rel.tension.short": { en: "Tension", ko: "긴장" },
   "rel.dependency.short": { en: "Depends", ko: "의존" },
   "rel.complement.short": { en: "Completes", ko: "보완" },
+  "rel.separate.short": { en: "Keep apart", ko: "따로" },
+  "rel.separate.hint": {
+    en: "Say why these two must NOT be merged — that boundary is a finding, not a failure.",
+    ko: "이 둘을 왜 합치면 안 되는지 적어주세요 — 그 경계도 실패가 아니라 발견이에요.",
+  },
 
   // ---- named assembly (the reveal) ----
   "assemble.cta": { en: "Gather into one", ko: "하나로 모으기" },

@@ -25,4 +25,13 @@ export const RELATION_META: Record<
     labelKey: "rel.complement",
     shortKey: "rel.complement.short",
   },
+  // the refusal: drawn as a grey, heavily-dashed line so the board shows it as a boundary
+  // held open rather than a link made.
+  separate: {
+    color: "#8a8a8a",
+    stroke: "#8a8a8a",
+    labelKey: "rel.separate",
+    shortKey: "rel.separate.short",
+    dash: "2 6",
+  },
 };

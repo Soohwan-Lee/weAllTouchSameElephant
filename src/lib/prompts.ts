@@ -4,7 +4,8 @@ const RELATION_GUIDE = `Relation types — pick the ONE that is truest, in this 
 - "dependency": one piece CAUSES, drives, blocks, or enables the other. Prefer this whenever there's any cause→effect direction — it's what reveals root vs symptom. Put the CAUSE/root as fragmentA and the EFFECT/symptom as fragmentB (direction matters).
 - "tension": the two pieces pull in genuinely CONFLICTING directions — satisfying one costs the other. Only if a real trade-off exists, not just different topics.
 - "overlap": the two are the SAME underlying issue in two vocabularies — one could be rephrased into the other. Use sparingly; this FUSES them into one side.
-- "complement": one adds the MISSING context the other needs to make sense — different facets of one situation, neither causing the other.`;
+- "complement": one adds the MISSING context the other needs to make sense — different facets of one situation, neither causing the other.
+- "separate": these two look linkable but must be kept APART — merging them would collapse a distinction that matters (different timescales, different people affected, different kinds of claim). Propose this ONLY when a merge is genuinely tempting and genuinely wrong; it is the team's call to make far more often than yours.`;
 
 export function bridgePrompt(fragments: Fragment[], lang: "en" | "ko", maxBridges: number) {
   const list = fragments
@@ -34,7 +35,7 @@ Fragments:
 ${list}
 
 Return ONLY valid JSON of this exact shape (no prose, no markdown):
-{"bridges":[{"fragmentAId":"<cause/root id for dependency>","fragmentBId":"<effect/symptom id for dependency>","relationType":"dependency|tension|overlap|complement","explanation":"<one concrete sentence in ${language} naming the specific relationship and, for dependency, the direction>","evidenceA":"<short snippet from A>","evidenceB":"<short snippet from B>","confidence":<0..1>}]}
+{"bridges":[{"fragmentAId":"<cause/root id for dependency>","fragmentBId":"<effect/symptom id for dependency>","relationType":"dependency|tension|overlap|complement|separate","explanation":"<one concrete sentence in ${language} naming the specific relationship and, for dependency, the direction>","evidenceA":"<short snippet from A>","evidenceB":"<short snippet from B>","confidence":<0..1>}]}
 If there are no strong bridges, return {"bridges":[]}.`;
 }
 

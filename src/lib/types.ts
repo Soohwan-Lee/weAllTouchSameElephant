@@ -1,7 +1,13 @@
 // Core data model for We All Touch the Same Elephant.
 // Spec: WATSE 4.1 — fragments stay visible; AI proposes bridges; humans assemble.
 
-export type RelationType = "overlap" | "tension" | "dependency" | "complement";
+/**
+ * How two pieces relate. Four of these are forms of CONNECTION; `separate` is the one way
+ * to assert the opposite — "these must NOT be merged." Without it the construct was
+ * lopsided: the team could only ever say "join", and refusing a bridge was silence rather
+ * than a claim. Keeping perspectives apart is half of integration boundary work.
+ */
+export type RelationType = "overlap" | "tension" | "dependency" | "complement" | "separate";
 
 /**
  * What kind of "elephant" the team wants the AI to hand back after they assemble:
@@ -18,6 +24,7 @@ export const RELATION_TYPES: RelationType[] = [
   "tension",
   "dependency",
   "complement",
+  "separate",
 ];
 
 /** A person at the table. Locally-modeled multi-person now; the seam a future

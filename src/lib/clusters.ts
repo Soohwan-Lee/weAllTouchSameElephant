@@ -1,5 +1,13 @@
 import type { Bridge, Fragment } from "./types";
 
+/**
+ * A `separate` bridge asserts that two pieces must NOT be merged. It is a boundary the
+ * team drew, not a link — so it must never pull them into the same group, and must never
+ * count toward the "one connected group of ≥3" gate. Everything that walks the graph as
+ * connection filters through this.
+ */
+export const isConnecting = (b: Bridge) => b.relationType !== "separate";
+
 export interface Cluster {
   id: string;
   fragmentIds: string[];
@@ -27,6 +35,7 @@ export function findClusters(
 
   for (const f of fragments) parent.set(f.id, f.id);
   for (const b of bridges) {
+    if (!isConnecting(b)) continue;
     if (parent.has(b.fragmentAId) && parent.has(b.fragmentBId)) {
       union(b.fragmentAId, b.fragmentBId);
     }
@@ -44,7 +53,7 @@ export function findClusters(
     if (ids.length < minSize) continue;
     const idSet = new Set(ids);
     const bridgeIds = bridges
-      .filter((b) => idSet.has(b.fragmentAId) && idSet.has(b.fragmentBId))
+      .filter((b) => isConnecting(b) && idSet.has(b.fragmentAId) && idSet.has(b.fragmentBId))
       .map((b) => b.id);
     // Identify a cluster by its SMALLEST member id — stable under growth. The old
     // `cluster_${root}_${i}` changed whenever a bridge was added (both the union-find root
@@ -76,6 +85,7 @@ export function largestClusterSize(fragments: Fragment[], bridges: Bridge[]): nu
   };
   for (const f of fragments) parent.set(f.id, f.id);
   for (const b of bridges) {
+    if (!isConnecting(b)) continue;
     if (parent.has(b.fragmentAId) && parent.has(b.fragmentBId)) parent.set(find(b.fragmentAId), find(b.fragmentBId));
   }
   const counts = new Map<string, number>();
@@ -110,7 +120,7 @@ export function isReachable(
     adj.get(x)!.push(y);
   };
   for (const b of bridges) {
-    if (ignore.has(b.id)) continue;
+    if (ignore.has(b.id) || !isConnecting(b)) continue;
     add(b.fragmentAId, b.fragmentBId);
     add(b.fragmentBId, b.fragmentAId);
   }
@@ -145,6 +155,7 @@ export function countRedundantEdges(bridges: Bridge[]): number {
   };
   let redundant = 0;
   for (const b of bridges) {
+    if (!isConnecting(b)) continue; // a boundary is not an extra link
     const ra = find(b.fragmentAId);
     const rb = find(b.fragmentBId);
     if (ra === rb) redundant++; // both ends already connected → this edge closes a cycle

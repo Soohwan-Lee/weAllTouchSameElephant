@@ -30,7 +30,9 @@ export function ManualConnect() {
   const ready = picks.length === 2;
   // redundant = the two picks already connect through other pieces, so this edge
   // adds no new glue — only a restated relation. We nudge, we don't block.
-  const redundant = ready && isReachable(picks[0], picks[1], bridges);
+  // ...but a `separate` edge isn't glue at all, so "you already connected these" is the
+  // wrong nudge for it — drawing a boundary between linked pieces is a real move.
+  const redundant = ready && rel !== "separate" && isReachable(picks[0], picks[1], bridges);
 
   const pick = (id: string) => {
     setPicks((cur) => {
@@ -112,10 +114,16 @@ export function ManualConnect() {
               </button>
             ))}
           </div>
+          {/* "keep apart" is the one non-connecting choice — say what it does */}
+          {rel === "separate" && (
+            <p className="mt-2 rounded-lg bg-paper-sunken/60 px-3 py-2 text-[11px] leading-snug text-ink-soft">
+              ⊣ {t("rel.separate.hint")}
+            </p>
+          )}
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder={t("manual.note")}
+            placeholder={rel === "separate" ? t("rel.separate.hint") : t("manual.note")}
             className="mt-3 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-ink/40"
           />
           <div className="mt-3 flex items-center gap-2">
