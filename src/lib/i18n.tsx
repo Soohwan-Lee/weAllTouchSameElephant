@@ -478,6 +478,31 @@ const dict = {
   },
   "common.retry": { en: "Try again", ko: "다시 시도" },
 
+  // ---- blind spot (Connect): a vantage the pieces don't yet cover ----
+  "blind.check": { en: "What angle are we missing?", ko: "빠진 관점 있을까?" },
+  "blind.checking": { en: "Looking for a gap…", ko: "빈 곳을 보는 중…" },
+  "blind.none": {
+    en: "The pieces cover this from several sides already — no obvious gap.",
+    ko: "여러 방향에서 이미 잘 짚었어요 — 뚜렷한 빈 곳은 없네요.",
+  },
+  "blind.why": { en: "Why this reads as missing", ko: "왜 비어 보이나" },
+  "blind.fill": { en: "Add a piece from this seat", ko: "이 자리에서 조각 쓰기" },
+  "blind.dismiss": { en: "Not a gap", ko: "빈 곳 아님" },
+
+  // ---- trade-off (after the decision): what it commits to giving up ----
+  "trade.label": { en: "What this decision gives up", ko: "이 결정이 포기하는 것" },
+  "trade.checking": { en: "Reading the cost…", ko: "대가를 읽는 중…" },
+  "trade.favors": { en: "Leans toward", ko: "택하는 쪽" },
+  "trade.cost": { en: "Gives way", ko: "밀리는 쪽" },
+  "trade.none": {
+    en: "No kept tension lines up with this decision — nothing obvious is being traded off.",
+    ko: "이 결정과 맞물리는 긴장이 없어요 — 뚜렷이 포기하는 건 없어 보여요.",
+  },
+  "trade.grounded": {
+    en: "Read from the tensions you kept — not advice, just the cost made visible.",
+    ko: "여러분이 남겨둔 긴장에서 읽은 거예요 — 조언이 아니라 대가를 드러낸 것.",
+  },
+
   // ---- onboarding tour ----
   "tour.skip": { en: "Skip", ko: "건너뛰기" },
   "tour.next": { en: "Got it", ko: "알겠어요" },

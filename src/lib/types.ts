@@ -98,6 +98,12 @@ export type SessionEvent =
   | { id: string; seq: number; t: number; actorId?: string; type: "question_accepted"; aiOriginal: string; humanFinal: string; changed: boolean }
   | { id: string; seq: number; t: number; actorId?: string; type: "decision_written"; text: string }
   | { id: string; seq: number; t: number; actorId?: string; type: "language_switched"; lang: "en" | "ko" }
+  // AI named a missing vantage; `filled` marks whether the team went on to add a piece from
+  // that seat (the elicitation actually landing), vs merely being shown the gap.
+  | { id: string; seq: number; t: number; actorId?: string; type: "blindspot_shown"; angle: string; rationale: string }
+  | { id: string; seq: number; t: number; actorId?: string; type: "blindspot_filled"; angle: string }
+  // the team saw the cost their decision commits to — exposure-vs-action for the trade-off.
+  | { id: string; seq: number; t: number; actorId?: string; type: "tradeoff_shown"; tension: string; favors: string; cost: string }
   // The shape the team was actually looking at, plus what the AI said about it — captured
   // unconditionally at reveal time. Both used to be lost: the synthesis was recomputed from
   // the CURRENT board (which the team may have edited afterwards), and the AI's reading was

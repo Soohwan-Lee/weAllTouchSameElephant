@@ -305,6 +305,12 @@ export function MirrorScreen() {
                 />
               )}
 
+              {/* the cost the decision commits to — read off the team's own kept tensions.
+                  Only after a decision exists, since it mirrors THAT decision. */}
+              {!loading && !!(decision ?? "").trim() && main && (
+                <TradeOffPanel decision={decision ?? ""} cluster={main} />
+              )}
+
               {/* the evidence behind the reading: the assembled shape you can inspect */}
               <div className="pt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
                 {t("crux.evidenceHeading")}
@@ -699,6 +705,90 @@ function NamePanel({
         </div>
       )}
       {note && !loading && <div className="mt-2 text-xs text-ink-soft">{note}</div>}
+    </div>
+  );
+}
+
+/**
+ * The trade-off the written decision commits to — mirrored off the tensions the team
+ * themselves kept. It invents no cost: it names which kept `tension` (or `separate`) the
+ * decision leans on and what the other side gives up, in the team's own fragment titles.
+ * Fires once, on demand, and logs tradeoff_shown for the exposure-vs-action question.
+ */
+function TradeOffPanel({ decision, cluster }: { decision: string; cluster: { fragmentIds: string[] } }) {
+  const { t, lang } = useI18n();
+  const fragments = useSession((s) => s.fragments);
+  const bridges = useSession((s) => s.bridges);
+  const logEvent = useSession((s) => s.logEvent);
+  const [loading, setLoading] = useState(false);
+  const [res, setRes] = useState<{ tension: string; favors: string; cost: string } | null>(null);
+  const [opened, setOpened] = useState(false);
+
+  const title = (id: string) => fragments.find((f) => f.id === id)?.title ?? "?";
+  const inCluster = (b: (typeof bridges)[number]) =>
+    cluster.fragmentIds.includes(b.fragmentAId) && cluster.fragmentIds.includes(b.fragmentBId);
+  const tensions = bridges
+    .filter((b) => b.relationType === "tension" && inCluster(b))
+    .map((b) => ({ a: title(b.fragmentAId), b: title(b.fragmentBId) }));
+  const separations = bridges
+    .filter((b) => b.relationType === "separate" && inCluster(b))
+    .map((b) => ({ a: title(b.fragmentAId), b: title(b.fragmentBId) }));
+
+  const reveal = async () => {
+    setOpened(true);
+    setLoading(true);
+    try {
+      const { fetchTradeOff } = await import("@/lib/api");
+      const r = await fetchTradeOff(decision, tensions, separations, lang);
+      setRes(r);
+      if (r.tension || r.cost) {
+        logEvent({ type: "tradeoff_shown", tension: r.tension, favors: r.favors, cost: r.cost });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!opened) {
+    return (
+      <button
+        onClick={reveal}
+        className="animate-fade-up text-[13px] font-medium text-ink-faint transition hover:text-accent"
+      >
+        ⚖️ {t("trade.label")} →
+      </button>
+    );
+  }
+
+  return (
+    <div className="animate-fade-up rounded-xl2 border border-ink/15 bg-paper-card p-5 shadow-card">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+        ⚖️ {t("trade.label")}
+      </div>
+      {loading ? (
+        <div className="mt-2 text-sm text-ink-faint">{t("trade.checking")}</div>
+      ) : res && (res.tension || res.cost) ? (
+        <>
+          {res.tension && <div className="mt-2 text-sm font-medium text-ink">{res.tension}</div>}
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            {res.favors && (
+              <div className="rounded-lg bg-accent-soft/30 px-3 py-2">
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-accent">{t("trade.favors")}</div>
+                <div className="mt-0.5 text-[13px] leading-snug text-ink">{res.favors}</div>
+              </div>
+            )}
+            {res.cost && (
+              <div className="rounded-lg bg-tension/5 px-3 py-2">
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-tension">{t("trade.cost")}</div>
+                <div className="mt-0.5 text-[13px] leading-snug text-ink">{res.cost}</div>
+              </div>
+            )}
+          </div>
+          <p className="mt-2.5 text-[11px] leading-snug text-ink-faint">{t("trade.grounded")}</p>
+        </>
+      ) : (
+        <div className="mt-2 text-[13px] leading-snug text-ink-faint">{t("trade.none")}</div>
+      )}
     </div>
   );
 }

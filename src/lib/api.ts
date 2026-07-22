@@ -110,3 +110,40 @@ export async function fetchMirror(
     return { reflection: { connected: [], tensions: [], separate: [] }, mode: "error" };
   }
 }
+
+export async function fetchBlindSpot(
+  decision: string,
+  pieces: Array<{ title: string; body: string; role: string }>,
+  lang: "en" | "ko"
+): Promise<{ angle: string; rationale: string; question: string; mode: string }> {
+  try {
+    const res = await fetch("/api/blindspot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ decision, pieces, lang }),
+    });
+    if (!res.ok) return { angle: "", rationale: "", question: "", mode: "error" };
+    return await res.json();
+  } catch {
+    return { angle: "", rationale: "", question: "", mode: "error" };
+  }
+}
+
+export async function fetchTradeOff(
+  decision: string,
+  tensions: Array<{ a: string; b: string }>,
+  separations: Array<{ a: string; b: string }>,
+  lang: "en" | "ko"
+): Promise<{ tension: string; favors: string; cost: string; mode: string }> {
+  try {
+    const res = await fetch("/api/tradeoff", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ decision, tensions, separations, lang }),
+    });
+    if (!res.ok) return { tension: "", favors: "", cost: "", mode: "error" };
+    return await res.json();
+  } catch {
+    return { tension: "", favors: "", cost: "", mode: "error" };
+  }
+}

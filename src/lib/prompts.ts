@@ -289,3 +289,101 @@ Rules:
 Return ONLY valid JSON (no prose, no markdown):
 {"cards":[{"title":"<2-6 words in ${language}>","body":"<1-2 sentences in ${language}>"}]}`;
 }
+
+/**
+ * One BLIND SPOT — a vantage the team's pieces do not yet cover on this decision.
+ *
+ * The research line holds: this NAMES an angle and asks a question about it; it never writes
+ * the perspective itself. The point is to send the person back to add THEIR OWN piece from a
+ * seat no one has taken, not to hand them a pre-written view (that would manufacture the
+ * representational gap we study, à la Empty Chair).
+ */
+export interface BlindSpot {
+  /** the missing vantage, as a short handle (e.g. "The person who has to use it") */
+  angle: string;
+  /** WHY it reads as missing — grounded in what's present, so the rationale is legible */
+  rationale: string;
+  /** an open question that would draw out a piece from that seat (person answers it) */
+  question: string;
+}
+
+export function blindSpotPrompt(
+  decision: string,
+  pieces: Array<{ title: string; body: string; role: string }>,
+  lang: "en" | "ko"
+) {
+  const language = lang === "ko" ? "Korean" : "English";
+  const present = pieces.map((p) => `- [${p.role}] ${p.title}: ${p.body}`).join("\n");
+  const roles = [...new Set(pieces.map((p) => p.role).filter((r) => r && r !== "—"))];
+
+  return `A team is deciding: "${decision}". Below are the pieces they have put on the table, each tagged with the ROLE/seat it came from.
+
+Your job: name ONE vantage on THIS decision that the pieces do NOT yet cover — a blind spot. Then give the RATIONALE (why it reads as missing, grounded in what IS present — e.g. "every piece is from an operator/cost seat; no one has spoken for the people who'd actually use it"), and ONE open question that would draw a piece out of that seat.
+
+Roles present: ${roles.length ? roles.join(", ") : "(unlabeled)"}
+
+HARD rules — the team writes their own perspectives, you do NOT:
+- Do NOT write the missing perspective. Name the SEAT and ask a QUESTION; the person fills it.
+- The blind spot must be specific to THIS decision and these pieces, not a generic checklist item.
+- Ground the rationale in what's actually on the table (roles/angles over-represented, an obviously affected party unheard, one side of a trade-off only).
+- If the pieces genuinely cover the decision well from several sides, say so — return an empty angle rather than inventing a gap.
+- Write in ${language}. Keep each field to one tight sentence.
+
+Pieces on the table:
+${present}
+
+Return ONLY valid JSON (no prose, no markdown):
+{"angle":"<the missing seat, 2-6 words in ${language}, or empty string if none>","rationale":"<why it reads as missing, grounded in what's present, one sentence in ${language}>","question":"<one open question that would draw out a piece from that seat, in ${language}>"}`;
+}
+
+/**
+ * The TRADE-OFF a decision commits to — read off the tensions the team themselves kept.
+ *
+ * Grounded entirely in the team's own confirmed `tension`/`separate` structure: it does not
+ * invent a cost, it names which kept tension the written decision leans on, and what the
+ * other side of that tension therefore gives up. A mirror on the decision, not advice.
+ */
+export interface TradeOff {
+  /** the tension the decision resolves in one direction (short handle) */
+  tension: string;
+  /** what the decision favors */
+  favors: string;
+  /** what therefore gives way — the cost, in the team's own terms */
+  cost: string;
+}
+
+export function tradeOffPrompt(
+  decision: string,
+  keptTensions: Array<{ a: string; b: string }>,
+  separations: Array<{ a: string; b: string }>,
+  lang: "en" | "ko"
+) {
+  const language = lang === "ko" ? "Korean" : "English";
+  const tens = keptTensions.length
+    ? keptTensions.map((t) => `- "${t.a}" ⟷ "${t.b}"`).join("\n")
+    : "(none)";
+  const seps = separations.length
+    ? separations.map((s) => `- "${s.a}" ∦ "${s.b}" (kept apart on purpose)`).join("\n")
+    : "(none)";
+
+  return `A team made this decision: "${decision}".
+
+Below are the TENSIONS they deliberately kept while assembling (pairs pulling in different directions) and the pairs they deliberately kept SEPARATE. A decision usually resolves one of these tensions in one direction — which means the other side pays a cost.
+
+Your job: name the ONE kept tension this decision most leans on, which side it favors, and what therefore gives way. This is a MIRROR on their own structure — do NOT invent a cost that isn't in the tensions/separations they kept, and do NOT tell them whether the trade-off is right.
+
+HARD rules:
+- Ground everything in the kept tensions/separations below. If none are relevant to the decision, return an empty "tension".
+- Name the cost in the team's OWN terms (reuse the fragment titles).
+- Do NOT recommend, warn, or judge — just make the trade-off legible.
+- Write in ${language}. One tight sentence per field.
+
+Kept tensions:
+${tens}
+
+Kept separate:
+${seps}
+
+Return ONLY valid JSON (no prose, no markdown):
+{"tension":"<the tension the decision leans on, or empty string if none apply>","favors":"<what the decision favors, one clause in ${language}>","cost":"<what gives way as a result, one clause in ${language}>"}`;
+}

@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { useSession, scenarioBridgesToProposals } from "@/lib/store";
 import { getScenario } from "@/lib/scenarios";
 import { countRedundantEdges, largestClusterSize } from "@/lib/clusters";
-import { fetchBridges } from "@/lib/api";
+import { fetchBridges, fetchBlindSpot } from "@/lib/api";
 import { BridgeCard } from "./BridgeCard";
 import { Hint } from "./Hint";
 import { ManualConnect } from "./ManualConnect";
@@ -90,6 +90,8 @@ export function ConnectScreen() {
           </Hint>
         </div>
       )}
+
+      <BlindSpotLine />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         {/* board (with draw-your-own-connection mode) */}
@@ -245,6 +247,106 @@ export function ConnectScreen() {
           {canMirror ? `${t("mirror.reveal")} →` : t("mirror.lockedGroup")}
         </button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * A quiet blind-spot check, woven into Connect rather than spotlit. The person asks "what
+ * angle are we missing?"; the AI names a SEAT and a question grounded in what's present; the
+ * person then adds their OWN piece from that seat (the angle is a handle, never a written
+ * perspective). Filling it flows straight into the existing gather form via pendingAngle.
+ */
+function BlindSpotLine() {
+  const { t, lang } = useI18n();
+  const fragments = useSession((s) => s.fragments);
+  const decisionPrompt = useSession((s) => s.decisionPrompt);
+  const setStep = useSession((s) => s.setStep);
+  const setPendingAngle = useSession((s) => s.setPendingAngle);
+  const logEvent = useSession((s) => s.logEvent);
+
+  const [loading, setLoading] = useState(false);
+  const [spot, setSpot] = useState<{ angle: string; rationale: string; question: string } | null>(null);
+  const [none, setNone] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  if (fragments.length < 2 || dismissed) return null;
+
+  const check = async () => {
+    setLoading(true);
+    setNone(false);
+    try {
+      const pieces = fragments.map((f) => ({ title: f.title, body: f.body, role: f.authorRole }));
+      const res = await fetchBlindSpot(decisionPrompt, pieces, lang);
+      if (!res.angle) {
+        setNone(true);
+        return;
+      }
+      setSpot({ angle: res.angle, rationale: res.rationale, question: res.question });
+      logEvent({ type: "blindspot_shown", angle: res.angle, rationale: res.rationale });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fill = () => {
+    if (!spot) return;
+    // hand the seat to the gather form; the person writes the perspective there
+    setPendingAngle(spot.angle);
+    setStep("gather");
+  };
+
+  return (
+    <div className="mt-4">
+      {!spot && !none && (
+        <button
+          onClick={check}
+          disabled={loading}
+          className="text-[13px] font-medium text-ink-faint transition hover:text-accent disabled:opacity-60"
+        >
+          💭 {loading ? t("blind.checking") : t("blind.check")}
+        </button>
+      )}
+
+      {none && (
+        <div className="flex items-center gap-2 text-[13px] text-ink-faint">
+          <span>✓ {t("blind.none")}</span>
+          <button onClick={() => setNone(false)} className="text-ink-faint underline-offset-2 hover:underline">
+            ↻
+          </button>
+        </div>
+      )}
+
+      {spot && (
+        <div className="animate-fade-up rounded-xl border border-dashed border-accent/40 bg-accent-soft/20 p-4">
+          <div className="flex items-start gap-2">
+            <span className="text-base leading-none">💭</span>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold text-ink">{spot.angle}</div>
+              <div className="mt-1 text-[12px] leading-snug text-ink-soft">
+                <span className="font-medium text-ink-faint">{t("blind.why")}:</span> {spot.rationale}
+              </div>
+              {spot.question && (
+                <div className="mt-1.5 text-[13px] italic leading-snug text-ink">“{spot.question}”</div>
+              )}
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                <button
+                  onClick={fill}
+                  className="rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold text-white transition hover:opacity-95"
+                >
+                  + {t("blind.fill")}
+                </button>
+                <button
+                  onClick={() => setDismissed(true)}
+                  className="rounded-full px-3 py-1.5 text-xs font-medium text-ink-faint transition hover:text-ink"
+                >
+                  {t("blind.dismiss")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

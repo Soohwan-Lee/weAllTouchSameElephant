@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/store";
 import { fetchSeeds, fetchTalkQuestions, fetchTalkExtract } from "@/lib/api";
@@ -65,6 +65,9 @@ export function GatherScreen() {
   // when the write form was seeded from a chosen angle, remember the angle to nudge the
   // person to rewrite it in their own words (the angle handle, not any AI-written content).
   const [seededFromAngle, setSeededFromAngle] = useState<string | null>(null);
+  // true only when the angle came from a Connect blind spot (vs an ordinary seed pick), so
+  // we log blindspot_filled for the former and not the latter.
+  const [fromBlindSpot, setFromBlindSpot] = useState(false);
 
   // pick a seed → prefill the write form (title = angle draft, body left EMPTY with the
   // nudge as placeholder so the person supplies their own words) and switch to write mode.
@@ -73,10 +76,29 @@ export function GatherScreen() {
     setBody("");
     setPieceType(null);
     setSeededFromAngle(angle);
+    setFromBlindSpot(false);
     setSeedNudge(nudge);
     setEntryMode("write");
   };
   const [seedNudge, setSeedNudge] = useState<string>("");
+
+  // arriving from a Connect blind-spot ("add a piece from this seat"): aim the write form at
+  // that vantage. The angle is a handle only — the person still writes the perspective.
+  const pendingAngle = useSession((s) => s.pendingAngle);
+  const setPendingAngle = useSession((s) => s.setPendingAngle);
+  const logEvent = useSession((s) => s.logEvent);
+  useEffect(() => {
+    if (!pendingAngle) return;
+    setEntryMode("write");
+    setTitle(pendingAngle);
+    setBody("");
+    setPieceType(null);
+    setSeededFromAngle(pendingAngle);
+    setFromBlindSpot(true);
+    setSeedNudge("");
+    setPendingAngle(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingAngle]);
 
   // talk-mode state lives here, not in TalkPanel — see TalkState. Switching entry modes
   // unmounts the panel, and a half-finished answer must not die with it.
@@ -120,10 +142,14 @@ export function GatherScreen() {
       },
       seededFromAngle ? "seed" : "write"
     );
+    // if this piece came from a blind-spot seat, mark the gap as actually filled — the
+    // elicitation landing is a different (and stronger) signal than merely being shown.
+    if (fromBlindSpot && seededFromAngle) logEvent({ type: "blindspot_filled", angle: seededFromAngle });
     setTitle("");
     setBody("");
     setPieceType(null);
     setSeededFromAngle(null);
+    setFromBlindSpot(false);
     setSeedNudge("");
   };
 

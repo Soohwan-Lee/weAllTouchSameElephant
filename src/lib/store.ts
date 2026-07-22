@@ -141,6 +141,9 @@ interface SessionState {
   events: SessionEvent[];
   /** UI language, mirrored into the store so the export records it (i18n owns the toggle) */
   lang: "en" | "ko";
+  /** a blind-spot angle handed from Connect → Gather, so "add a piece from this seat"
+   *  lands the person on the write form pre-aimed at that vantage (they fill the words). */
+  pendingAngle: string | null;
   fragments: Fragment[];
   /** bridges proposed by AI, awaiting human action */
   tray: Bridge[];
@@ -161,6 +164,7 @@ interface SessionState {
 
   setStep: (s: Step) => void;
   setDecisionPrompt: (q: string) => void;
+  setPendingAngle: (angle: string | null) => void;
   /** add a person; returns the new participant id. First one becomes active. */
   addParticipant: (name: string, role: string) => string;
   removeParticipant: (id: string) => void;
@@ -215,6 +219,7 @@ export const useSession = create<SessionState>((set, get) => ({
   activeParticipantId: null,
   events: [],
   lang: "en",
+  pendingAngle: null,
   fragments: [],
   tray: [],
   bridges: [],
@@ -228,6 +233,7 @@ export const useSession = create<SessionState>((set, get) => ({
 
   setStep: (step) => set({ step }),
   setDecisionPrompt: (decisionPrompt) => set({ decisionPrompt }),
+  setPendingAngle: (pendingAngle) => set({ pendingAngle }),
 
   addParticipant: (name, role) => {
     const id = uid("person");
@@ -410,6 +416,7 @@ export const useSession = create<SessionState>((set, get) => ({
       step: "start",
       scenarioId: null,
       decisionPrompt: "",
+      pendingAngle: null,
       participants: [],
       activeParticipantId: null,
       events: [],
