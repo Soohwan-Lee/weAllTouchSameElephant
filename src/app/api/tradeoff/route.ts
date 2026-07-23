@@ -9,25 +9,31 @@ const MODEL = process.env.OPENAI_MODEL || "gpt-5.4-mini";
 
 type Pair = { a: string; b: string };
 
-/** Deterministic fallback — read the first kept tension straight back, no invention. */
+/**
+ * Deterministic fallback — always names ONE cost, never "no trade-off". With a kept tension,
+ * read it straight back. Without one, name the honest, non-exaggerated opportunity cost:
+ * committing here is committing NOT to the alternatives, and closing the question ends the
+ * exploring. No invention beyond that (the live model does the grounded version).
+ */
 function sampleTradeOff(tensions: Pair[], separations: Pair[], lang: "en" | "ko"): TradeOff {
   const ko = lang === "ko";
   const t = tensions[0] ?? separations[0];
-  if (!t) {
+  if (t) {
     return ko
-      ? { tension: "", favors: "", cost: "이 결정이 무엇을 포기하는지는 남겨둔 긴장이 없어 아직 드러나지 않아요." }
-      : { tension: "", favors: "", cost: "No kept tension yet, so what this decision gives up isn't visible here." };
+      ? { tension: `"${t.a}" ⟷ "${t.b}"`, favors: `"${t.a}" 쪽`, cost: `"${t.b}"이(가) 뒤로 밀립니다.` }
+      : { tension: `"${t.a}" vs "${t.b}"`, favors: `the "${t.a}" side`, cost: `"${t.b}" is what gives way.` };
   }
+  // no kept tension → the opportunity cost of committing at all
   return ko
     ? {
-        tension: `"${t.a}" ⟷ "${t.b}"`,
-        favors: `"${t.a}" 쪽`,
-        cost: `"${t.b}"이(가) 뒤로 밀립니다.`,
+        tension: "이 길을 택함",
+        favors: "지금 이 방향에 자원과 집중을 씀",
+        cost: "여기에 쓰는 시간·집중은 아직 열어둘 수 있었던 다른 선택지에서 빠져나가요.",
       }
     : {
-        tension: `"${t.a}" vs "${t.b}"`,
-        favors: `the "${t.a}" side`,
-        cost: `"${t.b}" is what gives way.`,
+        tension: "Committing to this path",
+        favors: "spends focus and resources on this direction now",
+        cost: "the time and attention this takes is pulled from the other options you could have kept open.",
       };
 }
 

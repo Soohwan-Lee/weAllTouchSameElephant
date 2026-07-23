@@ -131,6 +131,11 @@ export function GatherScreen() {
   const canAdd = title.trim().length > 0 && body.trim().length > 0 && !body.includes("___");
   const canProceed = fragments.length >= 3;
 
+  // after adding a piece that came from Connect (a blind-spot seat), show a small "just
+  // added — add another or go back?" bar, so the person isn't silently stranded and can
+  // keep going. Cleared as soon as they act or start a new piece.
+  const [justAddedFromConnect, setJustAddedFromConnect] = useState(false);
+
   const submit = () => {
     if (!canAdd) return;
     addFragment(
@@ -144,7 +149,10 @@ export function GatherScreen() {
     );
     // if this piece came from a blind-spot seat, mark the gap as actually filled — the
     // elicitation landing is a different (and stronger) signal than merely being shown.
-    if (fromBlindSpot && seededFromAngle) logEvent({ type: "blindspot_filled", angle: seededFromAngle });
+    if (fromBlindSpot && seededFromAngle) {
+      logEvent({ type: "blindspot_filled", angle: seededFromAngle });
+      setJustAddedFromConnect(true);
+    }
     setTitle("");
     setBody("");
     setPieceType(null);
@@ -182,6 +190,25 @@ export function GatherScreen() {
         )}
         <p className="mt-1.5 text-[11px] leading-snug text-ink-faint">{t("decision.hint")}</p>
       </div>
+
+      {/* just-added-from-a-gap bar — keep going or head back, never silently stranded */}
+      {justAddedFromConnect && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-accent/30 bg-accent-soft/25 px-4 py-3">
+          <span className="flex-1 text-[13px] font-medium text-ink">✓ {t("gather.addedFromConnect")}</span>
+          <button
+            onClick={() => setJustAddedFromConnect(false)}
+            className="rounded-full border border-line bg-paper px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-ink hover:text-ink"
+          >
+            + {t("gather.addAnother")}
+          </button>
+          <button
+            onClick={() => { setJustAddedFromConnect(false); setStep("connect"); }}
+            className="rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold text-white transition hover:opacity-95"
+          >
+            {t("gather.backToConnect")} →
+          </button>
+        </div>
+      )}
 
       {/* ---- entry mode: how stuck are you? ---- */}
       <div className="mt-5 animate-fade-up">

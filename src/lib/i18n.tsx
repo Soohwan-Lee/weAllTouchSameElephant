@@ -120,6 +120,9 @@ const dict = {
     ko: "이건 누구의 조각인가요? 지금 입력하는 사람을 고르세요.",
   },
   "people.anon": { en: "Anonymous", ko: "익명" },
+  "gather.addedFromConnect": { en: "Added. Want to fill another gap, or head back?", ko: "추가됐어요. 다른 빈 곳을 더 채울까요, 아니면 돌아갈까요?" },
+  "gather.addAnother": { en: "Add another piece", ko: "조각 하나 더" },
+  "gather.backToConnect": { en: "Back to connecting", ko: "연결로 돌아가기" },
 
   // ---- gather: decision anchor + entry modes ----
   "decision.label": { en: "What are we deciding?", ko: "우리가 정하려는 건?" },
@@ -491,8 +494,8 @@ const dict = {
   // ---- blind spot (Connect): a vantage the pieces don't yet cover ----
   "blind.check": { en: "Check for a missing angle", ko: "빠진 관점 확인하기" },
   "blind.checkSub": {
-    en: "The AI looks at who's on the table and names one perspective no one has added yet — you decide if it's worth a piece.",
-    ko: "AI가 지금 테이블에 누가 있는지 보고, 아직 아무도 안 적은 관점 하나를 짚어줘요 — 조각으로 쓸지는 여러분이 정해요.",
+    en: "The AI names one angle no one has taken — an under-heard role, or someone not in the room at all (the \"empty chair\") — and asks what they'd say. You write it.",
+    ko: "AI가 아직 아무도 안 잡은 관점 하나를 짚어줘요 — 덜 들린 역할이거나, 아예 여기 없는 사람(\"빈 의자\")이거나. 그 사람이 뭐라 할지는 여러분이 적어요.",
   },
   "blind.checking": { en: "Looking at who's missing…", ko: "누가 빠졌는지 보는 중…" },
   "blind.found": { en: "A perspective no one has added", ko: "아직 아무도 안 적은 관점" },
@@ -521,8 +524,8 @@ const dict = {
     ko: "이 결정과 맞물리는 긴장이 없어요 — 뚜렷이 포기하는 건 없어 보여요.",
   },
   "trade.grounded": {
-    en: "Read from the tensions you kept — not advice, just the cost made visible.",
-    ko: "여러분이 남겨둔 긴장에서 읽은 거예요 — 조언이 아니라 대가를 드러낸 것.",
+    en: "Read from your own board — not advice, just one real cost made visible.",
+    ko: "여러분의 보드에서 읽은 거예요 — 조언이 아니라, 진짜 대가 하나를 드러낸 것.",
   },
   // the contest — is the AI's named cost right?
   "trade.ask": { en: "Is that the real cost?", ko: "그게 진짜 대가가 맞나요?" },
@@ -538,7 +541,7 @@ const dict = {
     ko: "방금 결정을 적으셨죠 — 여러분이 남겨둔 긴장에서 읽은, 그 결정이 치르는 대가예요.",
   },
   "trade.revise": { en: "Revise our decision", ko: "결정 다시 손보기" },
-  "trade.keep": { en: "Keep our decision", ko: "결정 그대로 두기" },
+  "trade.another": { en: "See another cost", ko: "다른 대가도 보기" },
 
   // ---- onboarding tour ----
   "tour.skip": { en: "Skip", ko: "건너뛰기" },

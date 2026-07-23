@@ -841,6 +841,17 @@ function TradeOffPanel({ decision, cluster, onRevise }: { decision: string; clus
     logEvent({ type: "tradeoff_answered", stance: s, cost: res?.cost ?? "", note: text.trim() });
   };
 
+  // If the team REVISES their decision, the old cost no longer describes it — reset so the
+  // panel re-runs against the new decision instead of showing a stale, already-answered cost.
+  useEffect(() => {
+    setRes(null);
+    setStance(null);
+    setNote("");
+    setNoteFor(null);
+    setOpened(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [decision]);
+
   const title = (id: string) => fragments.find((f) => f.id === id)?.title ?? "?";
   const inCluster = (b: (typeof bridges)[number]) =>
     cluster.fragmentIds.includes(b.fragmentAId) && cluster.fragmentIds.includes(b.fragmentBId);
@@ -918,14 +929,20 @@ function TradeOffPanel({ decision, cluster, onRevise }: { decision: string; clus
               </div>
               {/* the contest had a consequence: offer to act on it, so it isn't a dead end.
                   Relocate/reject especially imply the decision may need another look. */}
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 <button
                   onClick={onRevise}
                   className="rounded-full border border-ink/25 px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-ink hover:text-ink"
                 >
                   ✎ {t("trade.revise")}
                 </button>
-                <span className="self-center text-[11px] text-ink-faint">· {t("trade.keep")}</span>
+                {/* not a dead end: look at a different cost, keeping the answer just given */}
+                <button
+                  onClick={() => { setStance(null); setNote(""); reveal(); }}
+                  className="rounded-full border border-line px-3 py-1.5 text-xs font-medium text-ink-faint transition hover:border-ink/40 hover:text-ink"
+                >
+                  ↻ {t("trade.another")}
+                </button>
               </div>
             </div>
           ) : (
@@ -985,7 +1002,13 @@ function TradeOffPanel({ decision, cluster, onRevise }: { decision: string; clus
           )}
         </>
       ) : (
-        <div className="mt-2 text-[13px] leading-snug text-ink-faint">{t("trade.none")}</div>
+        // a cost is always named now; an empty result means the call failed
+        <div className="mt-2 flex items-center gap-2 text-[13px] leading-snug text-ink-faint">
+          <span>⚠︎ {t("common.aiFailed")}</span>
+          <button onClick={reveal} className="rounded-full border border-line px-2.5 py-1 text-[12px] font-medium text-ink-soft transition hover:text-ink">
+            ↻ {t("common.retry")}
+          </button>
+        </div>
       )}
     </div>
   );

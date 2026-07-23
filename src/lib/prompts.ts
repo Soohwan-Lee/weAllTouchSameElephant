@@ -322,12 +322,15 @@ export function blindSpotPrompt(
 
   return `A team is deciding: "${decision}". Below are the pieces they have put on the table, each tagged with the ROLE/seat it came from.
 
-Your job: name ONE vantage on THIS decision that the pieces do NOT yet cover — a blind spot. Then give the RATIONALE (why it reads as missing, grounded in what IS present — e.g. "every piece is from an operator/cost seat; no one has spoken for the people who'd actually use it"), and ONE open question that would draw a piece out of that seat.
+Your job: name ONE vantage on THIS decision that the pieces do NOT yet cover — a blind spot. It can be either:
+  (a) a ROLE on the team that's under-represented (every piece is from a cost/eng seat, say), or
+  (b) an ABSENT STAKEHOLDER — someone NOT in the room at all who this decision affects (a new hire, a downstream customer, a regulator, the person who inherits this in a year). This is the "empty chair": a party with a real stake who has no seat here.
+Then give the RATIONALE (why it reads as missing, grounded in what IS present — e.g. "every piece is from an operator/cost seat; no one speaks for the people who'd actually use it"), and ONE open question that would draw a piece out of that seat.
 
 Roles present: ${roles.length ? roles.join(", ") : "(unlabeled)"}${already}
 
 HARD rules — the team writes their own perspectives, you do NOT:
-- Do NOT write the missing perspective. Name the SEAT and ask a QUESTION; the person fills it.
+- Do NOT write the missing perspective, even for an absent stakeholder. Name WHO they are and ask what THEY would care about; the team imagines and writes it. Never put words in the empty chair's mouth — that's exactly what this tool refuses to do.
 - The blind spot must be specific to THIS decision and these pieces, not a generic checklist item.
 - Ground the rationale in what's actually on the table (roles/angles over-represented, an obviously affected party unheard, one side of a trade-off only).
 - If the pieces genuinely cover the decision well from several sides, say so — return an empty angle rather than inventing a gap.
@@ -372,14 +375,19 @@ export function tradeOffPrompt(
 
   return `A team made this decision: "${decision}".
 
-Below are the TENSIONS they deliberately kept while assembling (pairs pulling in different directions) and the pairs they deliberately kept SEPARATE. A decision usually resolves one of these tensions in one direction — which means the other side pays a cost.
+Below are the TENSIONS they deliberately kept while assembling (pairs pulling in different directions) and the pairs they deliberately kept SEPARATE.
 
-Your job: name the ONE kept tension this decision most leans on, which side it favors, and what therefore gives way. This is a MIRROR on their own structure — do NOT invent a cost that isn't in the tensions/separations they kept, and do NOT tell them whether the trade-off is right.
+EVERY decision has a cost — choosing to do one thing is choosing not to do others. Your job is to make ONE real cost legible.
+
+Two cases:
+1. If a KEPT TENSION lines up with this decision, use it: name that tension, which side the decision favors, and what therefore gives way — in the team's own fragment titles.
+2. If NO kept tension fits (or there are none), do NOT say "no trade-off". Instead name the OPPORTUNITY COST of the decision as written: the concrete thing this decision defers, forecloses, or spends that a different move would have kept open. Draw it from the decision text and the pieces on the table — NOT from thin air.
 
 HARD rules:
-- Ground everything in the kept tensions/separations below. If none are relevant to the decision, return an empty "tension".
-- Name the cost in the team's OWN terms (reuse the fragment titles).
-- Do NOT recommend, warn, or judge — just make the trade-off legible.
+- Name exactly ONE cost. Never zero.
+- Ground it in the decision text, the kept tensions, or the pieces — never a generic risk ("it might fail") and never an exaggerated leap. If you can only see a modest cost, name the modest one.
+- Use the team's OWN terms where you can.
+- Do NOT recommend, warn, or judge — just make the one cost visible.
 - Write in ${language}. One tight sentence per field.
 
 Kept tensions:
@@ -389,7 +397,7 @@ Kept separate:
 ${seps}
 
 Return ONLY valid JSON (no prose, no markdown):
-{"tension":"<the tension the decision leans on, or empty string if none apply>","favors":"<what the decision favors, one clause in ${language}>","cost":"<what gives way as a result, one clause in ${language}>"}`;
+{"tension":"<the tension it leans on, OR — if none — a short label for what's being traded, in ${language}>","favors":"<what the decision favors / spends on, one clause in ${language}>","cost":"<the one concrete thing that gives way, one clause in ${language}>"}`;
 }
 
 /**
