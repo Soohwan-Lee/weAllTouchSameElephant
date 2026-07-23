@@ -573,8 +573,11 @@ function RealQuestion({
   placeholder: string;
 }) {
   const [editing, setEditing] = useState(false);
+  // accent-BORDERED, not accent-FILLED: a full accent wash here made three stacked accent
+  // zones so nothing anchored. A left rule keeps it distinct but quieter, letting the
+  // decision box below (the culminating action) read as the emphasis.
   return (
-    <div className="animate-fade-up rounded-xl2 border border-accent/30 bg-accent-soft/50 p-5 shadow-card">
+    <div className="animate-fade-up rounded-xl2 border border-line border-l-[3px] border-l-accent bg-paper-card p-5 shadow-card">
       <div className="text-[11px] font-semibold uppercase tracking-wide text-accent">{label}</div>
       {loading ? (
         <div className="mt-2 text-sm text-ink-faint">…</div>
@@ -673,8 +676,10 @@ function NextStep({
   }, [value, onCommit]);
 
   return (
-    <div id="watse-next-move" className="animate-fade-up rounded-xl2 border border-ink/15 bg-paper-card p-5 shadow-card">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+    // the culminating action — given real presence (ink-toned, elevated) so it reads as the
+    // emphasis, without borrowing the accent that the AI-suggestion zones use.
+    <div id="watse-next-move" className="animate-fade-up rounded-xl2 border-2 border-ink/20 bg-paper-card p-5 shadow-lift">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-ink">
         {t("decide.label")}
       </div>
       {editing || !has ? (
