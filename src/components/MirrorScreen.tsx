@@ -701,15 +701,34 @@ function NextStep({
   }, [value, onCommit]);
 
   return (
-    // the culminating action — given real presence (ink-toned, elevated) so it reads as the
-    // emphasis, without borrowing the accent that the AI-suggestion zones use.
-    <div id="watse-next-move" className="animate-fade-up rounded-xl2 border-2 border-ink/20 bg-paper-card p-5 shadow-lift">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-ink">
-        {t("decide.label")}
+    // The culminating action. Before a decision exists it's the ONE thing left to do, so it
+    // gets the strongest presence on the screen — an accent ring + a clear "last step" badge
+    // so it can't be scrolled past unseen. Once written, it settles into a calm confirmed
+    // state (ink-toned) so it reads as done rather than still-demanding-attention.
+    <div
+      id="watse-next-move"
+      className={[
+        "animate-fade-up rounded-xl2 p-5 shadow-lift transition",
+        has && !editing
+          ? "border-2 border-ink/15 bg-paper-card"
+          : "border-2 border-accent bg-gradient-to-br from-accent-soft/40 to-paper-card ring-4 ring-accent/10",
+      ].join(" ")}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-sm text-white shadow-sm">
+          🎯
+        </span>
+        <span className="text-[13px] font-bold text-ink">{t("decide.label")}</span>
+        {!has && (
+          <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+            {t("decide.badge")}
+          </span>
+        )}
       </div>
       {editing || !has ? (
         <>
-          <p className="mt-1.5 text-xs leading-relaxed text-ink-faint">{t("decide.hint")}</p>
+          <p className="mt-2 text-[13px] font-medium leading-relaxed text-ink-soft">{t("decide.leadIn")}</p>
+          <p className="mt-1 text-xs leading-relaxed text-ink-faint">{t("decide.hint")}</p>
           <textarea
             autoFocus={editing}
             value={value}
@@ -776,8 +795,8 @@ function NextStep({
           )}
         </>
       ) : (
-        <button onClick={() => setEditing(true)} className="mt-1.5 block text-left">
-          <span className="text-balance text-base font-semibold leading-snug text-ink">{value}</span>
+        <button onClick={() => setEditing(true)} className="mt-3 block text-left">
+          <span className="text-balance text-lg font-semibold leading-snug text-ink">{value}</span>
           <span className="ml-2 whitespace-nowrap text-[11px] font-medium text-ink-soft">✎ {t("decide.edit")}</span>
           <div className="mt-2 text-[11px] font-medium text-ink-faint">✓ {t("decide.saved")}</div>
         </button>
