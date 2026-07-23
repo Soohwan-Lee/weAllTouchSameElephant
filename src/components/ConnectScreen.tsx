@@ -260,6 +260,7 @@ export function ConnectScreen() {
 function BlindSpotLine() {
   const { t, lang } = useI18n();
   const fragments = useSession((s) => s.fragments);
+  const bridges = useSession((s) => s.bridges);
   const decisionPrompt = useSession((s) => s.decisionPrompt);
   const setStep = useSession((s) => s.setStep);
   const setPendingAngle = useSession((s) => s.setPendingAngle);
@@ -272,6 +273,13 @@ function BlindSpotLine() {
   // every angle already shown, so "show another" and "not a gap" ask for a NEW one.
   // Dismissing an angle no longer kills the feature — it just moves to the next.
   const [seen, setSeen] = useState<string[]>([]);
+
+  // A blind spot only makes sense once the team has started CONNECTING — asking "who's
+  // missing?" before a single link exists sits above the tray as loud, premature chrome
+  // and reads like the first thing to do. So until the first bridge is confirmed, this is
+  // a quiet one-line offer; once links exist (and a result isn't already open), it earns
+  // the full invitation card.
+  const hasLinks = bridges.length > 0;
 
   if (fragments.length < 2 || hidden) {
     // once hidden, offer a discreet way back — never a dead end
@@ -322,10 +330,19 @@ function BlindSpotLine() {
 
   return (
     <div className="mt-6">
-      {/* the invitation — a real card that says what it does and why, not a thin link.
-          A blind spot is only useful while pieces can still be added, so it earns a
-          visible place here on Connect. */}
-      {!spot && !exhausted && (
+      {/* the invitation. Before any link is confirmed it's a quiet one-liner so it doesn't
+          upstage the actual task (connecting); once the team is linking, it becomes the
+          full card — that's when "who's missing?" is a live, useful question. */}
+      {!spot && !exhausted && !hasLinks && (
+        <button
+          onClick={() => check(seen)}
+          disabled={loading}
+          className="animate-fade-up text-[13px] font-medium text-accent underline-offset-2 transition hover:underline disabled:opacity-60"
+        >
+          🔍 {loading ? t("blind.checking") : t("blind.check")}
+        </button>
+      )}
+      {!spot && !exhausted && hasLinks && (
         <div className="animate-fade-up overflow-hidden rounded-xl2 border border-accent/30 bg-gradient-to-br from-accent-soft/40 to-paper-card shadow-card">
           <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xl">

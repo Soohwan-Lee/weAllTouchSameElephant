@@ -91,6 +91,8 @@ const dict = {
     ko: "이건 시작 문장일 뿐이에요 — ___ 빈칸을 당신이 실제로 본 것으로 바꾸세요.",
   },
   "scaffold.blankStuck": { en: "Not sure what to write?", ko: "뭘 써야 할지 모르겠나요?" },
+  "scaffold.openHelp": { en: "Stuck? Get a starter", ko: "막막해요? 시작 문장 받기" },
+  "scaffold.closeHelp": { en: "Hide the starters", ko: "시작 문장 닫기" },
 
   // ---- export ----
   "export.button": { en: "Export session", ko: "세션 내보내기" },
@@ -411,6 +413,9 @@ const dict = {
   "crux.upstream": { en: "Root pressures", ko: "근본 원인" },
   "crux.downstream": { en: "Visible symptoms", ko: "드러난 증상" },
   "crux.evidenceHeading": { en: "The picture behind it — inspect what you assembled", ko: "그 뒤의 그림 — 여러분이 맞춘 것을 살펴보세요" },
+  "crux.evidenceShow": { en: "Show the picture behind it", ko: "그 뒤의 그림 보기" },
+  "crux.evidenceHide": { en: "Hide the picture", ko: "그림 접기" },
+  "crux.evidenceSub": { en: "The map, story and stats you assembled — open to inspect", ko: "여러분이 맞춘 지도·이야기·수치 — 열어서 살펴보세요" },
   "reveal.pickHint": { en: "How would you like to read the whole?", ko: "전체를 어떻게 읽어볼까요?" },
   "crux.realQuestion": { en: "So the real question is…", ko: "그래서 진짜 질문은…" },
   "crux.editQuestion": { en: "Edit the question", ko: "질문 수정" },

@@ -46,6 +46,10 @@ export function MirrorScreen() {
   const [result, setResult] = useState<NameResult | null>(null);
   const [nameDraft, setNameDraft] = useState("");
   const [revealFailed, setRevealFailed] = useState(false);
+  // the reading + question + decision + trade-off are the payoff; the assembled map/story/
+  // stats are supporting EVIDENCE. Kept collapsed so the screen isn't a long scroll past
+  // the point — the team opens it when they want to inspect what backs the reading.
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
   // remember whether the shown reveal came from a sample scenario (so we can re-project it on language switch)
   const fromSampleReveal = useRef(false);
   // one cached reading per reveal mode, so the three can be compared without re-fetching
@@ -344,13 +348,34 @@ export function MirrorScreen() {
                 />
               )}
 
-              {/* the evidence behind the reading: the assembled shape you can inspect */}
-              <div className="pt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
-                {t("crux.evidenceHeading")}
+              {/* the evidence behind the reading: the assembled shape you can inspect.
+                  Collapsed by default so the reading/question/decision stay the focus. */}
+              <div className="pt-1">
+                <button
+                  onClick={() => setEvidenceOpen((o) => !o)}
+                  className="flex w-full items-center gap-2 rounded-xl border border-line bg-paper-sunken/40 px-4 py-3 text-left transition hover:border-ink/20"
+                >
+                  <span className="text-base leading-none">🐘</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[13px] font-semibold text-ink">
+                      {evidenceOpen ? t("crux.evidenceHide") : t("crux.evidenceShow")}
+                    </span>
+                    {!evidenceOpen && (
+                      <span className="mt-0.5 block text-[11px] leading-snug text-ink-faint">
+                        {t("crux.evidenceSub")}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-ink-faint">{evidenceOpen ? "▴" : "▾"}</span>
+                </button>
               </div>
-              <SynthesisCanvas />
-              <StorySpine />
-              <SynthesisSummary />
+              {evidenceOpen && (
+                <div className="animate-fade-up space-y-5">
+                  <SynthesisCanvas />
+                  <StorySpine />
+                  <SynthesisSummary />
+                </div>
+              )}
             </>
           ) : (
             <>

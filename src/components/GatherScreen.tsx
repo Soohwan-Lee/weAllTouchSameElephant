@@ -136,6 +136,14 @@ export function GatherScreen() {
   // keep going. Cleared as soon as they act or start a new piece.
   const [justAddedFromConnect, setJustAddedFromConnect] = useState(false);
 
+  // the scaffold (type chips + role lens + spark question) is the biggest thing in the
+  // input card and used to be always-open, making the form read as a lot to fill. It's a
+  // crutch for the blank card, not the main path — so it's collapsed by default and the
+  // person opens it when stuck. It auto-opens once they engage a starter (picked a piece
+  // type, or a seed/angle seeded the form) so their scaffolding never vanishes.
+  const [helpOpen, setHelpOpen] = useState(false);
+  const showScaffold = helpOpen || !!pieceType || !!seededFromAngle;
+
   const submit = () => {
     if (!canAdd) return;
     addFragment(
@@ -256,9 +264,27 @@ export function GatherScreen() {
               💡 <span className="font-medium">{seededFromAngle}</span> — {t("seeds.picked")}
             </div>
           )}
-          {/* ---- scaffolding: kill the blank-card bottleneck ---- */}
+          {/* ---- scaffolding: an OPT-IN crutch for the blank card, collapsed by default so
+               the form doesn't read as a wall of choices. Opens when the person is stuck. ---- */}
+          {!showScaffold ? (
+            <button
+              onClick={() => setHelpOpen(true)}
+              className="mb-4 flex w-full items-center gap-2 rounded-xl border border-dashed border-accent/30 bg-accent-soft/15 px-3.5 py-2.5 text-left text-[12px] font-medium text-accent transition hover:bg-accent-soft/30"
+            >
+              💡 {t("scaffold.openHelp")}
+              <span className="ml-auto text-ink-faint">＋</span>
+            </button>
+          ) : (
           <div className="mb-4 rounded-xl border border-accent/20 bg-accent-soft/25 p-3.5">
-            <div className="text-[12px] font-semibold text-ink">💡 {t("scaffold.blankStuck")}</div>
+            <div className="flex items-center justify-between">
+              <div className="text-[12px] font-semibold text-ink">💡 {t("scaffold.blankStuck")}</div>
+              <button
+                onClick={() => { setHelpOpen(false); setPieceType(null); }}
+                className="rounded-full px-2 py-0.5 text-[11px] font-medium text-ink-faint transition hover:text-ink"
+              >
+                {t("scaffold.closeHelp")} ✕
+              </button>
+            </div>
 
             {/* piece-type chips */}
             <div className="mt-2 text-[11px] font-medium text-ink-soft">{t("scaffold.typeHeading")}</div>
@@ -323,6 +349,7 @@ export function GatherScreen() {
               )}
             </div>
           </div>
+          )}
 
           {participants.length > 0 ? (
             <AuthorSwitcher />

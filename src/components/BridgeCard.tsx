@@ -36,7 +36,16 @@ export function BridgeCard({ bridge, fragA, fragB }: { bridge: Bridge; fragA?: F
       </div>
 
       {!editing ? (
-        <p className="mt-3 text-sm leading-relaxed text-ink-soft">{bridge.explanation}</p>
+        <>
+          <p className="mt-3 text-sm leading-relaxed text-ink-soft">{bridge.explanation}</p>
+          {/* "separate" is the one relation that DOESN'T glue — a first-timer reads the
+              same confirm button and assumes it links. Say plainly it draws a boundary. */}
+          {bridge.relationType === "separate" && (
+            <p className="mt-2 rounded-lg bg-paper-sunken/60 px-3 py-2 text-[11px] leading-snug text-ink-soft">
+              ⊣ {t("rel.separate.hint")}
+            </p>
+          )}
+        </>
       ) : (
         <div className="mt-3 space-y-2">
           <div className="flex flex-wrap gap-1.5">
