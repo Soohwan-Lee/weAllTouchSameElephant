@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useSession, scenarioRevealToResult } from "@/lib/store";
 import { getScenario } from "@/lib/scenarios";
@@ -62,6 +62,20 @@ export function MirrorScreen() {
   const named = main ? clusterNames[main.id] : undefined;
   const question = main ? clusterQuestions[main.id] : undefined;
   const decision = main ? clusterDecisions[main.id] : undefined;
+
+  // the core + kept tensions, in fragment titles — shared by decision-directions and trade-off
+  const shape = useMemo(() => {
+    if (!main) return { cruxTitle: undefined as string | undefined, tensions: [] as Array<{ a: string; b: string }> };
+    const synth = computeSynthesis(fragments, bridges, main);
+    const keystone = synth.facets.find((f) => f.id === synth.keystoneFacetId);
+    const cruxTitle = keystone ? byId(keystone.anchorId)?.title : undefined;
+    const tensions = synth.tensions.map((tn) => {
+      const b = bridges.find((x) => x.id === tn.bridgeId);
+      return { a: byId(b?.fragmentAId ?? "")?.title ?? "?", b: byId(b?.fragmentBId ?? "")?.title ?? "?" };
+    });
+    return { cruxTitle, tensions };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [main?.id, fragments, bridges]);
 
   async function reveal(chosen: RevealMode, force = false) {
     if (!main) return;
@@ -302,13 +316,32 @@ export function MirrorScreen() {
                   value={decision ?? ""}
                   onChange={(v) => main && setClusterDecision(main.id, v)}
                   onCommit={(v) => logEvent({ type: "decision_written", text: v })}
+                  realQuestion={question ?? ""}
+                  cruxTitle={shape.cruxTitle}
+                  tensions={shape.tensions}
+                  lang={lang}
                 />
               )}
 
               {/* the cost the decision commits to — read off the team's own kept tensions.
                   Only after a decision exists, since it mirrors THAT decision. */}
               {!loading && !!(decision ?? "").trim() && main && (
-                <TradeOffPanel decision={decision ?? ""} cluster={main} />
+                <TradeOffPanel
+                  decision={decision ?? ""}
+                  cluster={main}
+                  onRevise={() => {
+                    const el = document.getElementById("watse-next-move");
+                    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    // the saved decision renders as a button (click to edit); open it, then
+                    // focus the textarea it reveals on the next frame.
+                    const ta = el?.querySelector("textarea");
+                    if (ta) ta.focus();
+                    else {
+                      (el?.querySelector("button") as HTMLButtonElement | null)?.click();
+                      requestAnimationFrame(() => el?.querySelector("textarea")?.focus());
+                    }
+                  }}
+                />
               )}
 
               {/* the evidence behind the reading: the assembled shape you can inspect */}
@@ -582,14 +615,43 @@ function NextStep({
   value,
   onChange,
   onCommit,
+  realQuestion,
+  cruxTitle,
+  tensions,
+  lang,
 }: {
   value: string;
   onChange: (v: string) => void;
   onCommit: (v: string) => void;
+  realQuestion: string;
+  cruxTitle?: string;
+  tensions: Array<{ a: string; b: string }>;
+  lang: "en" | "ko";
 }) {
   const { t } = useI18n();
   const [editing, setEditing] = useState(false);
   const has = !!value.trim();
+
+  // grounded starting DIRECTIONS — the AI's help right before the team decides. Like Seeds
+  // at the input step: a handle to react to, not a decision authored for them. Off by
+  // default; the team asks. Picking one prefills the box and hands the pen back.
+  const [dirLoading, setDirLoading] = useState(false);
+  const [directions, setDirections] = useState<Array<{ direction: string; because: string }> | null>(null);
+  const loadDirections = async () => {
+    setDirLoading(true);
+    try {
+      const { fetchDirections } = await import("@/lib/api");
+      const { directions: d } = await fetchDirections(value, realQuestion, cruxTitle, tensions, lang);
+      setDirections(d);
+    } finally {
+      setDirLoading(false);
+    }
+  };
+  const pickDirection = (d: string) => {
+    onChange(d);
+    setDirections(null);
+    setEditing(true);
+  };
 
   // The decision text is stored on every keystroke, but the decision_written EVENT only
   // fired on blur — so someone who typed their next move and closed the tab left no trace
@@ -611,7 +673,7 @@ function NextStep({
   }, [value, onCommit]);
 
   return (
-    <div className="animate-fade-up rounded-xl2 border border-ink/15 bg-paper-card p-5 shadow-card">
+    <div id="watse-next-move" className="animate-fade-up rounded-xl2 border border-ink/15 bg-paper-card p-5 shadow-card">
       <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
         {t("decide.label")}
       </div>
@@ -641,6 +703,46 @@ function NextStep({
             >
               ✎ {t("decide.add")}
             </button>
+          )}
+
+          {/* the AI's help right before deciding — grounded starting directions, opt-in.
+              It hands the pen back: pick one → it prefills the box → you rewrite it. */}
+          {directions === null ? (
+            <div className="mt-3 border-t border-line pt-3">
+              <span className="text-[12px] text-ink-faint">{t("decide.stuck")} </span>
+              <button
+                onClick={loadDirections}
+                disabled={dirLoading}
+                className="text-[12px] font-semibold text-accent underline-offset-2 transition hover:underline disabled:opacity-60"
+              >
+                💡 {dirLoading ? t("decide.directionsLoading") : t("decide.getDirections")}
+              </button>
+            </div>
+          ) : (
+            <div className="mt-3 border-t border-line pt-3">
+              <p className="text-[11px] leading-snug text-ink-faint">{t("decide.directionsHint")}</p>
+              <ul className="mt-2 space-y-2">
+                {directions.map((d, i) => (
+                  <li key={i} className="rounded-lg border border-line bg-paper-sunken/40 p-3">
+                    <div className="text-[13px] font-semibold text-ink">{d.direction}</div>
+                    {d.because && <div className="mt-0.5 text-[11px] leading-snug text-ink-faint">{d.because}</div>}
+                    <button
+                      onClick={() => pickDirection(d.direction)}
+                      className="mt-2 rounded-full border border-accent/40 px-3 py-1 text-[11px] font-medium text-accent transition hover:bg-accent hover:text-white"
+                    >
+                      {t("decide.useDirection")} →
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={loadDirections}
+                disabled={dirLoading}
+                className="mt-2 text-[11px] font-medium text-ink-faint transition hover:text-ink disabled:opacity-60"
+              >
+                ↻ {dirLoading ? t("decide.directionsLoading") : t("decide.directionsAgain")}
+              </button>
+            </div>
           )}
         </>
       ) : (
@@ -715,7 +817,7 @@ function NamePanel({
  * decision leans on and what the other side gives up, in the team's own fragment titles.
  * Fires once, on demand, and logs tradeoff_shown for the exposure-vs-action question.
  */
-function TradeOffPanel({ decision, cluster }: { decision: string; cluster: { fragmentIds: string[] } }) {
+function TradeOffPanel({ decision, cluster, onRevise }: { decision: string; cluster: { fragmentIds: string[] }; onRevise: () => void }) {
   const { t, lang } = useI18n();
   const fragments = useSession((s) => s.fragments);
   const bridges = useSession((s) => s.bridges);
@@ -777,6 +879,9 @@ function TradeOffPanel({ decision, cluster }: { decision: string; cluster: { fra
       <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
         ⚖️ {t("trade.label")}
       </div>
+      {/* say WHY this appeared — it shows up the moment a decision is written, which reads
+          as unrelated chrome without this line. */}
+      <p className="mt-1 text-[12px] leading-snug text-ink-faint">{t("trade.why")}</p>
       {loading ? (
         <div className="mt-2 text-sm text-ink-faint">{t("trade.checking")}</div>
       ) : res && (res.tension || res.cost) ? (
@@ -801,9 +906,22 @@ function TradeOffPanel({ decision, cluster }: { decision: string; cluster: { fra
           {/* THE CONTEST — is the AI's named cost right? Contesting it is the boundary work
               we actually study: the team renegotiating what their decision gives up. */}
           {stance ? (
-            <div className="mt-3 rounded-lg border border-line bg-paper-sunken/50 px-3 py-2 text-[13px] text-ink">
-              {t(`trade.answered.${stance}` as Parameters<typeof t>[0])}
-              {note.trim() && <span className="text-ink-soft"> — “{note.trim()}”</span>}
+            <div className="mt-3 rounded-lg border border-line bg-paper-sunken/50 px-3 py-2.5">
+              <div className="text-[13px] text-ink">
+                {t(`trade.answered.${stance}` as Parameters<typeof t>[0])}
+                {note.trim() && <span className="text-ink-soft"> — “{note.trim()}”</span>}
+              </div>
+              {/* the contest had a consequence: offer to act on it, so it isn't a dead end.
+                  Relocate/reject especially imply the decision may need another look. */}
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  onClick={onRevise}
+                  className="rounded-full border border-ink/25 px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-ink hover:text-ink"
+                >
+                  ✎ {t("trade.revise")}
+                </button>
+                <span className="self-center text-[11px] text-ink-faint">· {t("trade.keep")}</span>
+              </div>
             </div>
           ) : (
             <div className="mt-3 border-t border-line pt-3">

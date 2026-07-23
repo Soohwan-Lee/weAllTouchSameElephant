@@ -114,13 +114,14 @@ export async function fetchMirror(
 export async function fetchBlindSpot(
   decision: string,
   pieces: Array<{ title: string; body: string; role: string }>,
-  lang: "en" | "ko"
+  lang: "en" | "ko",
+  exclude: string[] = []
 ): Promise<{ angle: string; rationale: string; question: string; mode: string }> {
   try {
     const res = await fetch("/api/blindspot", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ decision, pieces, lang }),
+      body: JSON.stringify({ decision, pieces, lang, exclude }),
     });
     if (!res.ok) return { angle: "", rationale: "", question: "", mode: "error" };
     return await res.json();
@@ -145,5 +146,25 @@ export async function fetchTradeOff(
     return await res.json();
   } catch {
     return { tension: "", favors: "", cost: "", mode: "error" };
+  }
+}
+
+export async function fetchDirections(
+  decision: string,
+  realQuestion: string,
+  cruxTitle: string | undefined,
+  tensions: Array<{ a: string; b: string }>,
+  lang: "en" | "ko"
+): Promise<{ directions: Array<{ direction: string; because: string }>; mode: string }> {
+  try {
+    const res = await fetch("/api/directions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ decision, realQuestion, cruxTitle, tensions, lang }),
+    });
+    if (!res.ok) return { directions: [], mode: "error" };
+    return await res.json();
+  } catch {
+    return { directions: [], mode: "error" };
   }
 }

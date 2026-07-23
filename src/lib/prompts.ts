@@ -310,17 +310,21 @@ export interface BlindSpot {
 export function blindSpotPrompt(
   decision: string,
   pieces: Array<{ title: string; body: string; role: string }>,
-  lang: "en" | "ko"
+  lang: "en" | "ko",
+  exclude: string[] = []
 ) {
   const language = lang === "ko" ? "Korean" : "English";
   const present = pieces.map((p) => `- [${p.role}] ${p.title}: ${p.body}`).join("\n");
   const roles = [...new Set(pieces.map((p) => p.role).filter((r) => r && r !== "—"))];
+  const already = exclude.length
+    ? `\n\nYou have ALREADY suggested these seats — do NOT repeat them; find a genuinely different one:\n${exclude.map((a) => `- ${a}`).join("\n")}`
+    : "";
 
   return `A team is deciding: "${decision}". Below are the pieces they have put on the table, each tagged with the ROLE/seat it came from.
 
 Your job: name ONE vantage on THIS decision that the pieces do NOT yet cover — a blind spot. Then give the RATIONALE (why it reads as missing, grounded in what IS present — e.g. "every piece is from an operator/cost seat; no one has spoken for the people who'd actually use it"), and ONE open question that would draw a piece out of that seat.
 
-Roles present: ${roles.length ? roles.join(", ") : "(unlabeled)"}
+Roles present: ${roles.length ? roles.join(", ") : "(unlabeled)"}${already}
 
 HARD rules — the team writes their own perspectives, you do NOT:
 - Do NOT write the missing perspective. Name the SEAT and ask a QUESTION; the person fills it.
@@ -386,4 +390,50 @@ ${seps}
 
 Return ONLY valid JSON (no prose, no markdown):
 {"tension":"<the tension the decision leans on, or empty string if none apply>","favors":"<what the decision favors, one clause in ${language}>","cost":"<what gives way as a result, one clause in ${language}>"}`;
+}
+
+/**
+ * DECISION DIRECTIONS — 2–3 grounded starting points the team could take, offered right
+ * before they write their own decision. Like Seeds at the input step: a HANDLE to react to,
+ * never a finished decision authored for them. Each is a short direction ("Decide X before
+ * Y") drawn from the shape they built — the keystone, the kept tensions, the real question —
+ * so the team can pick one and rewrite it in their own words, or reject them all.
+ */
+export interface DecisionDirection {
+  /** a short, concrete direction the team could take (a handle, not a full decision) */
+  direction: string;
+  /** one clause on what taking it would commit them to — grounded in their shape */
+  because: string;
+}
+
+export function directionsPrompt(
+  decision: string,
+  realQuestion: string,
+  cruxTitle: string | undefined,
+  tensions: Array<{ a: string; b: string }>,
+  lang: "en" | "ko"
+) {
+  const language = lang === "ko" ? "Korean" : "English";
+  const tens = tensions.length
+    ? tensions.map((t) => `- "${t.a}" ⟷ "${t.b}"`).join("\n")
+    : "(none)";
+
+  return `A team has assembled their views on this decision: "${decision}". They landed on this reframed question to answer: "${realQuestion}".
+
+The shape they built:
+- The likely core: ${cruxTitle ?? "(not identified)"}
+- Live tensions they kept (real trade-offs, do NOT resolve these away):
+${tens}
+
+Offer 2–3 DIFFERENT starting DIRECTIONS the team could take on their next move — each a short, concrete handle they can react to, NOT a finished decision. The team writes their own decision; you give them starting points grounded in THEIR shape.
+
+HARD rules:
+- Each direction is a QUESTION-CLOSING MOVE the team could make ("Decide X before committing to Y", "Pilot Z with one team first"), grounded in the core and the kept tensions above.
+- They must be genuinely DIFFERENT from each other — different bets, not rephrasings.
+- Do NOT pick a winner, do NOT recommend one, do NOT resolve a kept tension by fiat.
+- Ground each "because" in the shape (the core, a specific tension) — not generic advice.
+- Write in ${language}. Keep each field to one tight clause.
+
+Return ONLY valid JSON (no prose, no markdown):
+{"directions":[{"direction":"<a concrete starting direction in ${language}>","because":"<what it commits them to, grounded in their shape, in ${language}>"}]}`;
 }

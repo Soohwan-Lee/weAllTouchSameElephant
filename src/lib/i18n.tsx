@@ -425,6 +425,16 @@ const dict = {
   "decide.add": { en: "Write our next move", ko: "다음 수 적기" },
   "decide.edit": { en: "Edit", ko: "수정" },
   "decide.saved": { en: "Our decision — not the AI's", ko: "우리의 결정 — AI가 아니라" },
+  // decision directions — grounded starting points, not authored decisions
+  "decide.stuck": { en: "Not sure where to start?", ko: "어디서 시작할지 막막한가요?" },
+  "decide.getDirections": { en: "Suggest starting directions", ko: "시작할 방향 제안받기" },
+  "decide.directionsLoading": { en: "Reading your shape…", ko: "여러분의 그림을 읽는 중…" },
+  "decide.directionsHint": {
+    en: "Directions drawn from the shape you built — pick one to start from, then make it your own.",
+    ko: "여러분이 만든 그림에서 뽑은 방향이에요 — 하나를 골라 시작한 뒤, 여러분의 것으로 다듬으세요.",
+  },
+  "decide.useDirection": { en: "Start from this", ko: "이걸로 시작" },
+  "decide.directionsAgain": { en: "Other directions", ko: "다른 방향" },
   "crux.stat": { en: "connections", ko: "개 연결" },
   "crux.drives": { en: "drives", ko: "→ 이끔" },
   "crux.noFlow": {
@@ -492,7 +502,14 @@ const dict = {
   },
   "blind.why": { en: "Why this reads as missing", ko: "왜 비어 보이나" },
   "blind.fill": { en: "Add a piece from this seat", ko: "이 자리에서 조각 쓰기" },
-  "blind.dismiss": { en: "Not a gap", ko: "빈 곳 아님" },
+  "blind.dismiss": { en: "Not a gap — show another", ko: "빈 곳 아님 — 다른 관점" },
+  "blind.another": { en: "Show another angle", ko: "다른 관점 보기" },
+  "blind.exhausted": {
+    en: "That's every angle we can see missing. Add one, or carry on connecting.",
+    ko: "저희가 보기엔 빠진 관점은 이게 전부예요. 하나 추가하거나, 계속 이어가세요.",
+  },
+  "blind.hide": { en: "Hide", ko: "닫기" },
+  "blind.reopen": { en: "Check for a missing angle again", ko: "빠진 관점 다시 확인" },
 
   // ---- trade-off (after the decision): what it commits to giving up ----
   "trade.label": { en: "What this decision gives up", ko: "이 결정이 포기하는 것" },
@@ -516,6 +533,12 @@ const dict = {
   "trade.answered.accepted": { en: "✓ You took the cost as named.", ko: "✓ 그 대가를 그대로 받아들였어요." },
   "trade.answered.relocated": { en: "↳ You moved the cost.", ko: "↳ 대가를 옮겼어요." },
   "trade.answered.rejected": { en: "✕ You rejected the framing.", ko: "✕ 프레이밍을 거부했어요." },
+  "trade.why": {
+    en: "You just wrote a decision — here's the cost it commits to, read off the tensions you kept.",
+    ko: "방금 결정을 적으셨죠 — 여러분이 남겨둔 긴장에서 읽은, 그 결정이 치르는 대가예요.",
+  },
+  "trade.revise": { en: "Revise our decision", ko: "결정 다시 손보기" },
+  "trade.keep": { en: "Keep our decision", ko: "결정 그대로 두기" },
 
   // ---- onboarding tour ----
   "tour.skip": { en: "Skip", ko: "건너뛰기" },

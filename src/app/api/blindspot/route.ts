@@ -15,7 +15,7 @@ type Piece = { title: string; body: string; role: string };
  * spot, and we can say so from the role tags alone. This keeps sample mode honest: it names
  * a real gap in the roles present, it doesn't invent a perspective.
  */
-function sampleBlindSpot(pieces: Piece[], lang: "en" | "ko"): BlindSpot {
+function sampleBlindSpot(pieces: Piece[], lang: "en" | "ko", exclude: string[] = []): BlindSpot | null {
   const roles = pieces.map((p) => (p.role || "").toLowerCase());
   const has = (needles: string[]) => roles.some((r) => needles.some((n) => r.includes(n)));
   const ko = lang === "ko";
@@ -24,47 +24,42 @@ function sampleBlindSpot(pieces: Piece[], lang: "en" | "ko"): BlindSpot {
   // cites "3 of 4 pieces are from a cost/engineering seat", never a generic "did you think
   // of the user?". A reviewer's complaint about premortem-template genericness dies here.
   const named = [...new Set(pieces.map((p) => p.role).filter((r) => r && r !== "—"))];
-  const rolesPhrase = named.length
-    ? named.join(", ")
-    : ko
-    ? "역할 표시가 없는 자리"
-    : "unlabeled seats";
+  const rolesPhrase = named.length ? named.join(", ") : ko ? "역할 표시가 없는 자리" : "unlabeled seats";
   const ground = ko
     ? `조각 ${pieces.length}개가 ${rolesPhrase} 자리에서 나왔는데, `
     : `${pieces.length} pieces come from ${rolesPhrase} — `;
 
-  // the affected/user seat is the one teams most often leave empty
+  // A LIBRARY of candidate seats so "show me another" works offline too. The affected/user
+  // seat is only offered when it's genuinely absent; the rest are broadly-missed vantages.
   const hasUserVoice = has(["user", "customer", "resident", "사용자", "고객", "주민", "이용", "affected", "당사자"]);
-  if (!hasUserVoice && pieces.length > 0) {
-    return ko
-      ? {
-          angle: "이걸 실제로 쓸/겪을 사람",
-          rationale: ground + "정작 이 결정을 매일 겪게 될 당사자의 자리는 비어 있어요.",
-          question: "이 결정으로 매일 영향을 받는 사람은 무엇을 가장 아쉬워할까요?",
-        }
-      : {
-          angle: "The person who lives with it",
-          rationale: ground + "no one is sitting in the seat of the person who'd actually live with this decision.",
-          question: "What would the person affected day-to-day find most lacking here?",
-        };
+  const candidates: BlindSpot[] = [];
+  if (!hasUserVoice) {
+    candidates.push(
+      ko
+        ? { angle: "이걸 실제로 쓸/겪을 사람", rationale: ground + "정작 이 결정을 매일 겪게 될 당사자의 자리는 비어 있어요.", question: "이 결정으로 매일 영향을 받는 사람은 무엇을 가장 아쉬워할까요?" }
+        : { angle: "The person who lives with it", rationale: ground + "no one is in the seat of the person who'd actually live with this decision.", question: "What would the person affected day-to-day find most lacking here?" }
+    );
   }
+  candidates.push(
+    ko
+      ? { angle: "1년 뒤의 우리", rationale: ground + "이 결정이 시간이 지나 무엇을 남길지는 아무도 적지 않았어요.", question: "이 결정이 1년 뒤에도 옳았다고 말하려면 그 사이 무엇이 참이어야 할까요?" }
+      : { angle: "Us, a year from now", rationale: ground + "no one has named what this decision leaves behind over time.", question: "For this to still look right in a year, what would have to hold true in between?" },
+    ko
+      ? { angle: "반대할 사람", rationale: ground + "여기 있는 조각은 대체로 같은 편이에요 — 이 결정에 가장 세게 반대할 사람의 목소리가 없어요.", question: "이 결정을 가장 강하게 반대할 사람은 무엇을 근거로 들까요?" }
+      : { angle: "The person who'd push back hardest", rationale: ground + "the pieces mostly lean the same way — the strongest objector's voice is missing.", question: "Who would object most, and on what grounds?" },
+    ko
+      ? { angle: "돈을 대는 사람", rationale: ground + "실행 얘기는 있는데, 이 결정의 비용을 대고 책임질 자리는 비어 있어요.", question: "이걸 승인하고 비용을 대는 사람은 무엇을 먼저 물을까요?" }
+      : { angle: "Whoever pays for it", rationale: ground + "there's talk of doing it, but no one holds the seat that funds and answers for the cost.", question: "What would the person approving the budget ask first?" }
+  );
 
-  // otherwise nudge toward the longer horizon, which short decisions tend to skip
-  return ko
-    ? {
-        angle: "1년 뒤의 우리",
-        rationale: ground + "이 결정이 시간이 지나 무엇을 남길지는 아무도 적지 않았어요.",
-        question: "이 결정이 1년 뒤에도 옳았다고 말하려면 그 사이 무엇이 참이어야 할까요?",
-      }
-    : {
-        angle: "Us, a year from now",
-        rationale: ground + "no one has named what this decision leaves behind over time.",
-        question: "For this to still look right in a year, what would have to hold true in between?",
-      };
+  const norm = (s: string) => s.trim().toLowerCase();
+  const seen = new Set(exclude.map(norm));
+  const next = candidates.find((c) => !seen.has(norm(c.angle)));
+  return next ?? null; // null = we've run out of distinct sample seats
 }
 
 export async function POST(req: NextRequest) {
-  let body: { decision?: string; pieces?: Piece[]; lang?: "en" | "ko" };
+  let body: { decision?: string; pieces?: Piece[]; lang?: "en" | "ko"; exclude?: string[] };
   try {
     body = await req.json();
   } catch {
@@ -73,16 +68,20 @@ export async function POST(req: NextRequest) {
   const lang = body.lang === "ko" ? "ko" : "en";
   const pieces = Array.isArray(body.pieces) ? body.pieces.slice(0, 30) : [];
   const decision = String(body.decision ?? "").slice(0, 300);
+  const exclude = Array.isArray(body.exclude) ? body.exclude.map((a) => String(a)).slice(0, 12) : [];
   if (!pieces.length) return NextResponse.json({ error: "no pieces" }, { status: 400 });
 
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return NextResponse.json({ ...sampleBlindSpot(pieces, lang), mode: "sample" });
+  if (!apiKey) {
+    const s = sampleBlindSpot(pieces, lang, exclude);
+    return NextResponse.json(s ? { ...s, mode: "sample" } : { angle: "", rationale: "", question: "", mode: "sample" });
+  }
 
   try {
     const client = new OpenAI({ apiKey });
     const completion = await client.chat.completions.create({
       model: MODEL,
-      messages: [{ role: "user", content: blindSpotPrompt(decision, pieces, lang) }],
+      messages: [{ role: "user", content: blindSpotPrompt(decision, pieces, lang, exclude) }],
       response_format: { type: "json_object" },
       temperature: 0.6,
     });
@@ -98,8 +97,13 @@ export async function POST(req: NextRequest) {
     const citesARole =
       presentRoles.length === 0 || presentRoles.some((r) => rationale.toLowerCase().includes(r));
     if (!citesARole) {
-      const grounded = sampleBlindSpot(pieces, lang);
-      return NextResponse.json({ angle, rationale: grounded.rationale, question: String(parsed.question ?? "").trim().slice(0, 200) || grounded.question, mode: "live" });
+      const grounded = sampleBlindSpot(pieces, lang, exclude);
+      return NextResponse.json({
+        angle,
+        rationale: grounded?.rationale ?? rationale,
+        question: String(parsed.question ?? "").trim().slice(0, 200) || grounded?.question || "",
+        mode: "live",
+      });
     }
 
     return NextResponse.json({
@@ -110,6 +114,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("[blindspot] LLM error", err);
-    return NextResponse.json({ ...sampleBlindSpot(pieces, lang), mode: "error" });
+    const s = sampleBlindSpot(pieces, lang, exclude);
+    return NextResponse.json(s ? { ...s, mode: "error" } : { angle: "", rationale: "", question: "", mode: "error" });
   }
 }

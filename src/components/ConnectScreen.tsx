@@ -267,22 +267,40 @@ function BlindSpotLine() {
 
   const [loading, setLoading] = useState(false);
   const [spot, setSpot] = useState<{ angle: string; rationale: string; question: string } | null>(null);
-  const [none, setNone] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  const [exhausted, setExhausted] = useState(false); // ran out of distinct angles
+  const [hidden, setHidden] = useState(false); // user closed it (re-openable)
+  // every angle already shown, so "show another" and "not a gap" ask for a NEW one.
+  // Dismissing an angle no longer kills the feature — it just moves to the next.
+  const [seen, setSeen] = useState<string[]>([]);
 
-  if (fragments.length < 2 || dismissed) return null;
+  if (fragments.length < 2 || hidden) {
+    // once hidden, offer a discreet way back — never a dead end
+    return fragments.length < 2 ? null : (
+      <div className="mt-6">
+        <button
+          onClick={() => { setHidden(false); setExhausted(false); }}
+          className="text-[13px] font-medium text-accent underline-offset-2 transition hover:underline"
+        >
+          🔍 {t("blind.reopen")}
+        </button>
+      </div>
+    );
+  }
 
-  const check = async () => {
+  const check = async (excluding: string[]) => {
     setLoading(true);
-    setNone(false);
+    setExhausted(false);
     try {
       const pieces = fragments.map((f) => ({ title: f.title, body: f.body, role: f.authorRole }));
-      const res = await fetchBlindSpot(decisionPrompt, pieces, lang);
+      const res = await fetchBlindSpot(decisionPrompt, pieces, lang, excluding);
       if (!res.angle) {
-        setNone(true);
+        // nothing new to surface — either well-covered, or we've named them all
+        setSpot(null);
+        setExhausted(true);
         return;
       }
       setSpot({ angle: res.angle, rationale: res.rationale, question: res.question });
+      setSeen((prev) => (prev.includes(res.angle) ? prev : [...prev, res.angle]));
       logEvent({ type: "blindspot_shown", angle: res.angle, rationale: res.rationale });
     } finally {
       setLoading(false);
@@ -296,12 +314,18 @@ function BlindSpotLine() {
     setStep("gather");
   };
 
+  // "not a gap" logs the refusal AND asks for a different angle — it doesn't end the feature
+  const dismissThis = () => {
+    if (spot) logEvent({ type: "blindspot_dismissed", angle: spot.angle });
+    check(spot ? [...seen, spot.angle] : seen);
+  };
+
   return (
     <div className="mt-6">
       {/* the invitation — a real card that says what it does and why, not a thin link.
           A blind spot is only useful while pieces can still be added, so it earns a
           visible place here on Connect. */}
-      {!spot && !none && (
+      {!spot && !exhausted && (
         <div className="animate-fade-up overflow-hidden rounded-xl2 border border-accent/30 bg-gradient-to-br from-accent-soft/40 to-paper-card shadow-card">
           <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xl">
@@ -312,7 +336,7 @@ function BlindSpotLine() {
               <p className="mt-0.5 text-[12px] leading-snug text-ink-faint">{t("blind.checkSub")}</p>
             </div>
             <button
-              onClick={check}
+              onClick={() => check(seen)}
               disabled={loading}
               className="shrink-0 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition enabled:hover:opacity-95 disabled:opacity-60"
             >
@@ -322,12 +346,12 @@ function BlindSpotLine() {
         </div>
       )}
 
-      {none && (
-        <div className="animate-fade-up flex items-center gap-2 rounded-xl border border-line bg-paper-sunken/50 px-4 py-3 text-[13px] text-ink-soft">
+      {exhausted && (
+        <div className="animate-fade-up flex flex-wrap items-center gap-2 rounded-xl border border-line bg-paper-sunken/50 px-4 py-3 text-[13px] text-ink-soft">
           <span className="text-base">✓</span>
-          <span className="flex-1">{t("blind.none")}</span>
-          <button onClick={() => setNone(false)} className="rounded-full px-2 py-1 text-ink-faint transition hover:text-ink" title={t("blind.check")}>
-            ↻
+          <span className="flex-1">{seen.length ? t("blind.exhausted") : t("blind.none")}</span>
+          <button onClick={() => setHidden(true)} className="rounded-full px-2 py-1 text-ink-faint transition hover:text-ink">
+            {t("blind.hide")}
           </button>
         </div>
       )}
@@ -335,9 +359,14 @@ function BlindSpotLine() {
       {spot && (
         <div className="animate-fade-up overflow-hidden rounded-xl2 border border-accent/40 bg-paper-card shadow-card">
           {/* header band so the result reads as a distinct, considered suggestion */}
-          <div className="flex items-center gap-2 border-b border-accent/20 bg-accent-soft/30 px-4 py-2">
-            <span className="text-base leading-none">🔍</span>
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-accent">{t("blind.found")}</span>
+          <div className="flex items-center justify-between gap-2 border-b border-accent/20 bg-accent-soft/30 px-4 py-2">
+            <div className="flex items-center gap-2">
+              <span className="text-base leading-none">🔍</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-accent">{t("blind.found")}</span>
+            </div>
+            <button onClick={() => setHidden(true)} className="text-[11px] font-medium text-ink-faint transition hover:text-ink">
+              {t("blind.hide")}
+            </button>
           </div>
           <div className="p-4">
             {/* the seat, as a headline */}
@@ -359,18 +388,26 @@ function BlindSpotLine() {
             )}
 
             <div className="mt-3.5 flex flex-wrap items-center gap-2">
+              {/* primary: write from this seat */}
               <button
                 onClick={fill}
                 className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
               >
                 + {t("blind.fill")}
               </button>
+              {/* secondary, neutral: ask for a different angle (loops, doesn't kill) */}
               <button
-                onClick={() => {
-                  if (spot) logEvent({ type: "blindspot_dismissed", angle: spot.angle });
-                  setDismissed(true);
-                }}
-                className="rounded-full px-3 py-2 text-xs font-medium text-ink-faint transition hover:text-ink"
+                onClick={() => check(seen)}
+                disabled={loading}
+                className="rounded-full border border-line px-3 py-2 text-xs font-medium text-ink-soft transition enabled:hover:border-ink enabled:hover:text-ink disabled:opacity-60"
+              >
+                ↻ {loading ? t("blind.checking") : t("blind.another")}
+              </button>
+              {/* not a gap → logs the refusal AND moves on to a different seat */}
+              <button
+                onClick={dismissThis}
+                disabled={loading}
+                className="rounded-full px-3 py-2 text-xs font-medium text-ink-faint transition hover:text-ink disabled:opacity-60"
               >
                 {t("blind.dismiss")}
               </button>
