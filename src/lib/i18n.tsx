@@ -422,6 +422,11 @@ const dict = {
 
   // ---- decision step (turn the reframed question into the team's own next move) ----
   "decide.label": { en: "So our next move is…", ko: "그래서 우리의 다음 수는…" },
+  "decide.badge": { en: "The last step", ko: "마지막 단계" },
+  "decide.leadIn": {
+    en: "This is where it lands — turn the reframed question into one concrete move your team owns.",
+    ko: "여기가 도착점이에요 — 다시 세운 질문을 팀이 책임질 구체적인 한 걸음으로 옮기세요.",
+  },
   "decide.hint": {
     en: "The AI reframed the question — the decision is yours. What's the smallest concrete step that answers it, and who owns it?",
     ko: "AI는 질문을 다시 세웠을 뿐 — 결정은 여러분 몫이에요. 이 질문에 답하는 가장 작은 구체적 한 걸음은 무엇이고, 누가 맡나요?",

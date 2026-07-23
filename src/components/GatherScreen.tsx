@@ -6,6 +6,7 @@ import { useSession } from "@/lib/store";
 import { fetchSeeds, fetchTalkQuestions, fetchTalkExtract } from "@/lib/api";
 import type { CardCandidate, SeedSuggestion } from "@/lib/prompts";
 import { ParticipantBar } from "./ParticipantBar";
+import { BlindSpotFinder } from "./BlindSpotFinder";
 import {
   PIECE_TYPES,
   PIECE_TYPE_META,
@@ -82,20 +83,32 @@ export function GatherScreen() {
   };
   const [seedNudge, setSeedNudge] = useState<string>("");
 
-  // arriving from a Connect blind-spot ("add a piece from this seat"): aim the write form at
-  // that vantage. The angle is a handle only — the person still writes the perspective.
-  const pendingAngle = useSession((s) => s.pendingAngle);
-  const setPendingAngle = useSession((s) => s.setPendingAngle);
   const logEvent = useSession((s) => s.logEvent);
-  useEffect(() => {
-    if (!pendingAngle) return;
+
+  // aim the write form at a blind-spot seat: the angle is a handle only — the person still
+  // writes the perspective. Shared by the in-page BlindSpotFinder (onFill) and the legacy
+  // pendingAngle handoff (kept so a deep-link / older path still lands correctly).
+  const aimFormAtSeat = (angle: string) => {
     setEntryMode("write");
-    setTitle(pendingAngle);
+    setTitle(angle);
     setBody("");
     setPieceType(null);
-    setSeededFromAngle(pendingAngle);
+    setSeededFromAngle(angle);
     setFromBlindSpot(true);
     setSeedNudge("");
+    setHelpOpen(false);
+    // scroll the form into view — the finder sits below the list, so the aimed form may be
+    // off-screen; bring it up so the person sees where their next words go.
+    requestAnimationFrame(() => {
+      document.getElementById("watse-write-form")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  };
+
+  const pendingAngle = useSession((s) => s.pendingAngle);
+  const setPendingAngle = useSession((s) => s.setPendingAngle);
+  useEffect(() => {
+    if (!pendingAngle) return;
+    aimFormAtSeat(pendingAngle);
     setPendingAngle(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingAngle]);
@@ -258,7 +271,7 @@ export function GatherScreen() {
             talk={talkState}
           />
         ) : (
-        <div className="animate-fade-up rounded-xl2 border border-line bg-paper-card p-5 shadow-card">
+        <div id="watse-write-form" className="animate-fade-up rounded-xl2 border border-line bg-paper-card p-5 shadow-card scroll-mt-20">
           {seededFromAngle && (
             <div className="mb-4 rounded-xl border border-accent/30 bg-accent-soft/40 px-3.5 py-2.5 text-[12px] leading-snug text-ink">
               💡 <span className="font-medium">{seededFromAngle}</span> — {t("seeds.picked")}
@@ -447,6 +460,15 @@ export function GatherScreen() {
                 </li>
               ))}
             </ul>
+          )}
+
+          {/* who's still missing from the table — right under the pieces so far, where
+              "add one more, from a seat we skipped" is a natural next move. Filling it aims
+              the write form on this same page (no bounce back a screen). */}
+          {fragments.length >= 2 && (
+            <div className="mt-4">
+              <BlindSpotFinder onFill={aimFormAtSeat} />
+            </div>
           )}
         </div>
       </div>
