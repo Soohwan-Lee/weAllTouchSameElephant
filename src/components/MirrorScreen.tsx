@@ -753,9 +753,11 @@ function TradeOffPanel({ decision, cluster }: { decision: string; cluster: { fra
     return (
       <button
         onClick={reveal}
-        className="animate-fade-up text-[13px] font-medium text-ink-faint transition hover:text-accent"
+        className="flex w-full animate-fade-up items-center gap-2 rounded-xl border border-dashed border-ink/25 bg-paper-sunken/40 px-4 py-2.5 text-left text-[13px] font-medium text-ink transition hover:border-ink/50 hover:bg-paper-sunken/70"
       >
-        ⚖️ {t("trade.label")} →
+        <span className="text-base leading-none">⚖️</span>
+        <span>{t("trade.label")}</span>
+        <span className="ml-auto text-ink-faint">→</span>
       </button>
     );
   }

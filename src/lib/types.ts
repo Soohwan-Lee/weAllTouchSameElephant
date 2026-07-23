@@ -11,13 +11,18 @@ export type RelationType = "overlap" | "tension" | "dependency" | "complement" |
 
 /**
  * What kind of "elephant" the team wants the AI to hand back after they assemble:
- *  - explore   : hold 2–3 competing readings open (safest re: anchoring)
- *  - hypothesis: one falsifiable "maybe the real core is X" — a provocation to test
- *  - verdict   : the sharpest single claim — "the core is X" (most anchoring risk)
+ *  - explore : hold 2–3 competing readings open (safest re: anchoring)
+ *  - verdict : the sharpest single claim — "the core is X" (most anchoring risk)
+ *
+ * There used to be a third, `hypothesis` ("maybe the core is X, here's the test"). It sat on
+ * the SAME axis as verdict — how hard the AI commits — so to a user the two read as the same
+ * thing. Collapsed to just the two ends: spread open vs commit. `hypothesis` stays a valid
+ * value in the data types (scenario reveals still carry the field) but is no longer offered.
  */
 export type RevealMode = "explore" | "hypothesis" | "verdict";
 
-export const REVEAL_MODES: RevealMode[] = ["explore", "hypothesis", "verdict"];
+/** The modes actually offered in the UI — explore (open) and verdict (commit). */
+export const REVEAL_MODES: RevealMode[] = ["explore", "verdict"];
 
 export const RELATION_TYPES: RelationType[] = [
   "overlap",

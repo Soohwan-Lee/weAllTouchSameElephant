@@ -302,9 +302,11 @@ function BlindSpotLine() {
         <button
           onClick={check}
           disabled={loading}
-          className="text-[13px] font-medium text-ink-faint transition hover:text-accent disabled:opacity-60"
+          className="flex w-full items-center gap-2 rounded-xl border border-dashed border-accent/40 bg-accent-soft/15 px-4 py-2.5 text-left text-[13px] font-medium text-ink transition hover:border-accent hover:bg-accent-soft/30 disabled:opacity-60"
         >
-          💭 {loading ? t("blind.checking") : t("blind.check")}
+          <span className="text-base leading-none">💭</span>
+          <span>{loading ? t("blind.checking") : t("blind.check")}</span>
+          {!loading && <span className="ml-auto text-ink-faint">→</span>}
         </button>
       )}
 
