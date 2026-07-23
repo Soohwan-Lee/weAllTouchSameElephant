@@ -723,6 +723,16 @@ function TradeOffPanel({ decision, cluster }: { decision: string; cluster: { fra
   const [loading, setLoading] = useState(false);
   const [res, setRes] = useState<{ tension: string; favors: string; cost: string } | null>(null);
   const [opened, setOpened] = useState(false);
+  // the contest: how the team answered the named cost — the actual boundary-work signal
+  const [stance, setStance] = useState<"accepted" | "relocated" | "rejected" | null>(null);
+  const [note, setNote] = useState("");
+  const [noteFor, setNoteFor] = useState<"relocated" | "rejected" | null>(null);
+
+  const answer = (s: "accepted" | "relocated" | "rejected", text: string) => {
+    setStance(s);
+    setNoteFor(null);
+    logEvent({ type: "tradeoff_answered", stance: s, cost: res?.cost ?? "", note: text.trim() });
+  };
 
   const title = (id: string) => fragments.find((f) => f.id === id)?.title ?? "?";
   const inCluster = (b: (typeof bridges)[number]) =>
@@ -787,6 +797,69 @@ function TradeOffPanel({ decision, cluster }: { decision: string; cluster: { fra
             )}
           </div>
           <p className="mt-2.5 text-[11px] leading-snug text-ink-faint">{t("trade.grounded")}</p>
+
+          {/* THE CONTEST — is the AI's named cost right? Contesting it is the boundary work
+              we actually study: the team renegotiating what their decision gives up. */}
+          {stance ? (
+            <div className="mt-3 rounded-lg border border-line bg-paper-sunken/50 px-3 py-2 text-[13px] text-ink">
+              {t(`trade.answered.${stance}` as Parameters<typeof t>[0])}
+              {note.trim() && <span className="text-ink-soft"> — “{note.trim()}”</span>}
+            </div>
+          ) : (
+            <div className="mt-3 border-t border-line pt-3">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
+                {t("trade.ask")}
+              </div>
+              {noteFor ? (
+                <div className="mt-2">
+                  <textarea
+                    autoFocus
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    rows={2}
+                    placeholder={t("trade.notePlaceholder")}
+                    className="w-full resize-none rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-ink/40"
+                  />
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      onClick={() => answer(noteFor, note)}
+                      disabled={!note.trim()}
+                      className="rounded-full bg-ink px-4 py-1.5 text-xs font-semibold text-paper transition enabled:hover:opacity-90 disabled:bg-line disabled:text-ink-faint"
+                    >
+                      {noteFor === "relocated" ? t("trade.relocate") : t("trade.reject")}
+                    </button>
+                    <button
+                      onClick={() => { setNoteFor(null); setNote(""); }}
+                      className="rounded-full px-3 py-1.5 text-xs font-medium text-ink-faint transition hover:text-ink"
+                    >
+                      ←
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => answer("accepted", "")}
+                    className="rounded-full border border-line bg-paper-card px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-accent hover:text-accent"
+                  >
+                    {t("trade.accept")}
+                  </button>
+                  <button
+                    onClick={() => setNoteFor("relocated")}
+                    className="rounded-full border border-line bg-paper-card px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-ink hover:text-ink"
+                  >
+                    {t("trade.relocate")}
+                  </button>
+                  <button
+                    onClick={() => setNoteFor("rejected")}
+                    className="rounded-full border border-line bg-paper-card px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-tension hover:text-tension"
+                  >
+                    {t("trade.reject")}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </>
       ) : (
         <div className="mt-2 text-[13px] leading-snug text-ink-faint">{t("trade.none")}</div>

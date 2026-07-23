@@ -107,8 +107,16 @@ export type SessionEvent =
   // that seat (the elicitation actually landing), vs merely being shown the gap.
   | { id: string; seq: number; t: number; actorId?: string; type: "blindspot_shown"; angle: string; rationale: string }
   | { id: string; seq: number; t: number; actorId?: string; type: "blindspot_filled"; angle: string }
+  // the team looked at the named seat and judged it NOT actually missing — refusal, which is
+  // different from ignoring it, and is itself boundary work (declining a proposed gap).
+  | { id: string; seq: number; t: number; actorId?: string; type: "blindspot_dismissed"; angle: string }
   // the team saw the cost their decision commits to — exposure-vs-action for the trade-off.
   | { id: string; seq: number; t: number; actorId?: string; type: "tradeoff_shown"; tension: string; favors: string; cost: string }
+  // …and how they answered it. Contesting the named cost is Integration Boundary Work in its
+  // purest form — the team renegotiating what their decision merges vs keeps separate. The
+  // stance says whether they took the AI's framing, moved the cost, or rejected it outright;
+  // `note` holds their own words when they relocate or reject.
+  | { id: string; seq: number; t: number; actorId?: string; type: "tradeoff_answered"; stance: "accepted" | "relocated" | "rejected"; cost: string; note: string }
   // The shape the team was actually looking at, plus what the AI said about it — captured
   // unconditionally at reveal time. Both used to be lost: the synthesis was recomputed from
   // the CURRENT board (which the team may have edited afterwards), and the AI's reading was

@@ -502,6 +502,15 @@ const dict = {
     en: "Read from the tensions you kept — not advice, just the cost made visible.",
     ko: "여러분이 남겨둔 긴장에서 읽은 거예요 — 조언이 아니라 대가를 드러낸 것.",
   },
+  // the contest — is the AI's named cost right?
+  "trade.ask": { en: "Is that the real cost?", ko: "그게 진짜 대가가 맞나요?" },
+  "trade.accept": { en: "Yes, that's the cost", ko: "네, 그게 대가예요" },
+  "trade.relocate": { en: "No — the real cost is…", ko: "아니요 — 진짜 대가는…" },
+  "trade.reject": { en: "We don't accept that framing", ko: "그 프레이밍은 받아들이지 않아요" },
+  "trade.notePlaceholder": { en: "In your own words…", ko: "여러분의 말로…" },
+  "trade.answered.accepted": { en: "✓ You took the cost as named.", ko: "✓ 그 대가를 그대로 받아들였어요." },
+  "trade.answered.relocated": { en: "↳ You moved the cost.", ko: "↳ 대가를 옮겼어요." },
+  "trade.answered.rejected": { en: "✕ You rejected the framing.", ko: "✕ 프레이밍을 거부했어요." },
 
   // ---- onboarding tour ----
   "tour.skip": { en: "Skip", ko: "건너뛰기" },

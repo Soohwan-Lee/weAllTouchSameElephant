@@ -339,7 +339,10 @@ function BlindSpotLine() {
                   + {t("blind.fill")}
                 </button>
                 <button
-                  onClick={() => setDismissed(true)}
+                  onClick={() => {
+                    if (spot) logEvent({ type: "blindspot_dismissed", angle: spot.angle });
+                    setDismissed(true);
+                  }}
                   className="rounded-full px-3 py-1.5 text-xs font-medium text-ink-faint transition hover:text-ink"
                 >
                   {t("blind.dismiss")}
