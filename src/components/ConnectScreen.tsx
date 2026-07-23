@@ -297,57 +297,83 @@ function BlindSpotLine() {
   };
 
   return (
-    <div className="mt-4">
+    <div className="mt-6">
+      {/* the invitation — a real card that says what it does and why, not a thin link.
+          A blind spot is only useful while pieces can still be added, so it earns a
+          visible place here on Connect. */}
       {!spot && !none && (
-        <button
-          onClick={check}
-          disabled={loading}
-          className="flex w-full items-center gap-2 rounded-xl border border-dashed border-accent/40 bg-accent-soft/15 px-4 py-2.5 text-left text-[13px] font-medium text-ink transition hover:border-accent hover:bg-accent-soft/30 disabled:opacity-60"
-        >
-          <span className="text-base leading-none">💭</span>
-          <span>{loading ? t("blind.checking") : t("blind.check")}</span>
-          {!loading && <span className="ml-auto text-ink-faint">→</span>}
-        </button>
+        <div className="animate-fade-up overflow-hidden rounded-xl2 border border-accent/30 bg-gradient-to-br from-accent-soft/40 to-paper-card shadow-card">
+          <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xl">
+              🔍
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold text-ink">{t("blind.check")}</div>
+              <p className="mt-0.5 text-[12px] leading-snug text-ink-faint">{t("blind.checkSub")}</p>
+            </div>
+            <button
+              onClick={check}
+              disabled={loading}
+              className="shrink-0 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition enabled:hover:opacity-95 disabled:opacity-60"
+            >
+              {loading ? `${t("blind.checking")}` : `${t("blind.check")} →`}
+            </button>
+          </div>
+        </div>
       )}
 
       {none && (
-        <div className="flex items-center gap-2 text-[13px] text-ink-faint">
-          <span>✓ {t("blind.none")}</span>
-          <button onClick={() => setNone(false)} className="text-ink-faint underline-offset-2 hover:underline">
+        <div className="animate-fade-up flex items-center gap-2 rounded-xl border border-line bg-paper-sunken/50 px-4 py-3 text-[13px] text-ink-soft">
+          <span className="text-base">✓</span>
+          <span className="flex-1">{t("blind.none")}</span>
+          <button onClick={() => setNone(false)} className="rounded-full px-2 py-1 text-ink-faint transition hover:text-ink" title={t("blind.check")}>
             ↻
           </button>
         </div>
       )}
 
       {spot && (
-        <div className="animate-fade-up rounded-xl border border-dashed border-accent/40 bg-accent-soft/20 p-4">
-          <div className="flex items-start gap-2">
-            <span className="text-base leading-none">💭</span>
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-semibold text-ink">{spot.angle}</div>
-              <div className="mt-1 text-[12px] leading-snug text-ink-soft">
-                <span className="font-medium text-ink-faint">{t("blind.why")}:</span> {spot.rationale}
+        <div className="animate-fade-up overflow-hidden rounded-xl2 border border-accent/40 bg-paper-card shadow-card">
+          {/* header band so the result reads as a distinct, considered suggestion */}
+          <div className="flex items-center gap-2 border-b border-accent/20 bg-accent-soft/30 px-4 py-2">
+            <span className="text-base leading-none">🔍</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-accent">{t("blind.found")}</span>
+          </div>
+          <div className="p-4">
+            {/* the seat, as a headline */}
+            <div className="text-base font-semibold text-ink">{spot.angle}</div>
+
+            {/* why it reads as missing — grounded in who's present */}
+            <div className="mt-2 rounded-lg bg-paper-sunken/50 px-3 py-2 text-[12px] leading-snug text-ink-soft">
+              <span className="font-semibold text-ink-faint">{t("blind.why")}</span>
+              <br />
+              {spot.rationale}
+            </div>
+
+            {/* a question to write from — the AI asks, the person answers */}
+            {spot.question && (
+              <div className="mt-2.5 flex gap-2 text-[13px] leading-snug text-ink">
+                <span className="text-accent">“</span>
+                <span className="italic">{spot.question}</span>
               </div>
-              {spot.question && (
-                <div className="mt-1.5 text-[13px] italic leading-snug text-ink">“{spot.question}”</div>
-              )}
-              <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                <button
-                  onClick={fill}
-                  className="rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold text-white transition hover:opacity-95"
-                >
-                  + {t("blind.fill")}
-                </button>
-                <button
-                  onClick={() => {
-                    if (spot) logEvent({ type: "blindspot_dismissed", angle: spot.angle });
-                    setDismissed(true);
-                  }}
-                  className="rounded-full px-3 py-1.5 text-xs font-medium text-ink-faint transition hover:text-ink"
-                >
-                  {t("blind.dismiss")}
-                </button>
-              </div>
+            )}
+
+            <div className="mt-3.5 flex flex-wrap items-center gap-2">
+              <button
+                onClick={fill}
+                className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
+              >
+                + {t("blind.fill")}
+              </button>
+              <button
+                onClick={() => {
+                  if (spot) logEvent({ type: "blindspot_dismissed", angle: spot.angle });
+                  setDismissed(true);
+                }}
+                className="rounded-full px-3 py-2 text-xs font-medium text-ink-faint transition hover:text-ink"
+              >
+                {t("blind.dismiss")}
+              </button>
             </div>
           </div>
         </div>

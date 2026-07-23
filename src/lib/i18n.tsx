@@ -479,8 +479,13 @@ const dict = {
   "common.retry": { en: "Try again", ko: "다시 시도" },
 
   // ---- blind spot (Connect): a vantage the pieces don't yet cover ----
-  "blind.check": { en: "What angle are we missing?", ko: "빠진 관점 있을까?" },
-  "blind.checking": { en: "Looking for a gap…", ko: "빈 곳을 보는 중…" },
+  "blind.check": { en: "Check for a missing angle", ko: "빠진 관점 확인하기" },
+  "blind.checkSub": {
+    en: "The AI looks at who's on the table and names one perspective no one has added yet — you decide if it's worth a piece.",
+    ko: "AI가 지금 테이블에 누가 있는지 보고, 아직 아무도 안 적은 관점 하나를 짚어줘요 — 조각으로 쓸지는 여러분이 정해요.",
+  },
+  "blind.checking": { en: "Looking at who's missing…", ko: "누가 빠졌는지 보는 중…" },
+  "blind.found": { en: "A perspective no one has added", ko: "아직 아무도 안 적은 관점" },
   "blind.none": {
     en: "The pieces cover this from several sides already — no obvious gap.",
     ko: "여러 방향에서 이미 잘 짚었어요 — 뚜렷한 빈 곳은 없네요.",
