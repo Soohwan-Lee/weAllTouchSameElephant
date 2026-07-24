@@ -57,28 +57,32 @@ A session moves through three steps. Try it with no setup — six hand-written s
 Stuck on a blank card is the hardest moment, so the entry adapts to how sure you are: **write directly**, **pick an angle** the AI scatters, or **talk it through** — the AI asks a couple of open questions and turns *your own answer* into editable card drafts. It never writes the perspective for you.
 
 <div align="center">
-<img src="docs/screenshots/02-gather.png" alt="Gather — perspective scaffolding, role lenses, per-piece attribution" width="820">
+<img src="docs/screenshots/02-gather.png" alt="Gather — write directly / get suggestions / talk it through, with per-piece attribution" width="820">
+</div>
+
+Once a couple of pieces are down, a quiet check sits under the table: *"What angle are we missing?"* It names a **seat no one has taken** — an under-heard role, or someone **not in the room at all** (the *empty chair*) — grounded in who's actually present, and hands you a blank card from that seat to fill in yourself. It names the seat and asks a question; it never sits in it.
+
+<div align="center">
+<img src="docs/screenshots/04-blindspot.png" alt="Blind spot — the AI names the missing seat (or empty chair) and asks a question; you write it" width="820">
+<br><em>The blind spot lives where adding a piece already lives — right under the pieces so far — so filling it is just the next add, not a trip back a screen. The rationale cites the roles actually present, and the empty chair is named, never spoken for.</em>
 </div>
 
 ### 2 · Connect — the AI proposes bridges; the team decides what holds
 
-Each bridge is **typed** — and the type is the point. `dependency` (one drives another), `tension` (a real trade-off), `overlap` (the same thing said twice), `complement` (two halves of one situation), or `separate` (**keep these apart**). Confirm, edit, re-type, or draw your own. A quiet prompt — *"What angle are we missing?"* — names a **seat no one has taken**, grounded in the roles actually on the table, and hands you a blank card from that seat to fill in yourself.
+Each bridge is **typed** — and the type is the point. `dependency` (one drives another), `tension` (a real trade-off), `overlap` (the same thing said twice), `complement` (two halves of one situation), or `separate` (**keep these apart**). Confirm, edit, re-type, or draw your own. The gate to the next step isn't a bridge count — it's **one connected group of ≥ 3 pieces**, so three links across separate pairs won't fake an assembly.
 
 <div align="center">
-<img src="docs/screenshots/03-connect.png" alt="Connect — AI-proposed typed bridges, blind-spot prompt, group-progress gate" width="820">
-</div>
-
-<div align="center">
-<img src="docs/screenshots/04-blindspot.png" alt="Blind spot — the AI names the missing seat, grounded in who is present" width="820">
-<br><em>The blind spot names the seat and asks a question — it never sits in it. The rationale cites the roles actually present ("6 pieces come from Head of Product, CFO, Eng Lead… no one is in the seat of the person who'd live with this decision").</em>
+<img src="docs/screenshots/03-connect.png" alt="Connect — AI-proposed typed bridges and the connected-group gate" width="820">
 </div>
 
 ### 3 · See the whole — a shape to argue with, not a verdict
 
 A synthesis engine reads structure over the confirmed graph — fusing genuinely-same pieces into *facets*, ordering them by what drives what, finding the causal root, and keeping real tensions as their own strand. The AI then reads that shape back in the mode you ask for: **hold it open** (a few competing readings) or **commit to one core** (the single sharpest claim). Then it hands the pen back: name the elephant, sharpen the real question, write *your own* decision.
 
+The final screen is one continuous argument — **reading → real question → your next move → its trade-off** — with a sticky rail down the side so the spine stays legible and the *decision* stays the centre of gravity. The AI's reading reads as a proposal (calm); the decision reads as the team's own (the one place the accent lives). The assembled map, story and stats sit below as inspectable **evidence**.
+
 <div align="center">
-<img src="docs/screenshots/06-verdict.png" alt="Reveal — the reading leads; the map is the evidence below it" width="820">
+<img src="docs/screenshots/06-verdict.png" alt="See the whole — a sticky spine (reading → question → your move → trade-off), the decision as the anchor" width="820">
 </div>
 
 And once you've written the decision, the tool mirrors the **cost** it commits to — read straight off the tensions the team themselves kept — then lets the team **contest** it. That contest (accept it, relocate the cost, or reject the framing) is the negotiation the whole tool exists to support.
