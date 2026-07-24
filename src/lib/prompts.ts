@@ -377,15 +377,19 @@ export function tradeOffPrompt(
 
 Below are the TENSIONS they deliberately kept while assembling (pairs pulling in different directions) and the pairs they deliberately kept SEPARATE.
 
-EVERY decision has a cost — choosing to do one thing is choosing not to do others. Your job is to make ONE real cost legible.
+EVERY real decision has a cost — choosing to do one thing is choosing not to do others. Your job is to make ONE cost legible, GROUNDED in what this specific decision actually says.
 
-Two cases:
-1. If a KEPT TENSION lines up with this decision, use it: name that tension, which side the decision favors, and what therefore gives way — in the team's own fragment titles.
-2. If NO kept tension fits (or there are none), do NOT say "no trade-off". Instead name the OPPORTUNITY COST of the decision as written: the concrete thing this decision defers, forecloses, or spends that a different move would have kept open. Draw it from the decision text and the pieces on the table — NOT from thin air.
+STEP 1 — read the decision and decide which case you're in:
+A. The decision clearly LEANS toward one side of a kept tension below (it picks up that side's terms or direction). → Use that tension: name it, which side the decision favors, and what therefore gives way — in the team's own fragment titles.
+B. The decision is a real, substantive choice but doesn't map onto any specific kept tension. → Name its OPPORTUNITY COST: the concrete thing this decision defers, forecloses, or spends that a different move would have kept open. Draw it from the decision text and the pieces — NOT from a random tension.
+
+CRITICAL — do NOT force a tension it doesn't touch. Grabbing the first kept tension and inventing a "favors X / Y gives way" split for a decision that has nothing to do with X or Y produces a nonsense, out-of-context cost. If the decision doesn't actually lean on a tension, you are in case B. When unsure between A and B, choose B.
+
+If the "decision" is empty, a non-answer, or clearly not an actual decision (e.g. "we sit still", "nothing", "idk", a joke), do NOT manufacture a favors/against split. Name only the plain cost of NOT deciding: the situation stays unresolved and the tensions the team surfaced stay unaddressed. Keep it modest and honest.
 
 HARD rules:
-- Name exactly ONE cost. Never zero.
-- Ground it in the decision text, the kept tensions, or the pieces — never a generic risk ("it might fail") and never an exaggerated leap. If you can only see a modest cost, name the modest one.
+- Name exactly ONE cost. Never zero, never a fabricated one.
+- Ground it in THIS decision's text (and the kept tensions/pieces only when they genuinely fit) — never a generic risk ("it might fail"), never an exaggerated leap. A modest, true cost beats a dramatic, invented one.
 - Use the team's OWN terms where you can.
 - Do NOT recommend, warn, or judge — just make the one cost visible.
 - Write in ${language}. One tight sentence per field.
@@ -397,7 +401,7 @@ Kept separate:
 ${seps}
 
 Return ONLY valid JSON (no prose, no markdown):
-{"tension":"<the tension it leans on, OR — if none — a short label for what's being traded, in ${language}>","favors":"<what the decision favors / spends on, one clause in ${language}>","cost":"<the one concrete thing that gives way, one clause in ${language}>"}`;
+{"tension":"<the tension it leans on, OR — if none fits — a short label for what this decision trades, in ${language}>","favors":"<what the decision favors / spends on, one clause in ${language}>","cost":"<the one concrete thing that gives way, one clause in ${language}>"}`;
 }
 
 /**
