@@ -417,6 +417,14 @@ const dict = {
   "crux.evidenceHide": { en: "Hide the picture", ko: "그림 접기" },
   "crux.evidenceSub": { en: "The map, story and stats you assembled — open to inspect", ko: "여러분이 맞춘 지도·이야기·수치 — 열어서 살펴보세요" },
   "reveal.pickHint": { en: "How would you like to read the whole?", ko: "전체를 어떻게 읽어볼까요?" },
+  // ---- the reveal rail (sticky scroll-spy spine) ----
+  "rail.label": { en: "Jump to a section", ko: "구간 이동" },
+  "rail.here": { en: "here", ko: "여기" },
+  "rail.reading": { en: "The reading", ko: "읽기" },
+  "rail.question": { en: "Real question", ko: "진짜 질문" },
+  "rail.move": { en: "Our next move", ko: "다음 수" },
+  "rail.tradeoff": { en: "Trade-off", ko: "트레이드오프" },
+  "rail.evidence": { en: "The evidence", ko: "근거" },
   "crux.realQuestion": { en: "So the real question is…", ko: "그래서 진짜 질문은…" },
   "crux.editQuestion": { en: "Edit the question", ko: "질문 수정" },
 

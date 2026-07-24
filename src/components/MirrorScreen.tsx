@@ -15,6 +15,7 @@ import { SynthesisCanvas } from "./SynthesisCanvas";
 import { StorySpine } from "./StorySpine";
 import { SynthesisSummary } from "./SynthesisSummary";
 import { Hint } from "./Hint";
+import { RevealRail, type RailSection } from "./RevealRail";
 
 /**
  * The final picture — the assembled elephant.
@@ -47,9 +48,9 @@ export function MirrorScreen() {
   const [nameDraft, setNameDraft] = useState("");
   const [revealFailed, setRevealFailed] = useState(false);
   // the reading + question + decision + trade-off are the payoff; the assembled map/story/
-  // stats are supporting EVIDENCE. Kept collapsed so the screen isn't a long scroll past
-  // the point — the team opens it when they want to inspect what backs the reading.
-  const [evidenceOpen, setEvidenceOpen] = useState(false);
+  // stats are supporting EVIDENCE. Shown by default (collapsing it hid what people wanted
+  // to see) but still toggleable so it can be tucked away once inspected.
+  const [evidenceOpen, setEvidenceOpen] = useState(true);
   // remember whether the shown reveal came from a sample scenario (so we can re-project it on language switch)
   const fromSampleReveal = useRef(false);
   // one cached reading per reveal mode, so the three can be compared without re-fetching
@@ -80,6 +81,23 @@ export function MirrorScreen() {
     return { cruxTitle, tensions };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [main?.id, fragments, bridges]);
+
+  // rail entries mirror exactly which sections are actually rendered below, so the scroll-spy
+  // never points at a section that isn't there. Decision appears once a question exists;
+  // trade-off once a decision is written. Memoized on those gates so the rail's observer
+  // isn't torn down and rebuilt on every keystroke.
+  const hasQuestion = !loading && !!question;
+  const hasDecision = !loading && !!(decision ?? "").trim();
+  const railSections: RailSection[] = useMemo(() => {
+    const s: RailSection[] = [
+      { id: "watse-reading", labelKey: "rail.reading", emoji: "🧭" },
+      { id: "watse-question", labelKey: "rail.question", emoji: "❓" },
+    ];
+    if (hasQuestion) s.push({ id: "watse-next-move", labelKey: "rail.move", emoji: "🎯", anchor: true });
+    if (hasDecision) s.push({ id: "watse-tradeoff", labelKey: "rail.tradeoff", emoji: "⚖️" });
+    s.push({ id: "watse-evidence", labelKey: "rail.evidence", emoji: "🐘" });
+    return s;
+  }, [hasQuestion, hasDecision]);
 
   async function reveal(chosen: RevealMode, force = false) {
     if (!main) return;
@@ -294,89 +312,109 @@ export function MirrorScreen() {
       ) : (
         <div className="mt-6 space-y-5">
           {revealView === "crux" ? (
-            <>
-              {/* THE READING FIRST — the insight is the payoff of assembling the elephant,
-                  so it leads. The map, story, and stats are the evidence, and follow. */}
-              <RevealResult
-                result={result}
-                loading={loading}
-                mode={mode}
-                onPickMode={reveal}
-                nameDraft={nameDraft}
-                onNameDraft={setNameDraft}
-                named={named}
-                onAcceptName={acceptFraming}
-              />
-              <RealQuestion
-                value={question ?? ""}
-                loading={loading}
-                onChange={(v) => main && setClusterQuestion(main.id, v)}
-                label={t("crux.realQuestion")}
-                editLabel={t("crux.editQuestion")}
-                placeholder={lang === "ko" ? "우리가 먼저 답해야 할 것은…" : "What we must answer first is…"}
-              />
-              {!loading && !!question && (
-                <NextStep
-                  value={decision ?? ""}
-                  onChange={(v) => main && setClusterDecision(main.id, v)}
-                  onCommit={(v) => logEvent({ type: "decision_written", text: v })}
-                  realQuestion={question ?? ""}
-                  cruxTitle={shape.cruxTitle}
-                  tensions={shape.tensions}
-                  lang={lang}
-                />
-              )}
+            // Two-zone: a sticky scroll-spy rail (the spine you can see) + the single-scroll
+            // argument. Tabs would sever reading→question→decision→trade-off; the rail keeps
+            // it one continuous read while killing the "scrolling a report" feeling and
+            // keeping the team's decision the unmistakable centre of gravity.
+            <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]">
+              <RevealRail sections={railSections} />
+              <div className="min-w-0 space-y-5">
+                {/* The narrative order is preserved (WATSE §4.5: the reading is the payoff of
+                    assembling first). What changed is the VISUAL voice — the AI's reading and
+                    reframed question read as proposals (calm), the decision reads as the
+                    team's own (emphasized), so three accent zones no longer compete. */}
+                <section id="watse-reading" className="scroll-mt-20">
+                  <RevealResult
+                    result={result}
+                    loading={loading}
+                    mode={mode}
+                    onPickMode={reveal}
+                    nameDraft={nameDraft}
+                    onNameDraft={setNameDraft}
+                    named={named}
+                    onAcceptName={acceptFraming}
+                  />
+                </section>
+                <section id="watse-question" className="scroll-mt-20">
+                  <RealQuestion
+                    value={question ?? ""}
+                    loading={loading}
+                    onChange={(v) => main && setClusterQuestion(main.id, v)}
+                    label={t("crux.realQuestion")}
+                    editLabel={t("crux.editQuestion")}
+                    placeholder={lang === "ko" ? "우리가 먼저 답해야 할 것은…" : "What we must answer first is…"}
+                  />
+                </section>
+                {!loading && !!question && (
+                  <section id="watse-next-move" className="scroll-mt-20">
+                    <NextStep
+                      value={decision ?? ""}
+                      onChange={(v) => main && setClusterDecision(main.id, v)}
+                      onCommit={(v) => logEvent({ type: "decision_written", text: v })}
+                      realQuestion={question ?? ""}
+                      cruxTitle={shape.cruxTitle}
+                      tensions={shape.tensions}
+                      lang={lang}
+                    />
+                  </section>
+                )}
 
-              {/* the cost the decision commits to — read off the team's own kept tensions.
-                  Only after a decision exists, since it mirrors THAT decision. */}
-              {!loading && !!(decision ?? "").trim() && main && (
-                <TradeOffPanel
-                  decision={decision ?? ""}
-                  cluster={main}
-                  onRevise={() => {
-                    const el = document.getElementById("watse-next-move");
-                    el?.scrollIntoView({ behavior: "smooth", block: "center" });
-                    // the saved decision renders as a button (click to edit); open it, then
-                    // focus the textarea it reveals on the next frame.
-                    const ta = el?.querySelector("textarea");
-                    if (ta) ta.focus();
-                    else {
-                      (el?.querySelector("button") as HTMLButtonElement | null)?.click();
-                      requestAnimationFrame(() => el?.querySelector("textarea")?.focus());
-                    }
-                  }}
-                />
-              )}
+                {/* the cost the decision commits to — read off the team's own kept tensions.
+                    Only after a decision exists, since it mirrors THAT decision. */}
+                {!loading && !!(decision ?? "").trim() && main && (
+                  <section id="watse-tradeoff" className="scroll-mt-20">
+                    <TradeOffPanel
+                      decision={decision ?? ""}
+                      cluster={main}
+                      onRevise={() => {
+                        const el = document.getElementById("watse-next-move");
+                        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                        // the saved decision renders as a button (click to edit); open it, then
+                        // focus the textarea it reveals on the next frame.
+                        const ta = el?.querySelector("textarea");
+                        if (ta) ta.focus();
+                        else {
+                          (el?.querySelector("button") as HTMLButtonElement | null)?.click();
+                          requestAnimationFrame(() => el?.querySelector("textarea")?.focus());
+                        }
+                      }}
+                    />
+                  </section>
+                )}
 
-              {/* the evidence behind the reading: the assembled shape you can inspect.
-                  Collapsed by default so the reading/question/decision stay the focus. */}
-              <div className="pt-1">
-                <button
-                  onClick={() => setEvidenceOpen((o) => !o)}
-                  className="flex w-full items-center gap-2 rounded-xl border border-line bg-paper-sunken/40 px-4 py-3 text-left transition hover:border-ink/20"
-                >
-                  <span className="text-base leading-none">🐘</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[13px] font-semibold text-ink">
-                      {evidenceOpen ? t("crux.evidenceHide") : t("crux.evidenceShow")}
-                    </span>
-                    {!evidenceOpen && (
-                      <span className="mt-0.5 block text-[11px] leading-snug text-ink-faint">
-                        {t("crux.evidenceSub")}
+                {/* the evidence behind the reading: the assembled shape you can inspect.
+                    Shown by default now, but still collapsible once inspected. */}
+                <section id="watse-evidence" className="scroll-mt-20">
+                  <button
+                    onClick={() => setEvidenceOpen((o) => !o)}
+                    className="flex w-full items-center gap-2 rounded-xl border border-line bg-paper-sunken/40 px-4 py-3 text-left transition hover:border-ink/20"
+                  >
+                    <span className="text-base leading-none">🐘</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[13px] font-semibold text-ink">
+                        {evidenceOpen ? t("crux.evidenceHide") : t("crux.evidenceShow")}
                       </span>
-                    )}
-                  </span>
-                  <span className="text-ink-faint">{evidenceOpen ? "▴" : "▾"}</span>
-                </button>
+                      {!evidenceOpen && (
+                        <span className="mt-0.5 block text-[11px] leading-snug text-ink-faint">
+                          {t("crux.evidenceSub")}
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-ink-faint">{evidenceOpen ? "▴" : "▾"}</span>
+                  </button>
+                  {evidenceOpen && (
+                    // inverted pyramid within the evidence: the slim numbers first, then the
+                    // readable story, then the visual map last. (Previously map→story→numbers,
+                    // which led with the hardest-to-read artifact.)
+                    <div className="animate-fade-up mt-5 space-y-5">
+                      <SynthesisSummary />
+                      <StorySpine />
+                      <SynthesisCanvas />
+                    </div>
+                  )}
+                </section>
               </div>
-              {evidenceOpen && (
-                <div className="animate-fade-up space-y-5">
-                  <SynthesisCanvas />
-                  <StorySpine />
-                  <SynthesisSummary />
-                </div>
-              )}
-            </>
+            </div>
           ) : (
             <>
               <PuzzleCanvas showCenterName={!!named} />
@@ -464,7 +502,11 @@ function RevealResult({
   const { t } = useI18n();
   const m = MODE_META[mode];
   return (
-    <div className="animate-fade-up overflow-hidden rounded-xl2 border border-accent/40 bg-paper-card shadow-lift">
+    // Calm, line-bordered — this is the AI's READING (a proposal), not the team's decision.
+    // It used to be accent-bordered + shadow-lift, which stacked three accent zones down the
+    // page so nothing anchored; the accent now belongs to the decision alone (Granola's
+    // AI-voice-vs-your-voice convention).
+    <div className="animate-fade-up overflow-hidden rounded-xl2 border border-line bg-paper-card shadow-card">
       {/* big mode tabs — "how would you like to read the whole?" is a first-class choice */}
       <div className="border-b border-line bg-paper-sunken/40 px-4 pt-3">
         <div className="mb-2 text-[11px] font-medium text-ink-faint">{t("reveal.pickHint")}</div>
@@ -603,7 +645,12 @@ function RealQuestion({
   // decision box below (the culminating action) read as the emphasis.
   return (
     <div className="animate-fade-up rounded-xl2 border border-line border-l-[3px] border-l-accent bg-paper-card p-5 shadow-card">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-accent">{label}</div>
+      <div className="flex items-center gap-2">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent-soft text-sm">
+          ❓
+        </span>
+        <span className="text-[13px] font-bold text-ink">{label}</span>
+      </div>
       {loading ? (
         <div className="mt-2 text-sm text-ink-faint">…</div>
       ) : editing ? (
@@ -705,12 +752,16 @@ function NextStep({
     // gets the strongest presence on the screen — an accent ring + a clear "last step" badge
     // so it can't be scrolled past unseen. Once written, it settles into a calm confirmed
     // state (ink-toned) so it reads as done rather than still-demanding-attention.
+    // the #watse-next-move anchor now lives on the wrapping <section> (used by both the rail
+    // and TradeOffPanel.onRevise); this card no longer carries the id to avoid a duplicate.
     <div
-      id="watse-next-move"
       className={[
         "animate-fade-up rounded-xl2 p-5 shadow-lift transition",
         has && !editing
-          ? "border-2 border-ink/15 bg-paper-card"
+          // written: still the screen's product, so it keeps a quiet accent presence (left
+          // rule + faint wash) rather than going fully neutral and disappearing into chrome.
+          ? "border border-line border-l-[3px] border-l-accent bg-gradient-to-br from-accent-soft/20 to-paper-card"
+          // empty/editing: the ONE thing left to do — strongest treatment so it can't be missed.
           : "border-2 border-accent bg-gradient-to-br from-accent-soft/40 to-paper-card ring-4 ring-accent/10",
       ].join(" ")}
     >
