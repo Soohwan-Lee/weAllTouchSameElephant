@@ -536,11 +536,8 @@ const dict = {
   "trade.label": { en: "What this decision gives up", ko: "이 결정이 포기하는 것" },
   "trade.checking": { en: "Reading the cost…", ko: "대가를 읽는 중…" },
   /** whose pieces a reading was actually read off — and whose it wasn't */
-  "whose.readFrom": { en: "Read from", ko: "이 읽기가 기댄 조각:" },
-  "whose.notFrom": {
-    en: "· {n} other piece(s) not drawn on",
-    ko: "· 나머지 조각 {n}개는 쓰이지 않음",
-  },
+  "whose.readFrom": { en: "Read from", ko: "이 읽기가 들은 자리:" },
+  "whose.notFrom": { en: "· not from", ko: "· 안 들린 자리:" },
   /** provenance tags — which blocks are the AI's proposals vs the team's own words */
   "voice.ai": { en: "AI proposes", ko: "AI 제안" },
   "voice.team": { en: "Your words", ko: "우리가 쓴 것" },

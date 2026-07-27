@@ -39,7 +39,19 @@ export function WhoseWords({ fragmentIds }: { fragmentIds: string[] }) {
     seats.get(key)!.titles.push(f.title);
   }
 
-  const uncited = fragments.length - cited.length;
+  // Name the seats that went UNHEARD, not just how many pieces went uncited. "5 pieces not
+  // used" is a statistic; "sales and support aren't in this" is something a team can act on —
+  // and the person in that seat can see, in one glance, that the reading did not include them.
+  const heard = new Set(
+    cited.map((f) => f.authorName || f.authorRole || "—")
+  );
+  const unheard = [
+    ...new Set(
+      fragments
+        .map((f) => f.authorName || f.authorRole || "—")
+        .filter((s) => s !== "—" && !heard.has(s))
+    ),
+  ];
 
   return (
     <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px]">
@@ -53,9 +65,20 @@ export function WhoseWords({ fragmentIds }: { fragmentIds: string[] }) {
           {s.label}
         </span>
       ))}
-      {uncited > 0 && (
-        // Saying what the reading did NOT rest on is the half that makes it contestable.
-        <span className="text-ink-faint">{t("whose.notFrom").replace("{n}", String(uncited))}</span>
+      {unheard.length > 0 && (
+        // The half that makes the reading contestable: an unbalanced synthesis is invisible
+        // unless the interface names who is missing from it.
+        <>
+          <span className="text-ink-faint">{t("whose.notFrom")}</span>
+          {unheard.map((s) => (
+            <span
+              key={s}
+              className="rounded-full border border-dashed border-line px-2 py-0.5 text-ink-faint"
+            >
+              {s}
+            </span>
+          ))}
+        </>
       )}
     </div>
   );

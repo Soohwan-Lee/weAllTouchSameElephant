@@ -236,6 +236,16 @@ export function namePrompt(
     shapeBlock += `\n\nAssembled-ness: ${input.wholeness}% of their pieces are related to at least one other piece. A low number means much of the table is still sitting unconnected — say so plainly rather than reading a whole elephant out of a few linked pieces.`;
   }
 
+  // WHO IS AT THE TABLE. Without this the model cannot tell a table of six perspectives from
+  // one person's six notes, and nothing stops it reading the whole elephant off whichever
+  // single piece happens to state a conclusion most crisply — which is what it did when we
+  // measured it. The premise of the tool is that each person holds a different part; a reading
+  // that rests on one seat has not assembled anything, it has amplified someone.
+  const seats = [...new Set((input.fragments ?? []).map((f) => f.authorRole).filter((r): r is string => !!r && r !== "—"))];
+  if (seats.length > 1) {
+    shapeBlock += `\n\nSEATS AT THIS TABLE (${seats.length}): ${seats.join(", ")}. These are different people holding different parts of the situation.`;
+  }
+
   // Output field order is deliberate: each claim's CITATIONS come immediately before the
   // claim itself. Emitting a verdict first and its support afterwards invites the model to
   // pick a label and then hunt for justification — the ordering effect behind the known
@@ -272,6 +282,12 @@ export function namePrompt(
   return `A team laid out their partial views as pieces and CONNECTED them by hand into one shape — sides of the same "elephant." They did the assembling; you did NOT. Your job now is to read the SHAPE THEY BUILT and hand back the "${spec.label}" they asked for.
 
 Read for what the pieces are SECRETLY about together — the thing they were all circling. Lean on the shape: the ROOT side, what rests on what (root→symptom), and the tensions they kept. Be SPECIFIC to THESE pieces — reuse their actual words and concrete nouns. Never a generic theme any team could have gotten ("communication", "alignment", "prioritization" alone are failures).
+
+CROSS THE SEATS — this is the whole point. Each piece is one person's partial view; the thing worth naming is what becomes visible only when several are held together and which NO single piece states alone. A reading that could have been written from ONE piece has amplified a voice, not assembled a table — if your claim is essentially the crispest-worded piece restated, look again at what the OTHER seats add that that piece cannot see.
+
+Look hardest at what pieces from DIFFERENT seats imply about each other: the constraint one seat states and another is unknowingly bumping into; the effect one reports and another explains; the thing two seats each half-say and neither can say alone.
+
+But do NOT manufacture breadth. If the links the team drew only reach two seats, a reading spanning five would be invention, and inventing coverage is worse than admitting narrowness. Say what the shape supports and no more — the interface separately shows the team which seats your reading drew on, so an honestly narrow reading is legible as narrow rather than passing as complete.
 
 CRUCIAL — anchor on the ROOT, not the loudest symptom: the side tagged [ROOT] drives the rest but nothing drives it. It is often NOT the biggest cluster and may be linked to only one or two pieces — that is exactly why teams miss it. A downstream symptom (e.g. "no tamper-proof record", "too many features") feels concrete and tempting, but if the shape says something upstream drives it, name the UPSTREAM thing as the core and treat the symptom as its consequence. Do not quietly promote a well-connected symptom over a sparsely-connected root.
 
