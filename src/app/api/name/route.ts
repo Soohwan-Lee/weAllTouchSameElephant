@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { namePrompt, type NameInput } from "@/lib/prompts";
-import type { NameResult, RevealMode } from "@/lib/types";
+import type { GroundingTrace, NameResult, RevealMode } from "@/lib/types";
 import { REVEAL_MODES, stripQuestionLeadIn } from "@/lib/types";
+import {
+  buildGroundingTable,
+  groundingReport,
+  resolveToIds,
+  verifyClaim,
+  type GroundedClaim,
+  type GroundingTable,
+} from "@/lib/grounding";
+import type { Bridge, Fragment } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -87,6 +96,102 @@ function pickMode(v: unknown): RevealMode {
   return REVEAL_MODES.includes(v as RevealMode) ? (v as RevealMode) : "explore";
 }
 
+/**
+ * Build the citable table from the request's own pieces and links.
+ *
+ * Returns null when the caller sent no ids — an older client, or a scenario path that only
+ * has titles. In that case the prompt degrades to its previous title-only form and no
+ * citations are requested, so nothing breaks; we simply cannot verify that run.
+ */
+function tableFor(input: NameInput): GroundingTable | null {
+  if (!input.fragments.some((f) => f.id)) return null;
+  // Only the shape `buildGroundingTable` reads is needed; the rest of Fragment/Bridge is
+  // irrelevant here, so synthesize minimal records rather than demanding full objects
+  // travel over the wire.
+  const frags = input.fragments
+    .filter((f) => f.id)
+    .map(
+      (f) =>
+        ({
+          id: f.id!,
+          title: f.title,
+          body: f.body,
+          authorRole: f.authorRole ?? "",
+          authorName: "",
+          x: 0,
+          y: 0,
+        }) as Fragment
+    );
+  const titleToId = new Map(frags.map((f) => [f.title, f.id]));
+  const bridges = input.bridges
+    .filter((b) => b.id)
+    .map(
+      (b) =>
+        ({
+          id: b.id!,
+          fragmentAId: titleToId.get(b.aTitle) ?? "",
+          fragmentBId: titleToId.get(b.bTitle) ?? "",
+          relationType: b.relationType,
+          explanation: b.explanation ?? "",
+          evidenceA: b.evidenceA ?? "",
+          evidenceB: b.evidenceB ?? "",
+          confidence: 1,
+          status: "confirmed",
+          createdBy: b.humanDrawn ? "human" : "ai",
+        }) as Bridge
+    );
+  const history = new Map(
+    input.bridges
+      .filter((b) => b.id && (b.aiRelationType || b.retyped || b.rewritten))
+      .map((b) => [
+        b.id!,
+        { aiRelationType: b.aiRelationType, retyped: b.retyped, edited: b.rewritten },
+      ])
+  );
+  return buildGroundingTable(frags, bridges, history);
+}
+
+/**
+ * Check every claim in a response against the table and collapse the result into the trace
+ * the client stores.
+ *
+ * Deliberately non-destructive: the caller keeps whatever prose the model produced no matter
+ * how the verification lands. A model that cites nothing, or cites only invented handles,
+ * yields a trace with `rate: 0` — a recorded fact about that run, not a reason to blank the
+ * screen. The trace is the measurement; the prose is still the team's to judge.
+ */
+function traceFor(
+  parsed: Record<string, unknown>,
+  mode: RevealMode,
+  table: GroundingTable
+): GroundingTrace {
+  const claims: Array<GroundedClaim<unknown>> = [
+    verifyClaim(parsed.name, parsed.nameGrounds, table),
+    verifyClaim(parsed.question, parsed.questionGrounds, table),
+  ];
+  // explore returns several readings, each with its own citation list; verdict/hypothesis one.
+  const rg = parsed.readingGrounds;
+  if (mode === "explore") {
+    const readings = Array.isArray(parsed.readings) ? parsed.readings : [];
+    readings.forEach((r, i) => {
+      const g = Array.isArray(rg) ? rg[i] : undefined;
+      claims.push(verifyClaim(r, g, table));
+    });
+  } else {
+    claims.push(verifyClaim(parsed[mode], rg, table));
+  }
+
+  const report = groundingReport(claims);
+  const { fragmentIds, bridgeIds } = resolveToIds(report.citedHandles, table);
+  return {
+    fragmentIds,
+    bridgeIds,
+    rate: Number(report.rate.toFixed(3)),
+    fabricationRate: Number(report.fabricationRate.toFixed(3)),
+    claims: report.claims,
+  };
+}
+
 export async function POST(req: NextRequest) {
   let body: { input?: NameInput; lang?: "en" | "ko"; mode?: unknown };
   try {
@@ -107,11 +212,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ...localName(input, lang, mode), mode, sample: true });
   }
 
+  const table = tableFor(input);
+
   try {
     const client = new OpenAI({ apiKey });
     const completion = await client.chat.completions.create({
       model: MODEL,
-      messages: [{ role: "user", content: namePrompt(input, lang, mode) }],
+      messages: [{ role: "user", content: namePrompt(input, lang, mode, table ?? undefined) }],
       response_format: { type: "json_object" },
       // verdict wants commitment (lower temp); explore wants range (higher).
       temperature: mode === "verdict" ? 0.35 : mode === "hypothesis" ? 0.55 : 0.7,
@@ -143,6 +250,8 @@ export async function POST(req: NextRequest) {
       out.verdict =
         String(parsed.verdict ?? "").trim().slice(0, 240) || localName(input, lang, mode).verdict;
     }
+    // Verified against the team's own table — see `traceFor`. Never gates the response.
+    if (table) out.grounding = traceFor(parsed, mode, table);
     return NextResponse.json(out);
   } catch (err) {
     console.error("[name] LLM error", err);

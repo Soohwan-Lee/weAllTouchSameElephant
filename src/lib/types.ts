@@ -142,6 +142,16 @@ export type SessionEvent =
       aiVerdict?: string;
       /** true when this came from a scenario's hand-written reveal (sample mode) */
       sample: boolean;
+      /**
+       * Server-verified record of which of the team's own pieces/links this reading cited,
+       * and how much of it was anchored at all. Absent on sample/degraded runs.
+       *
+       * This is the row that makes the AI's framing auditable after the fact: an analysis can
+       * ask not only whether the team kept the AI's name and question (already logged) but
+       * whether that framing was read off their structure in the first place — and which
+       * parts of the table it ignored.
+       */
+      grounding?: GroundingTrace;
     };
 
 /** What the AI returns from /api/bridges (before we assign ids/status). */
@@ -171,6 +181,32 @@ export interface NameResult {
   sample?: boolean;
   /** the call FAILED — distinct from "the AI had nothing to say", which the UI must not conflate */
   error?: boolean;
+  /**
+   * Which of the team's OWN pieces and links this reading was actually read off — verified
+   * server-side against the real table, so a fabricated citation can never appear here.
+   * Ids, not handles: handles are minted per request and meaningless afterwards, while ids
+   * join back to `fragments`/`bridges` in the export.
+   *
+   * This is what turns "the AI reflects the team's structure" from a design claim into a
+   * checkable property of each response. The UI does not need it (nothing renders it today);
+   * it exists so the session log records what the framing rested on.
+   */
+  grounding?: GroundingTrace;
+}
+
+/** Server-verified trace of what an AI reading leaned on, plus how well it was anchored. */
+export interface GroundingTrace {
+  /** fragment ids the model cited and that actually exist on the table */
+  fragmentIds: string[];
+  /** bridge ids the model cited and that actually exist */
+  bridgeIds: string[];
+  /** share of the response's claims carrying ≥1 verifiable citation (0..1) */
+  rate: number;
+  /** share of cited handles that pointed at nothing — the model inventing references (0..1).
+   *  Dropped before display; recorded because the rate itself is a finding. */
+  fabricationRate: number;
+  /** how many distinct claims were checked (name / reading(s) / question) */
+  claims: number;
 }
 
 /** Structured, non-authoritative reflection from /api/mirror. */

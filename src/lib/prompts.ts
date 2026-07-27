@@ -1,4 +1,5 @@
 import type { Fragment, RelationType, RevealMode } from "./types";
+import { CITATION_RULES, renderBridges, renderFragments, type GroundingTable } from "./grounding";
 
 const RELATION_GUIDE = `Relation types — pick the ONE that is truest, in this priority when more than one seems to fit:
 - "dependency": one piece CAUSES, drives, blocks, or enables the other. Prefer this whenever there's any cause→effect direction — it's what reveals root vs symptom. Put the CAUSE/root as fragmentA and the EFFECT/symptom as fragmentB (direction matters).
@@ -56,8 +57,27 @@ export interface FacetSummary {
 }
 
 export interface NameInput {
-  fragments: Array<{ title: string; body: string }>;
-  bridges: Array<{ aTitle: string; bTitle: string; relationType: RelationType }>;
+  /** Pieces, carrying the ids/roles the grounding layer needs to mint citable handles.
+   *  `id`/`authorRole` are optional so an older caller (or a test) that passes only
+   *  title+body still type-checks and simply gets un-annotated handles. */
+  fragments: Array<{ id?: string; title: string; body: string; authorRole?: string }>;
+  /** Confirmed links. `explanation`/`evidence` used to be dropped here even though they are
+   *  the most human-authored text in a session — the team writes and rewrites them — and
+   *  `aiRelationType`/`retyped` carry the single sharpest boundary-work signal there is:
+   *  the places where the team overruled the AI's reading of a connection. */
+  bridges: Array<{
+    id?: string;
+    aTitle: string;
+    bTitle: string;
+    relationType: RelationType;
+    explanation?: string;
+    evidenceA?: string;
+    evidenceB?: string;
+    aiRelationType?: RelationType;
+    retyped?: boolean;
+    rewritten?: boolean;
+    humanDrawn?: boolean;
+  }>;
   /** the anchor of the facet the most others rest on — a starting point, not a verdict */
   cruxTitle?: string;
   /** the assembled shape: the sides the pieces fused into (root→symptom) */
@@ -99,14 +119,38 @@ const MODE_SPEC: Record<
   },
 };
 
-export function namePrompt(input: NameInput, lang: "en" | "ko", mode: RevealMode = "explore") {
+export function namePrompt(
+  input: NameInput,
+  lang: "en" | "ko",
+  mode: RevealMode = "explore",
+  /** The handle table, when the caller has built one. Given it, pieces and links are rendered
+   *  with citable [F1]/[B2] handles and the model is required to cite what it leans on, so the
+   *  server can verify the reading against the team's real table instead of taking it on faith.
+   *  Without it the prompt degrades to the older title-only rendering and asks for no citations. */
+  table?: GroundingTable
+) {
   const language = lang === "ko" ? "Korean" : "English";
   const spec = MODE_SPEC[mode];
 
-  const frags = input.fragments.map((f) => `- ${f.title}: ${f.body}`).join("\n");
-  const links = input.bridges
-    .map((b) => `- "${b.aTitle}" —[${b.relationType}]— "${b.bTitle}"`)
-    .join("\n");
+  // Handle-rendered when we can cite, plain when we can't — same prose either way.
+  const frags = table
+    ? renderFragments(table)
+    : input.fragments.map((f) => `- ${f.title}: ${f.body}`).join("\n");
+  const links = table
+    ? renderBridges(table)
+    : input.bridges
+        .map((b) => {
+          const base = `- "${b.aTitle}" —[${b.relationType}]— "${b.bTitle}"`;
+          const why = b.explanation ? `: ${b.explanation}` : "";
+          const over =
+            b.retyped && b.aiRelationType
+              ? `\n    ↳ THE TEAM OVERRODE THE AI: it proposed "${b.aiRelationType}", the team re-typed it to "${b.relationType}".`
+              : b.humanDrawn
+              ? `\n    ↳ THE TEAM DREW THIS THEMSELVES.`
+              : "";
+          return `${base}${why}${over}`;
+        })
+        .join("\n");
 
   // Give the model the SHAPE the team built, not just a flat list — this is what
   // lets it say something specific instead of a generic theme.
@@ -147,6 +191,8 @@ Read for what the pieces are SECRETLY about together — the thing they were all
 
 CRUCIAL — anchor on the ROOT, not the loudest symptom: the side tagged [ROOT] drives the rest but nothing drives it. It is often NOT the biggest cluster and may be linked to only one or two pieces — that is exactly why teams miss it. A downstream symptom (e.g. "no tamper-proof record", "too many features") feels concrete and tempting, but if the shape says something upstream drives it, name the UPSTREAM thing as the core and treat the symptom as its consequence. Do not quietly promote a well-connected symptom over a sparsely-connected root.
 
+WHERE THE TEAM OVERRULED THE AI — read these as the strongest signal on the table. A link marked "THE TEAM OVERRODE THE AI" is one where an earlier AI pass proposed one relation and the team rejected that reading and re-typed it. That is them telling you, explicitly, how this boundary works. A re-type from "overlap" to "tension" means: these are NOT the same thing, and we refuse to have them merged. Never undo such a call by writing a reading that treats those pieces as one. A link the team DREW THEMSELVES is a connection they went out of their way to assert — weight it above one they merely accepted.
+
 MODE = ${spec.label}. ${spec.instruction}
 
 Then, separately, propose ONE QUESTION: the single highest-leverage thing this team should decide next. It must be an open QUESTION they can actually answer, grounded in the keystone/tension — never a recommendation, never an answer.
@@ -158,14 +204,20 @@ Hard rules:
 - Start the question with its OWN first word. The UI already prints the "so the real question is…" framing above it, so any lead-in ("So the real question is", "그래서 진짜 질문은", "The question is") would read twice. Open on the substance.
 - Write everything in ${language}. Keep each sentence tight.
 
-Fragments in this cluster:
+Pieces on the table:
 ${frags}
 
-Confirmed connections:
+Links the team confirmed:
 ${links}${shapeBlock}
-
+${table ? `\n${CITATION_RULES}\n` : ""}
 Return ONLY valid JSON of this exact shape (no prose, no markdown):
-{"name":"<2-5 word handle for the elephant in ${language}>","note":"<one short clause on why this name, in ${language}>",${spec.shape.replace(/<([^>]+)>/g, (_m, d) => `<${d}, in ${language}>`)},"question":"<one open question in ${language}, with NO 'so the real question is' lead-in>"}`;
+{"name":"<2-5 word handle for the elephant in ${language}>","note":"<one short clause on why this name, in ${language}>",${
+    table ? `"nameGrounds":["<handles the name rests on>"],` : ""
+  }${spec.shape.replace(/<([^>]+)>/g, (_m, d) => `<${d}, in ${language}>`)},${
+    table ? `"readingGrounds":[${spec.label === "EXPLORE" ? `["<handles for reading 1>"],["<handles for reading 2>"]` : `"<handles>"`}],` : ""
+  }"question":"<one open question in ${language}, with NO 'so the real question is' lead-in>"${
+    table ? `,"questionGrounds":["<handles the question rests on>"]` : ""
+  }}`;
 }
 
 export interface MirrorInput {
@@ -357,20 +409,37 @@ export interface TradeOff {
   favors: string;
   /** what therefore gives way — the cost, in the team's own terms */
   cost: string;
+  /** the bridge id of the kept tension this cost was read off, once verified against the
+   *  team's real links. Absent when the cost is an opportunity cost tied to no tension —
+   *  which is a legitimate, and honest, outcome rather than a failure. */
+  groundedBridgeId?: string;
 }
 
 export function tradeOffPrompt(
   decision: string,
-  keptTensions: Array<{ a: string; b: string }>,
-  separations: Array<{ a: string; b: string }>,
+  keptTensions: Array<{ a: string; b: string; handle?: string; retyped?: boolean }>,
+  separations: Array<{ a: string; b: string; handle?: string }>,
   lang: "en" | "ko"
 ) {
   const language = lang === "ko" ? "Korean" : "English";
+  // Handles let the model POINT at the exact tension rather than paraphrase one, so the
+  // server can check that the cost it names belongs to a tension the team actually kept.
+  const canCite = keptTensions.some((t) => t.handle) || separations.some((s) => s.handle);
   const tens = keptTensions.length
-    ? keptTensions.map((t) => `- "${t.a}" ⟷ "${t.b}"`).join("\n")
+    ? keptTensions
+        .map((t) => {
+          const h = t.handle ? `[${t.handle}] ` : "";
+          // a re-typed tension is one the team INSISTED was a trade-off after the AI called it
+          // something softer — the least safe one to wave away.
+          const over = t.retyped ? ` (the team re-typed this INTO a tension — they insist it is a real trade-off)` : "";
+          return `- ${h}"${t.a}" ⟷ "${t.b}"${over}`;
+        })
+        .join("\n")
     : "(none)";
   const seps = separations.length
-    ? separations.map((s) => `- "${s.a}" ∦ "${s.b}" (kept apart on purpose)`).join("\n")
+    ? separations
+        .map((s) => `- ${s.handle ? `[${s.handle}] ` : ""}"${s.a}" ∦ "${s.b}" (kept apart on purpose)`)
+        .join("\n")
     : "(none)";
 
   return `A team made this decision: "${decision}".
@@ -400,8 +469,19 @@ ${tens}
 Kept separate:
 ${seps}
 
-Return ONLY valid JSON (no prose, no markdown):
-{"tension":"<the tension it leans on, OR — if none fits — a short label for what this decision trades, in ${language}>","favors":"<what the decision favors / spends on, one clause in ${language}>","cost":"<the one concrete thing that gives way, one clause in ${language}>"}`;
+${
+    canCite
+      ? `CITATION — say WHICH kept tension you used, by its bracketed handle:
+- If you are in case A, put that tension's handle in "grounds", e.g. "grounds":["B3"]. Cite the ONE tension the decision leans on — not several.
+- If you are in case B (opportunity cost, no tension fits), return "grounds":[]. An empty array is the correct, honest answer there — never cite a tension you did not actually use.
+- Never invent a handle. An unlisted handle is discarded and the claim counts as unsupported.
+
+`
+      : ""
+}Return ONLY valid JSON (no prose, no markdown):
+{"tension":"<the tension it leans on, OR — if none fits — a short label for what this decision trades, in ${language}>","favors":"<what the decision favors / spends on, one clause in ${language}>","cost":"<the one concrete thing that gives way, one clause in ${language}>"${
+    canCite ? `,"grounds":["<the handle of the tension used, or empty>"]` : ""
+  }}`;
 }
 
 /**

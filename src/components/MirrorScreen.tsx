@@ -8,7 +8,7 @@ import { fetchName } from "@/lib/api";
 import { findClusters } from "@/lib/clusters";
 import { computeSynthesis } from "@/lib/synthesis";
 import type { FacetSummary } from "@/lib/prompts";
-import type { NameResult, RevealMode } from "@/lib/types";
+import type { NameResult, RelationType, RevealMode } from "@/lib/types";
 import { REVEAL_MODES } from "@/lib/types";
 import { PuzzleCanvas } from "./PuzzleCanvas";
 import { SynthesisCanvas } from "./SynthesisCanvas";
@@ -60,6 +60,26 @@ export function MirrorScreen() {
   const aiName = useRef("");
   const aiQuestion = useRef("");
   const logEvent = useSession((s) => s.logEvent);
+  // The event log is the ONLY record of what the AI originally proposed for each link before
+  // the team confirmed it. Where the team re-typed a relation — "you called this the same
+  // thing; it's actually a trade-off" — that override is the sharpest statement they make
+  // about where a boundary runs, and it used to be written to the log and never read again.
+  // Reading it back here lets the reveal prompt see the connections as the team FOUGHT them,
+  // not just as they finally stand.
+  const events = useSession((s) => s.events);
+  const bridgeHistory = useMemo(() => {
+    const m = new Map<string, { aiRelationType?: RelationType; retyped?: boolean; edited?: boolean }>();
+    for (const e of events) {
+      if (e.type !== "bridge_confirmed") continue;
+      // last confirmation wins — a link can be unconfirmed and re-confirmed
+      m.set(e.bridgeId, {
+        aiRelationType: e.aiRelationType,
+        retyped: e.retypedRelation,
+        edited: e.edited,
+      });
+    }
+    return m;
+  }, [events]);
   const clusters = findClusters(fragments, bridges, 3);
   const main = clusters[0];
   const byId = (id: string) => fragments.find((f) => f.id === id);
@@ -147,12 +167,34 @@ export function MirrorScreen() {
         (b) => main.fragmentIds.includes(b.fragmentAId) && main.fragmentIds.includes(b.fragmentBId)
       );
       const input = {
-        fragments: clusterFrags.map((f) => ({ title: f.title, body: f.body })),
-        bridges: clusterBridges.map((b) => ({
-          aTitle: byId(b.fragmentAId)?.title ?? "?",
-          bTitle: byId(b.fragmentBId)?.title ?? "?",
-          relationType: b.relationType,
+        // ids travel so the server can mint citable handles; role travels because who is
+        // speaking is part of what a piece IS on this table.
+        fragments: clusterFrags.map((f) => ({
+          id: f.id,
+          title: f.title,
+          body: f.body,
+          authorRole: f.authorRole,
         })),
+        // The link's own text and its edit history used to be dropped here, which meant the
+        // reveal was read off a bare typed graph while the team's actual words about WHY two
+        // pieces connect — and every place they overruled the AI — stayed invisible to it.
+        bridges: clusterBridges.map((b) => {
+          const h = bridgeHistory.get(b.id);
+          return {
+            id: b.id,
+            aTitle: byId(b.fragmentAId)?.title ?? "?",
+            bTitle: byId(b.fragmentBId)?.title ?? "?",
+            relationType: b.relationType,
+            explanation: b.explanation,
+            evidenceA: b.evidenceA,
+            evidenceB: b.evidenceB,
+            aiRelationType:
+              h?.aiRelationType && h.aiRelationType !== b.relationType ? h.aiRelationType : undefined,
+            retyped: Boolean(h?.retyped),
+            rewritten: Boolean(h?.edited),
+            humanDrawn: b.createdBy === "human",
+          };
+        }),
         cruxTitle,
         facets,
         tensions,
@@ -198,6 +240,7 @@ export function MirrorScreen() {
         aiHypothesis: res.hypothesis,
         aiVerdict: res.verdict,
         sample: fromSampleReveal.current,
+        grounding: res.grounding,
       });
       // capture the AI's originals so we can later detect if the team overrode them
       if (res.name) aiName.current = res.name;
@@ -922,6 +965,17 @@ function TradeOffPanel({ decision, cluster, onRevise }: { decision: string; clus
   const fragments = useSession((s) => s.fragments);
   const bridges = useSession((s) => s.bridges);
   const logEvent = useSession((s) => s.logEvent);
+  // Which links the team re-typed INTO a tension, recovered from the event log — see the
+  // same lookup in MirrorScreen. A tension the team argued the AI into is the one they are
+  // surest is real, so it deserves priority when naming what a decision costs.
+  const events = useSession((s) => s.events);
+  const bridgeHistory = useMemo(() => {
+    const m = new Map<string, { retyped?: boolean }>();
+    for (const e of events) {
+      if (e.type === "bridge_confirmed") m.set(e.bridgeId, { retyped: e.retypedRelation });
+    }
+    return m;
+  }, [events]);
   const [loading, setLoading] = useState(false);
   const [res, setRes] = useState<{ tension: string; favors: string; cost: string } | null>(null);
   const [opened, setOpened] = useState(false);
@@ -950,12 +1004,20 @@ function TradeOffPanel({ decision, cluster, onRevise }: { decision: string; clus
   const title = (id: string) => fragments.find((f) => f.id === id)?.title ?? "?";
   const inCluster = (b: (typeof bridges)[number]) =>
     cluster.fragmentIds.includes(b.fragmentAId) && cluster.fragmentIds.includes(b.fragmentBId);
+  // Carry each tension's id so the named cost can be traced back to the exact link it was
+  // read off, and `retyped` so a tension the team INSISTED on (they overruled the AI to call
+  // it a trade-off) outranks one they merely accepted when both fit the decision equally.
   const tensions = bridges
     .filter((b) => b.relationType === "tension" && inCluster(b))
-    .map((b) => ({ a: title(b.fragmentAId), b: title(b.fragmentBId) }));
+    .map((b) => ({
+      id: b.id,
+      a: title(b.fragmentAId),
+      b: title(b.fragmentBId),
+      retyped: Boolean(bridgeHistory.get(b.id)?.retyped),
+    }));
   const separations = bridges
     .filter((b) => b.relationType === "separate" && inCluster(b))
-    .map((b) => ({ a: title(b.fragmentAId), b: title(b.fragmentBId) }));
+    .map((b) => ({ id: b.id, a: title(b.fragmentAId), b: title(b.fragmentBId) }));
 
   const reveal = async () => {
     setOpened(true);
