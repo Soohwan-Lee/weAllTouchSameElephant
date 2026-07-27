@@ -17,6 +17,10 @@ import { fetchBlindSpot } from "@/lib/api";
 export function BlindSpotFinder({ onFill }: { onFill: (angle: string) => void }) {
   const { t, lang } = useI18n();
   const fragments = useSession((s) => s.fragments);
+  // The seat-finder used to see isolated cards only. Once someone comes back here from
+  // Connect to fill a gap, the links they've made are the best evidence of which vantage is
+  // over-represented — and a kept tension is a trade-off we may only be hearing one side of.
+  const bridges = useSession((s) => s.bridges);
   const decisionPrompt = useSession((s) => s.decisionPrompt);
   const logEvent = useSession((s) => s.logEvent);
 
@@ -34,7 +38,14 @@ export function BlindSpotFinder({ onFill }: { onFill: (angle: string) => void })
     setExhausted(false);
     try {
       const pieces = fragments.map((f) => ({ title: f.title, body: f.body, role: f.authorRole }));
-      const res = await fetchBlindSpot(decisionPrompt, pieces, lang, excluding);
+      const titleOf = (id: string) => fragments.find((f) => f.id === id)?.title ?? "?";
+      const links = bridges.map((b) => ({
+        a: titleOf(b.fragmentAId),
+        b: titleOf(b.fragmentBId),
+        relationType: b.relationType,
+        why: b.explanation,
+      }));
+      const res = await fetchBlindSpot(decisionPrompt, pieces, lang, excluding, links);
       if (!res.angle) {
         setSpot(null);
         setExhausted(true);

@@ -8,12 +8,55 @@ const RELATION_GUIDE = `Relation types — pick the ONE that is truest, in this 
 - "complement": one adds the MISSING context the other needs to make sense — different facets of one situation, neither causing the other.
 - "separate": these two look linkable but must be kept APART — merging them would collapse a distinction that matters (different timescales, different people affected, different kinds of claim). Propose this ONLY when a merge is genuinely tempting and genuinely wrong; it is the team's call to make far more often than yours.`;
 
-export function bridgePrompt(fragments: Fragment[], lang: "en" | "ko", maxBridges: number) {
+/** What the team has already settled on this table, so a repeat "suggest more" round does not
+ *  re-propose work they have already done — or already refused. */
+export interface BridgeContext {
+  /** links already confirmed, with the type the team settled on */
+  confirmed: Array<{ aId: string; bId: string; relationType: RelationType; retyped?: boolean; aiRelationType?: RelationType }>;
+  /** pairs the team dismissed — never propose these again */
+  rejectedPairs: Array<{ aId: string; bId: string }>;
+}
+
+export function bridgePrompt(
+  fragments: Fragment[],
+  lang: "en" | "ko",
+  maxBridges: number,
+  context?: BridgeContext
+) {
   const list = fragments
     .map((f) => `- id=${f.id} | ${f.title} — ${f.body} (by ${f.authorRole})`)
     .join("\n");
 
   const language = lang === "ko" ? "Korean" : "English";
+
+  // A "suggest more" round used to be indistinguishable from the first round: the model saw
+  // only the pieces, so it could re-propose a pair the team had just rejected, or re-suggest
+  // a link they had already confirmed. From the user's side that reads as the tool ignoring
+  // their work — the exact failure this whole app is supposed to avoid.
+  let historyBlock = "";
+  if (context?.confirmed.length) {
+    const done = context.confirmed
+      .map((c) => {
+        const over =
+          c.retyped && c.aiRelationType
+            ? `  ← you proposed "${c.aiRelationType}" and the team CORRECTED it to "${c.relationType}"`
+            : "";
+        return `- ${c.aId} —[${c.relationType}]— ${c.bId}${over}`;
+      })
+      .join("\n");
+    historyBlock += `\n\nALREADY CONNECTED — do NOT propose these pairs again:\n${done}`;
+    const corrections = context.confirmed.filter((c) => c.retyped && c.aiRelationType);
+    if (corrections.length) {
+      historyBlock += `\n\nLEARN FROM THE CORRECTIONS ABOVE. Where the team re-typed one of your proposals, your reading of that relation was wrong and theirs is final. Carry that lesson into this round — for example, if they changed an "overlap" of yours to a "tension", you are over-merging pieces that they consider genuinely distinct, so be far more conservative with "overlap" now.`;
+    }
+  }
+  if (context?.rejectedPairs.length) {
+    const nope = context.rejectedPairs.map((p) => `- ${p.aId} ✗ ${p.bId}`).join("\n");
+    historyBlock += `\n\nREJECTED by the team — these pairs were shown and dismissed. Do NOT propose them again in any form:\n${nope}`;
+  }
+  if (historyBlock) {
+    historyBlock += `\n\nThis is a LATER round: propose only connections that are genuinely NEW relative to everything above. If every worthwhile link is already made, returning an empty list is the correct answer — do not pad the round with weak pairs to look productive.`;
+  }
 
   return `You are helping a team see how their scattered fragments connect into ONE bigger picture — the "blind men and the elephant" problem. Each teammate wrote a partial view of the same situation. Your ONLY job is to propose the connections (bridges) that assemble those views into a single coherent shape.
 
@@ -33,7 +76,7 @@ Hard rules:
 ${RELATION_GUIDE}
 
 Fragments:
-${list}
+${list}${historyBlock}
 
 Return ONLY valid JSON of this exact shape (no prose, no markdown):
 {"bridges":[{"fragmentAId":"<cause/root id for dependency>","fragmentBId":"<effect/symptom id for dependency>","relationType":"dependency|tension|overlap|complement|separate","explanation":"<one concrete sentence in ${language} naming the specific relationship and, for dependency, the direction>","evidenceA":"<short snippet from A>","evidenceB":"<short snippet from B>","confidence":<0..1>}]}
@@ -220,46 +263,6 @@ Return ONLY valid JSON of this exact shape (no prose, no markdown):
   }}`;
 }
 
-export interface MirrorInput {
-  fragments: Fragment[];
-  bridges: Array<{
-    aTitle: string;
-    bTitle: string;
-    relationType: RelationType;
-    explanation: string;
-  }>;
-  looseTitles: string[];
-}
-
-export function mirrorPrompt(input: MirrorInput, lang: "en" | "ko") {
-  const language = lang === "ko" ? "Korean" : "English";
-  const bridgeLines = input.bridges
-    .map((b) => `- "${b.aTitle}" —[${b.relationType}]— "${b.bTitle}": ${b.explanation}`)
-    .join("\n");
-  const loose = input.looseTitles.length ? input.looseTitles.join(", ") : "(none)";
-
-  return `The team has finished assembling their pieces into connections. Your job is to MIRROR BACK the shape they built — reflect only what they confirmed. You are a mirror, not an author.
-
-Hard rules:
-- Do NOT introduce any new claim, fact, or interpretation.
-- Do NOT recommend or make a decision.
-- Only reference the confirmed connections and fragment titles given below.
-- Reference fragments by their titles in quotes.
-- Write in ${language}. Keep each line short.
-
-Confirmed connections:
-${bridgeLines || "(none)"}
-
-Fragments still with no connection: ${loose}
-
-Return ONLY valid JSON of this exact shape (no prose, no markdown):
-{"connected":["<short sentence citing fragment titles>"],"tensions":["<short sentence about a tension link>"],"separate":["<short sentence naming an unconnected fragment>"]}
-Sorting rule (each link goes in exactly ONE list, never both):
-- A link whose relation is "tension" → put it ONLY in "tensions".
-- Every other link → put it ONLY in "connected".
-- Each unconnected fragment → put it in "separate".`;
-}
-
 /** One "angle seed" — a possible vantage on the decision, NOT a finished fragment.
  *  The person picks one and rewrites it in their own words before it becomes a card. */
 export interface SeedSuggestion {
@@ -363,10 +366,29 @@ export function blindSpotPrompt(
   decision: string,
   pieces: Array<{ title: string; body: string; role: string }>,
   lang: "en" | "ko",
-  exclude: string[] = []
+  exclude: string[] = [],
+  /** the links the team has already made. Empty on a first pass through Gather; populated
+   *  once someone comes back from Connect to fill a seat, which is exactly when the shape of
+   *  what they've built should inform what's still missing. */
+  links: Array<{ a: string; b: string; relationType: RelationType; why?: string }> = []
 ) {
   const language = lang === "ko" ? "Korean" : "English";
   const present = pieces.map((p) => `- [${p.role}] ${p.title}: ${p.body}`).join("\n");
+  // Without this the prompt was asked to spot "one side of a trade-off only" while being
+  // shown no trade-offs at all — the tensions live in the links, and the links never came.
+  const linked = new Set(links.flatMap((l) => [l.a, l.b]));
+  const linkBlock = links.length
+    ? `\n\nWhat they have CONNECTED so far (the shape they are building):\n${links
+        .map((l) => `- "${l.a}" —[${l.relationType}]— "${l.b}"${l.why ? `: ${l.why}` : ""}`)
+        .join("\n")}${
+        (() => {
+          const loose = pieces.filter((p) => !linked.has(p.title)).map((p) => `"${p.title}"`);
+          return loose.length
+            ? `\n\nStill unconnected: ${loose.join(", ")} — a piece nobody could link may be a lone voice on something the rest of the table isn't engaging.`
+            : "";
+        })()
+      }\n\nUse this: a tension they kept shows a trade-off where you may only be hearing ONE side, and a dense cluster of agreeing pieces shows a consensus nobody present is positioned to challenge.`
+    : "";
   const roles = [...new Set(pieces.map((p) => p.role).filter((r) => r && r !== "—"))];
   const already = exclude.length
     ? `\n\nYou have ALREADY suggested these seats — do NOT repeat them; find a genuinely different one:\n${exclude.map((a) => `- ${a}`).join("\n")}`
@@ -389,7 +411,7 @@ HARD rules — the team writes their own perspectives, you do NOT:
 - Write in ${language}. Keep each field to one tight sentence.
 
 Pieces on the table:
-${present}
+${present}${linkBlock}
 
 Return ONLY valid JSON (no prose, no markdown):
 {"angle":"<the missing seat, 2-6 words in ${language}, or empty string if none>","rationale":"<why it reads as missing, grounded in what's present, one sentence in ${language}>","question":"<one open question that would draw out a piece from that seat, in ${language}>"}`;
@@ -498,24 +520,61 @@ export interface DecisionDirection {
   because: string;
 }
 
+/** A kept tension, with the team's own words for why it is one. `why` is the link explanation
+ *  — the sentence the team wrote or rewrote — without which two 3-word titles are all the
+ *  model has to reason from. */
+export interface DirectionTension {
+  a: string;
+  b: string;
+  why?: string;
+  retyped?: boolean;
+}
+
 export function directionsPrompt(
   decision: string,
   realQuestion: string,
   cruxTitle: string | undefined,
-  tensions: Array<{ a: string; b: string }>,
-  lang: "en" | "ko"
+  tensions: DirectionTension[],
+  lang: "en" | "ko",
+  /** the pieces themselves, so a direction can rest on what people actually wrote rather
+   *  than on a handful of headline words */
+  pieces: Array<{ title: string; body: string; role?: string }> = [],
+  /** causal chains root→symptom, the spine the team built */
+  spine: string[][] = []
 ) {
   const language = lang === "ko" ? "Korean" : "English";
   const tens = tensions.length
-    ? tensions.map((t) => `- "${t.a}" ⟷ "${t.b}"`).join("\n")
+    ? tensions
+        .map((t) => {
+          const why = t.why ? `\n    why: "${t.why}"` : "";
+          const over = t.retyped
+            ? `\n    ↳ the team RE-TYPED this INTO a tension — they overruled the AI to insist it is a real trade-off, so never resolve it away.`
+            : "";
+          return `- "${t.a}" ⟷ "${t.b}"${why}${over}`;
+        })
+        .join("\n")
     : "(none)";
+  // The pieces and the spine were computed for the reveal and then dropped before this call,
+  // which left the directions leaning on headline titles alone — thin enough that a direction
+  // could contradict what a piece actually said.
+  const piecesBlock = pieces.length
+    ? `\n\nThe pieces on their table (their own words — ground directions in these):\n${pieces
+        .map((p) => `- "${p.title}"${p.role && p.role !== "—" ? ` (${p.role})` : ""}: ${p.body}`)
+        .join("\n")}`
+    : "";
+  const spineBlock = spine.filter((c) => c.length >= 2).length
+    ? `\n\nThe causal chains they built (left drives right — a direction that moves the LEFTMOST link moves everything downstream of it):\n${spine
+        .filter((c) => c.length >= 2)
+        .map((c) => `- ${c.map((s) => `"${s}"`).join(" → ")}`)
+        .join("\n")}`
+    : "";
 
   return `A team has assembled their views on this decision: "${decision}". They landed on this reframed question to answer: "${realQuestion}".
 
 The shape they built:
 - The likely core: ${cruxTitle ?? "(not identified)"}
 - Live tensions they kept (real trade-offs, do NOT resolve these away):
-${tens}
+${tens}${piecesBlock}${spineBlock}
 
 Offer 2–3 DIFFERENT starting DIRECTIONS the team could take on their next move — each a short, concrete handle they can react to, NOT a finished decision. The team writes their own decision; you give them starting points grounded in THEIR shape.
 

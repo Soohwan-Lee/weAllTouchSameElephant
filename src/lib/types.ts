@@ -209,13 +209,6 @@ export interface GroundingTrace {
   claims: number;
 }
 
-/** Structured, non-authoritative reflection from /api/mirror. */
-export interface MirrorReflection {
-  connected: string[]; // sentences citing fragment titles
-  tensions: string[];
-  separate: string[];
-}
-
 /** A localized fragment as stored in a scenario (title/body per language). */
 export interface ScenarioFragment {
   id: string;

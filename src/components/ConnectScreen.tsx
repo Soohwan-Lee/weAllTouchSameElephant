@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { useSession, scenarioBridgesToProposals } from "@/lib/store";
+import { useSession, scenarioBridgesToProposals, bridgeEditsFrom } from "@/lib/store";
 import { getScenario } from "@/lib/scenarios";
 import { countRedundantEdges, largestClusterSize } from "@/lib/clusters";
 import { fetchBridges } from "@/lib/api";
@@ -40,7 +40,30 @@ export function ConnectScreen() {
     try {
       // scale the ask to the table: more pieces → more bridges per round (cap 6)
       const max = Math.min(6, Math.max(3, Math.round(fragments.length / 2)));
-      const { bridges: proposals, mode: apiMode } = await fetchBridges(fragments, lang, max);
+      // Tell the AI what this team has already settled. Without it, a "find more" round is
+      // indistinguishable from the first one: it could re-offer a pair they just dismissed,
+      // or re-suggest a link they already confirmed — the tool visibly forgetting their work.
+      // The corrections matter most: where they re-typed a proposal, the AI's read of that
+      // relation was wrong, and it should carry that lesson into the next round.
+      const edits = bridgeEditsFrom(useSession.getState().events);
+      const context = {
+        confirmed: bridges.map((b) => {
+          const h = edits.get(b.id);
+          const aiType = h?.aiRelationType;
+          return {
+            aId: b.fragmentAId,
+            bId: b.fragmentBId,
+            relationType: b.relationType,
+            retyped: Boolean(h?.retyped),
+            aiRelationType: aiType && aiType !== b.relationType ? aiType : undefined,
+          };
+        }),
+        rejectedPairs: [...rejectedPairKeys].map((k) => {
+          const [aId, bId] = k.split("::");
+          return { aId, bId };
+        }),
+      };
+      const { bridges: proposals, mode: apiMode } = await fetchBridges(fragments, lang, max, context);
       // a failed call on a blank table used to render as "no strong connections found",
       // sending people off to edit perfectly good pieces to fix a network error.
       if (apiMode === "error" && !getScenario(scenarioId)) {

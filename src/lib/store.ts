@@ -120,6 +120,39 @@ function sessionMeta() {
   }
   return { sessionId, startedAt };
 }
+/** What the team did to one AI-proposed link on its way to being confirmed. */
+export interface BridgeEdit {
+  /** the type the AI first proposed, when it differs from the type the team settled on */
+  aiRelationType?: RelationType;
+  /** the team re-typed the relation — they refused the AI's reading of this boundary */
+  retyped?: boolean;
+  /** the team rewrote the explanation in their own words */
+  edited?: boolean;
+}
+
+/**
+ * Recover, per bridge, what the AI originally proposed versus what the team settled on.
+ *
+ * The event log is the only place this survives: `bridges` holds the final state, so once a
+ * team re-types a relation the AI's original reading exists nowhere else. That override is
+ * the sharpest boundary-work signal a session produces — "you said these are the same thing;
+ * they are not" — and every prompt that reasons about the team's links wants to see it.
+ *
+ * Last confirmation wins, since a link can be unconfirmed and confirmed again.
+ */
+export function bridgeEditsFrom(events: SessionEvent[]): Map<string, BridgeEdit> {
+  const m = new Map<string, BridgeEdit>();
+  for (const e of events) {
+    if (e.type !== "bridge_confirmed") continue;
+    m.set(e.bridgeId, {
+      aiRelationType: e.aiRelationType,
+      retyped: e.retypedRelation,
+      edited: e.edited,
+    });
+  }
+  return m;
+}
+
 export function newSessionIdentity() {
   sessionId = "";
   startedAt = 0;

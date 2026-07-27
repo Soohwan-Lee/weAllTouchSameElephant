@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
-import { bridgePrompt } from "@/lib/prompts";
+import { bridgePrompt, type BridgeContext } from "@/lib/prompts";
 import type { BridgeProposal, Fragment, RelationType } from "@/lib/types";
 import { RELATION_TYPES } from "@/lib/types";
 
@@ -39,7 +39,12 @@ function sanitize(raw: unknown, fragments: Fragment[]): BridgeProposal[] {
 }
 
 export async function POST(req: NextRequest) {
-  let body: { fragments?: Fragment[]; lang?: "en" | "ko"; max?: number };
+  let body: {
+    fragments?: Fragment[];
+    lang?: "en" | "ko";
+    max?: number;
+    context?: BridgeContext;
+  };
   try {
     body = await req.json();
   } catch {
@@ -48,6 +53,16 @@ export async function POST(req: NextRequest) {
   const fragments = body.fragments ?? [];
   const lang = body.lang === "ko" ? "ko" : "en";
   const max = Math.min(6, Math.max(1, body.max ?? 3));
+  // What the team has already confirmed or dismissed — so a later round proposes something
+  // new instead of re-offering work they have already done or refused.
+  const context: BridgeContext | undefined = body.context
+    ? {
+        confirmed: Array.isArray(body.context.confirmed) ? body.context.confirmed.slice(0, 40) : [],
+        rejectedPairs: Array.isArray(body.context.rejectedPairs)
+          ? body.context.rejectedPairs.slice(0, 40)
+          : [],
+      }
+    : undefined;
 
   if (fragments.length < 2) {
     return NextResponse.json({ bridges: [], mode: "empty" });
@@ -63,13 +78,21 @@ export async function POST(req: NextRequest) {
     const client = new OpenAI({ apiKey });
     const completion = await client.chat.completions.create({
       model: MODEL,
-      messages: [{ role: "user", content: bridgePrompt(fragments, lang, max) }],
+      messages: [{ role: "user", content: bridgePrompt(fragments, lang, max, context) }],
       response_format: { type: "json_object" },
       temperature: 0.4,
     });
     const text = completion.choices[0]?.message?.content ?? "{}";
     const parsed = JSON.parse(text);
+    // Telling the model not to re-propose settled pairs is a request; enforcing it here is
+    // not. A pair the team already connected or explicitly dismissed must never come back,
+    // however the model behaves — re-offering refused work is the most visible way this tool
+    // could tell a team their decisions did not count.
+    const settled = new Set<string>();
+    for (const c of context?.confirmed ?? []) settled.add([c.aId, c.bId].sort().join("|"));
+    for (const r of context?.rejectedPairs ?? []) settled.add([r.aId, r.bId].sort().join("|"));
     const bridges = sanitize(parsed, fragments)
+      .filter((b) => !settled.has([b.fragmentAId, b.fragmentBId].sort().join("|")))
       .sort((a, b) => b.confidence - a.confidence)
       .slice(0, max);
     return NextResponse.json({ bridges, mode: "live" });

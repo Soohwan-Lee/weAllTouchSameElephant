@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { useSession, scenarioRevealToResult } from "@/lib/store";
+import { useSession, scenarioRevealToResult, bridgeEditsFrom } from "@/lib/store";
 import { getScenario } from "@/lib/scenarios";
 import { fetchName } from "@/lib/api";
 import { findClusters } from "@/lib/clusters";
@@ -67,19 +67,7 @@ export function MirrorScreen() {
   // Reading it back here lets the reveal prompt see the connections as the team FOUGHT them,
   // not just as they finally stand.
   const events = useSession((s) => s.events);
-  const bridgeHistory = useMemo(() => {
-    const m = new Map<string, { aiRelationType?: RelationType; retyped?: boolean; edited?: boolean }>();
-    for (const e of events) {
-      if (e.type !== "bridge_confirmed") continue;
-      // last confirmation wins — a link can be unconfirmed and re-confirmed
-      m.set(e.bridgeId, {
-        aiRelationType: e.aiRelationType,
-        retyped: e.retypedRelation,
-        edited: e.edited,
-      });
-    }
-    return m;
-  }, [events]);
+  const bridgeHistory = useMemo(() => bridgeEditsFrom(events), [events]);
   const clusters = findClusters(fragments, bridges, 3);
   const main = clusters[0];
   const byId = (id: string) => fragments.find((f) => f.id === id);
@@ -90,17 +78,43 @@ export function MirrorScreen() {
 
   // the core + kept tensions, in fragment titles — shared by decision-directions and trade-off
   const shape = useMemo(() => {
-    if (!main) return { cruxTitle: undefined as string | undefined, tensions: [] as Array<{ a: string; b: string }> };
+    const empty = {
+      cruxTitle: undefined as string | undefined,
+      tensions: [] as Array<{ a: string; b: string; id?: string; why?: string; retyped?: boolean }>,
+      pieces: [] as Array<{ title: string; body: string; role?: string }>,
+      spine: [] as string[][],
+    };
+    if (!main) return empty;
     const synth = computeSynthesis(fragments, bridges, main);
     const keystone = synth.facets.find((f) => f.id === synth.keystoneFacetId);
     const cruxTitle = keystone ? byId(keystone.anchorId)?.title : undefined;
+    // Carry the link's own explanation and whether the team re-typed it. Two 3-word titles
+    // are not enough for anything downstream to tell WHY a pair is in tension; the sentence
+    // the team wrote about it is.
     const tensions = synth.tensions.map((tn) => {
       const b = bridges.find((x) => x.id === tn.bridgeId);
-      return { a: byId(b?.fragmentAId ?? "")?.title ?? "?", b: byId(b?.fragmentBId ?? "")?.title ?? "?" };
+      return {
+        id: b?.id,
+        a: byId(b?.fragmentAId ?? "")?.title ?? "?",
+        b: byId(b?.fragmentBId ?? "")?.title ?? "?",
+        why: b?.explanation,
+        retyped: b ? Boolean(bridgeHistory.get(b.id)?.retyped) : false,
+      };
     });
-    return { cruxTitle, tensions };
+    // The pieces and the causal spine were computed here for the reveal and then dropped
+    // before the decision-directions call, which left it reasoning from headline titles.
+    const pieces = main.fragmentIds
+      .map(byId)
+      .filter(Boolean)
+      .map((f) => ({ title: f!.title, body: f!.body, role: f!.authorRole }));
+    const anchorTitleOf = (fid: string) => {
+      const f = synth.facets.find((x) => x.id === fid);
+      return f ? byId(f.anchorId)?.title ?? "?" : "?";
+    };
+    const spine = synth.spine.map((chain) => chain.map(anchorTitleOf));
+    return { cruxTitle, tensions, pieces, spine };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [main?.id, fragments, bridges]);
+  }, [main?.id, fragments, bridges, bridgeHistory]);
 
   // rail entries mirror exactly which sections are actually rendered below, so the scroll-spy
   // never points at a section that isn't there. Decision appears once a question exists;
@@ -397,6 +411,8 @@ export function MirrorScreen() {
                       realQuestion={question ?? ""}
                       cruxTitle={shape.cruxTitle}
                       tensions={shape.tensions}
+                      pieces={shape.pieces}
+                      spine={shape.spine}
                       lang={lang}
                     />
                   </section>
@@ -736,6 +752,8 @@ function NextStep({
   realQuestion,
   cruxTitle,
   tensions,
+  pieces = [],
+  spine = [],
   lang,
 }: {
   value: string;
@@ -743,7 +761,12 @@ function NextStep({
   onCommit: (v: string) => void;
   realQuestion: string;
   cruxTitle?: string;
-  tensions: Array<{ a: string; b: string }>;
+  /** `why` is the team's own sentence about the tension; `retyped` marks one they insisted on */
+  tensions: Array<{ a: string; b: string; why?: string; retyped?: boolean }>;
+  /** the pieces themselves, so a suggested direction can rest on what people wrote */
+  pieces?: Array<{ title: string; body: string; role?: string }>;
+  /** causal chains root→symptom */
+  spine?: string[][];
   lang: "en" | "ko";
 }) {
   const { t } = useI18n();
@@ -759,7 +782,7 @@ function NextStep({
     setDirLoading(true);
     try {
       const { fetchDirections } = await import("@/lib/api");
-      const { directions: d } = await fetchDirections(value, realQuestion, cruxTitle, tensions, lang);
+      const { directions: d } = await fetchDirections(value, realQuestion, cruxTitle, tensions, lang, pieces, spine);
       setDirections(d);
     } finally {
       setDirLoading(false);
@@ -969,13 +992,7 @@ function TradeOffPanel({ decision, cluster, onRevise }: { decision: string; clus
   // same lookup in MirrorScreen. A tension the team argued the AI into is the one they are
   // surest is real, so it deserves priority when naming what a decision costs.
   const events = useSession((s) => s.events);
-  const bridgeHistory = useMemo(() => {
-    const m = new Map<string, { retyped?: boolean }>();
-    for (const e of events) {
-      if (e.type === "bridge_confirmed") m.set(e.bridgeId, { retyped: e.retypedRelation });
-    }
-    return m;
-  }, [events]);
+  const bridgeHistory = useMemo(() => bridgeEditsFrom(events), [events]);
   const [loading, setLoading] = useState(false);
   const [res, setRes] = useState<{ tension: string; favors: string; cost: string } | null>(null);
   const [opened, setOpened] = useState(false);

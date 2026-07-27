@@ -7,7 +7,7 @@ export const maxDuration = 30;
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-5.4-mini";
 
-type Pair = { a: string; b: string };
+type Pair = { a: string; b: string; why?: string; retyped?: boolean };
 
 /**
  * Deterministic fallback — starting DIRECTIONS built from the shape, no invention. Each is a
@@ -47,6 +47,8 @@ export async function POST(req: NextRequest) {
     cruxTitle?: string;
     tensions?: Pair[];
     lang?: "en" | "ko";
+    pieces?: Array<{ title: string; body: string; role?: string }>;
+    spine?: string[][];
   };
   try {
     body = await req.json();
@@ -58,6 +60,10 @@ export async function POST(req: NextRequest) {
   const realQuestion = String(body.realQuestion ?? "").slice(0, 400);
   const cruxTitle = body.cruxTitle ? String(body.cruxTitle).slice(0, 120) : undefined;
   const tensions = Array.isArray(body.tensions) ? body.tensions.slice(0, 12) : [];
+  // The pieces and the causal spine were already computed for the reveal on this same screen
+  // and then dropped before this call, leaving directions to reason from headline titles.
+  const pieces = Array.isArray(body.pieces) ? body.pieces.slice(0, 20) : [];
+  const spine = Array.isArray(body.spine) ? body.spine.slice(0, 6) : [];
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -68,7 +74,7 @@ export async function POST(req: NextRequest) {
     const client = new OpenAI({ apiKey });
     const completion = await client.chat.completions.create({
       model: MODEL,
-      messages: [{ role: "user", content: directionsPrompt(decision, realQuestion, cruxTitle, tensions, lang) }],
+      messages: [{ role: "user", content: directionsPrompt(decision, realQuestion, cruxTitle, tensions, lang, pieces, spine) }],
       response_format: { type: "json_object" },
       temperature: 0.7,
     });

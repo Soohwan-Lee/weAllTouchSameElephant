@@ -1,5 +1,5 @@
-import type { BridgeProposal, Fragment, MirrorReflection, NameResult, RevealMode } from "./types";
-import type { CardCandidate, MirrorInput, NameInput, SeedSuggestion } from "./prompts";
+import type { BridgeProposal, Fragment, NameResult, RelationType, RevealMode } from "./types";
+import type { BridgeContext, CardCandidate, NameInput, SeedSuggestion } from "./prompts";
 
 export type BridgeMode = "live" | "sample" | "empty" | "error";
 
@@ -56,16 +56,20 @@ export async function fetchSeeds(
   }
 }
 
+/** `context` carries what the team has already confirmed or dismissed, so a repeat round
+ *  proposes something new rather than re-offering settled work. Optional: without it the
+ *  route behaves exactly as before. */
 export async function fetchBridges(
   fragments: Fragment[],
   lang: "en" | "ko",
-  max = 3
+  max = 3,
+  context?: BridgeContext
 ): Promise<{ bridges: BridgeProposal[]; mode: BridgeMode }> {
   try {
     const res = await fetch("/api/bridges", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fragments, lang, max }),
+      body: JSON.stringify({ fragments, lang, max, context }),
     });
     if (!res.ok) return { bridges: [], mode: "error" };
     return await res.json();
@@ -92,36 +96,21 @@ export async function fetchName(
   }
 }
 
-export async function fetchMirror(
-  input: MirrorInput,
-  lang: "en" | "ko"
-): Promise<{ reflection: MirrorReflection; mode: string }> {
-  try {
-    const res = await fetch("/api/mirror", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ input, lang }),
-    });
-    if (!res.ok) {
-      return { reflection: { connected: [], tensions: [], separate: [] }, mode: "error" };
-    }
-    return await res.json();
-  } catch {
-    return { reflection: { connected: [], tensions: [], separate: [] }, mode: "error" };
-  }
-}
-
+/** `links` lets the seat-finder see the shape the team has built, not just isolated cards —
+ *  a kept tension shows a trade-off it may only be hearing one side of. Optional; empty on a
+ *  first pass through Gather, which behaves exactly as before. */
 export async function fetchBlindSpot(
   decision: string,
   pieces: Array<{ title: string; body: string; role: string }>,
   lang: "en" | "ko",
-  exclude: string[] = []
+  exclude: string[] = [],
+  links: Array<{ a: string; b: string; relationType: RelationType; why?: string }> = []
 ): Promise<{ angle: string; rationale: string; question: string; mode: string }> {
   try {
     const res = await fetch("/api/blindspot", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ decision, pieces, lang, exclude }),
+      body: JSON.stringify({ decision, pieces, lang, exclude, links }),
     });
     if (!res.ok) return { angle: "", rationale: "", question: "", mode: "error" };
     return await res.json();
@@ -160,18 +149,23 @@ export async function fetchTradeOff(
   }
 }
 
+/** `pieces`/`spine` carry the team's own words and the causal chain they built, so a
+ *  starting direction can rest on what people actually wrote instead of on headline titles.
+ *  Both optional — omitting them reproduces the previous behavior. */
 export async function fetchDirections(
   decision: string,
   realQuestion: string,
   cruxTitle: string | undefined,
-  tensions: Array<{ a: string; b: string }>,
-  lang: "en" | "ko"
+  tensions: Array<{ a: string; b: string; why?: string; retyped?: boolean }>,
+  lang: "en" | "ko",
+  pieces: Array<{ title: string; body: string; role?: string }> = [],
+  spine: string[][] = []
 ): Promise<{ directions: Array<{ direction: string; because: string }>; mode: string }> {
   try {
     const res = await fetch("/api/directions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ decision, realQuestion, cruxTitle, tensions, lang }),
+      body: JSON.stringify({ decision, realQuestion, cruxTitle, tensions, lang, pieces, spine }),
     });
     if (!res.ok) return { directions: [], mode: "error" };
     return await res.json();
