@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import type {
   Bridge,
+  BridgeEdit,
   BridgeProposal,
   Fragment,
   NameResult,
@@ -120,16 +121,6 @@ function sessionMeta() {
   }
   return { sessionId, startedAt };
 }
-/** What the team did to one AI-proposed link on its way to being confirmed. */
-export interface BridgeEdit {
-  /** the type the AI first proposed, when it differs from the type the team settled on */
-  aiRelationType?: RelationType;
-  /** the team re-typed the relation — they refused the AI's reading of this boundary */
-  retyped?: boolean;
-  /** the team rewrote the explanation in their own words */
-  edited?: boolean;
-}
-
 /**
  * Recover, per bridge, what the AI originally proposed versus what the team settled on.
  *

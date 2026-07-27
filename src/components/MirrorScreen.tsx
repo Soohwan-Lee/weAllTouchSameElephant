@@ -83,6 +83,8 @@ export function MirrorScreen() {
       tensions: [] as Array<{ a: string; b: string; id?: string; why?: string; retyped?: boolean }>,
       pieces: [] as Array<{ title: string; body: string; role?: string }>,
       spine: [] as string[][],
+      facets: [] as FacetSummary[],
+      wholeness: 0,
     };
     if (!main) return empty;
     const synth = computeSynthesis(fragments, bridges, main);
@@ -112,7 +114,16 @@ export function MirrorScreen() {
       return f ? byId(f.anchorId)?.title ?? "?" : "?";
     };
     const spine = synth.spine.map((chain) => chain.map(anchorTitleOf));
-    return { cruxTitle, tensions, pieces, spine };
+    // the sides the pieces grouped into — what the engine knows that the link list doesn't
+    const facets: FacetSummary[] = synth.facets.map((f) => ({
+      anchor: byId(f.anchorId)?.title ?? "?",
+      members: f.fragmentIds.map((id) => byId(id)?.title ?? "?"),
+      depth: f.depth,
+      supports: f.supports,
+      dependsOn: f.dependsOn,
+      isKeystone: f.id === synth.keystoneFacetId,
+    }));
+    return { cruxTitle, tensions, pieces, spine, facets, wholeness: Math.round(synth.coverage.wholeness * 100) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [main?.id, fragments, bridges, bridgeHistory]);
 
@@ -152,29 +163,10 @@ export function MirrorScreen() {
 
     setLoading(true);
     try {
-      const synth = computeSynthesis(fragments, bridges, main);
-      const keystone = synth.facets.find((f) => f.id === synth.keystoneFacetId);
-      const cruxTitle = keystone ? byId(keystone.anchorId)?.title : undefined;
-
-      // hand the AI the SHAPE, not just a list
-      const facets: FacetSummary[] = synth.facets.map((f) => ({
-        anchor: byId(f.anchorId)?.title ?? "?",
-        members: f.fragmentIds.map((id) => byId(id)?.title ?? "?"),
-        depth: f.depth,
-        supports: f.supports,
-        dependsOn: f.dependsOn,
-        isKeystone: f.id === synth.keystoneFacetId,
-      }));
-      const tensions = synth.tensions.map((tn) => {
-        const b = bridges.find((x) => x.id === tn.bridgeId);
-        return { a: byId(b?.fragmentAId ?? "")?.title ?? "?", b: byId(b?.fragmentBId ?? "")?.title ?? "?" };
-      });
-      // causal chains as anchor titles (root→symptom) so the model sees the actual spine
-      const anchorTitleOf = (fid: string) => {
-        const f = synth.facets.find((x) => x.id === fid);
-        return f ? byId(f.anchorId)?.title ?? "?" : "?";
-      };
-      const spine = synth.spine.map((chain) => chain.map(anchorTitleOf));
+      // the shape memo already computed all of this off the same fragments/bridges —
+      // recomputing it here ran computeSynthesis twice per reveal and let the two copies
+      // drift (the local tensions lost the `why`/`retyped` the memo carries).
+      const { cruxTitle, facets, tensions, spine, wholeness } = shape;
 
       const clusterFrags = main.fragmentIds.map(byId).filter(Boolean) as typeof fragments;
       const clusterBridges = bridges.filter(
@@ -214,7 +206,7 @@ export function MirrorScreen() {
         cruxTitle,
         facets,
         spine,
-        wholeness: Math.round(synth.coverage.wholeness * 100),
+        wholeness,
       };
       let res = await fetchName(input, lang, chosen);
       // a failed reveal used to render as an assembled screen with a blank reading and no
@@ -995,7 +987,7 @@ function TradeOffPanel({ decision, cluster, onRevise }: { decision: string; clus
   const events = useSession((s) => s.events);
   const bridgeHistory = useMemo(() => bridgeEditsFrom(events), [events]);
   const [loading, setLoading] = useState(false);
-  const [res, setRes] = useState<{ tension: string; favors: string; cost: string } | null>(null);
+  const [res, setRes] = useState<{ tension: string; favors: string; cost: string; groundedBridgeId?: string } | null>(null);
   const [opened, setOpened] = useState(false);
   // the contest: how the team answered the named cost — the actual boundary-work signal
   const [stance, setStance] = useState<"accepted" | "relocated" | "rejected" | null>(null);
@@ -1045,7 +1037,7 @@ function TradeOffPanel({ decision, cluster, onRevise }: { decision: string; clus
       const r = await fetchTradeOff(decision, tensions, separations, lang);
       setRes(r);
       if (r.tension || r.cost) {
-        logEvent({ type: "tradeoff_shown", tension: r.tension, favors: r.favors, cost: r.cost });
+        logEvent({ type: "tradeoff_shown", tension: r.tension, favors: r.favors, cost: r.cost, groundedBridgeId: r.groundedBridgeId });
       }
     } finally {
       setLoading(false);

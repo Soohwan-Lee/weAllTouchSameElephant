@@ -1,4 +1,4 @@
-import type { Bridge, Fragment, RelationType } from "./types";
+import type { Bridge, BridgeEdit, Fragment, RelationType } from "./types";
 
 /**
  * GROUNDING — the layer that makes the LLM's output *checkable* against the team's own table.
@@ -84,17 +84,6 @@ export interface GroundingTable {
 }
 
 /**
- * What the event log can tell us about one bridge's history. Derived from `bridge_confirmed`
- * events, which already carry the AI's original type/explanation beside the human's final
- * ones — this shape is just the part the prompt layer needs.
- */
-export interface BridgeHistory {
-  aiRelationType?: RelationType;
-  retyped?: boolean;
-  edited?: boolean;
-}
-
-/**
  * Mint handles for the pieces and links that are actually in play.
  *
  * Handles are positional (F1, F2, … in the given order) rather than derived from the real ids.
@@ -105,7 +94,7 @@ export interface BridgeHistory {
 export function buildGroundingTable(
   fragments: Fragment[],
   bridges: Bridge[],
-  history: Map<string, BridgeHistory> = new Map()
+  history: Map<string, BridgeEdit> = new Map()
 ): GroundingTable {
   const handled: HandledFragment[] = fragments.map((f, i) => ({
     handle: `${FRAGMENT_PREFIX}${i + 1}`,
@@ -128,8 +117,8 @@ export function buildGroundingTable(
         handle: `${BRIDGE_PREFIX}${i + 1}`,
         id: b.id,
         relationType: b.relationType,
-        aTitle: titleOfFragment.get(b.fragmentAId) ?? "?",
-        bTitle: titleOfFragment.get(b.fragmentBId) ?? "?",
+        aTitle: titleOfFragment.get(b.fragmentAId)!,
+        bTitle: titleOfFragment.get(b.fragmentBId)!,
         aHandle: handleOfFragment.get(b.fragmentAId)!,
         bHandle: handleOfFragment.get(b.fragmentBId)!,
         explanation: b.explanation,

@@ -172,8 +172,13 @@ export async function POST(req: NextRequest) {
   // Mint a citable handle per kept tension/separation so the model must POINT at the one it
   // used instead of paraphrasing it — the difference between a cost we can trace to a link
   // the team confirmed and a cost that merely sounds like one.
-  const withHandles = (list: Pair[], prefix: string) =>
-    list.map((p, i) => ({ ...p, handle: p.id ? `${prefix}${i + 1}` : undefined }));
+  // Number handles over the entries that can actually HAVE one. Using the array index meant a
+  // list whose first entry lacked an id produced "[T2]" with no T1 above it — a gap the model
+  // reads as a handle it simply wasn't shown, and citing the missing T1 resolves to nothing.
+  const withHandles = (list: Pair[], prefix: string) => {
+    let n = 0;
+    return list.map((p) => ({ ...p, handle: p.id ? `${prefix}${++n}` : undefined }));
+  };
   const tensionsH = withHandles(tensions, "T");
   const separationsH = withHandles(separations, "S");
   const handleToId = new Map<string, string>();

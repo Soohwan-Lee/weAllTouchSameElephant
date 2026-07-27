@@ -174,7 +174,10 @@ function traceFor(
     verifyClaim(parsed.question, parsed.questionGrounds, table),
   ];
   // explore returns several readings, each with its own citation list; verdict/hypothesis one.
-  const rg = parsed.readingGrounds;
+  // The field is named after the claim (`verdictGrounds`, `readingsGrounds`), but accept the
+  // older generic name too: a citation we fail to find is scored as an ungrounded claim, so
+  // being strict here would mean under-reporting grounding rather than catching an error.
+  const rg = parsed[`${mode}Grounds`] ?? parsed.readingsGrounds ?? parsed.readingGrounds;
   if (mode === "explore") {
     const readings = Array.isArray(parsed.readings) ? parsed.readings : [];
     readings.forEach((r, i) => {

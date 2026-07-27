@@ -180,7 +180,7 @@ export function namePrompt(
   // Handle-rendered when we can cite, plain when we can't — same prose either way.
   const frags = table
     ? renderFragments(table)
-    : input.fragments.map((f) => `- ${f.title}: ${f.body}`).join("\n");
+    : input.fragments.map((f) => `- ${f.title}: ${f.body}`).join("\n") || "(none)";
   const links = table
     ? renderBridges(table)
     : input.bridges
@@ -195,7 +195,7 @@ export function namePrompt(
               : "";
           return `${base}${why}${over}`;
         })
-        .join("\n");
+        .join("\n") || "(none)";
 
   // The SHAPE block carries only what the ENGINE knows and the link list does not: which
   // pieces fused into one side, which side is the causal root, and the chains that ordering
@@ -246,11 +246,16 @@ export function namePrompt(
   const fields: string[] = [];
   // explore returns several readings, so its citations are one handle list PER reading,
   // positionally matched to the readings array (see traceFor in the name route).
+  //
+  // The citation field is named after the claim it supports. Asking for "readingGrounds"
+  // beside a field called "verdict" reads as a mismatch, and a model that tidies it up to
+  // "verdictGrounds" would have its citations silently missed — recording a well-grounded
+  // answer as ungrounded, which corrupts the very metric this exists to produce.
   if (table)
     fields.push(
       mode === "explore"
-        ? `"readingGrounds":[["<handles for reading 1>"],["<handles for reading 2>"]]`
-        : cite("readingGrounds", "the reading")
+        ? `"readingsGrounds":[["<handles for reading 1>"],["<handles for reading 2>"]]`
+        : cite(`${mode}Grounds`, `the ${mode}`)
     );
   fields.push(readingField);
   if (table) fields.push(cite("nameGrounds", "the name"));

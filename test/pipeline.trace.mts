@@ -32,7 +32,20 @@ const bridges = [
 ];
 
 const say = (h: string) => console.log(`\n${"═".repeat(78)}\n${h}\n${"═".repeat(78)}`);
-const has = (hay: string, needle: string) => (hay.includes(needle) ? "✅" : "❌ MISSING");
+
+// A trace that only prints can never fail, so it rots. Every check below is also an
+// assertion: if a hand-off breaks, this exits non-zero instead of printing a quiet ❌.
+let failures = 0;
+const has = (hay: string, needle: string) => {
+  if (hay.includes(needle)) return "✅";
+  failures++;
+  return "❌ MISSING";
+};
+const expect = (cond: boolean, what: string) => {
+  if (cond) return "✅";
+  failures++;
+  return `❌ ${what}`;
+};
 
 // ── STAGE 2: Connect — do the CARDS reach the link proposal? ──
 say("STAGE 2 · CONNECT — do the team's cards reach the bridge prompt?");
@@ -62,7 +75,7 @@ console.log(`  spine: ${synth.spine.map((c) => c.map((fid) => { const fx = synth
 console.log(`  → is "separate" (b4) excluded from the walk? f2-f3 must NOT be fused:`);
 const f2f = synth.facets.find((x) => x.fragmentIds.includes("f2"));
 const f3f = synth.facets.find((x) => x.fragmentIds.includes("f3"));
-console.log(`     f2 in ${f2f?.id}, f3 in ${f3f?.id} → ${f2f?.id !== f3f?.id ? "✅ kept apart" : "❌ FUSED"}`);
+console.log(`     f2 in ${f2f?.id}, f3 in ${f3f?.id} → ${expect(f2f?.id !== f3f?.id, "FUSED — separate must never join two pieces")}`);
 
 // ── STAGE 3b: does the reveal prompt carry BOTH the cards and the links? ──
 say("STAGE 3b · REVEAL — do cards AND confirmed links reach the elephant prompt?");
@@ -126,4 +139,8 @@ for (const f of clusterFrags) {
   const n = np.split(f.title).length - 1;
   console.log(`  "${f.title}" appears ${n}×`);
 }
-console.log("\nDONE");
+if (failures) {
+  console.error(`\n${failures} pipeline hand-off check(s) FAILED — the team's work is not reaching a prompt.`);
+  process.exit(1);
+}
+console.log("\nAll pipeline hand-offs intact.");

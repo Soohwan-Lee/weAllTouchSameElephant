@@ -57,6 +57,17 @@ export interface Fragment {
   y: number;
 }
 
+/** What the team did to one AI-proposed link on its way to being confirmed.
+ *  Recovered from the event log by `bridgeEditsFrom`; `bridges` only holds the final state. */
+export interface BridgeEdit {
+  /** the type the AI first proposed, when it differs from the type the team settled on */
+  aiRelationType?: RelationType;
+  /** the team re-typed the relation — they refused the AI's reading of this boundary */
+  retyped?: boolean;
+  /** the team rewrote the explanation in their own words */
+  edited?: boolean;
+}
+
 export type BridgeStatus = "proposed" | "confirmed" | "edited" | "rejected";
 
 export interface Bridge {
@@ -111,7 +122,10 @@ export type SessionEvent =
   // different from ignoring it, and is itself boundary work (declining a proposed gap).
   | { id: string; seq: number; t: number; actorId?: string; type: "blindspot_dismissed"; angle: string }
   // the team saw the cost their decision commits to — exposure-vs-action for the trade-off.
-  | { id: string; seq: number; t: number; actorId?: string; type: "tradeoff_shown"; tension: string; favors: string; cost: string }
+  // `groundedBridgeId` is the link the cost was actually read off, verified server-side.
+  // Absent means the cost is an opportunity cost tied to no kept tension — a legitimate
+  // outcome, and one worth telling apart from a cost that mirrors a tension the team kept.
+  | { id: string; seq: number; t: number; actorId?: string; type: "tradeoff_shown"; tension: string; favors: string; cost: string; groundedBridgeId?: string }
   // …and how they answered it. Contesting the named cost is Integration Boundary Work in its
   // purest form — the team renegotiating what their decision merges vs keeps separate. The
   // stance says whether they took the AI's framing, moved the cost, or rejected it outright;
