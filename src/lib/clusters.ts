@@ -8,6 +8,52 @@ import type { Bridge, Fragment } from "./types";
  */
 export const isConnecting = (b: Bridge) => b.relationType !== "separate";
 
+/**
+ * One union-find, used by everything in this file that asks "what is joined to what".
+ *
+ * There were four hand-rolled copies here and they had already drifted — some pre-seeded
+ * `parent` and guarded `parent.has(...)`, others initialised lazily inside `find`, and one
+ * would recurse forever on an id it had never seen. Four copies of the definition of
+ * "connected" is how the gate, the seat panel, and the reveal quietly start disagreeing
+ * about the same table.
+ *
+ * `separate` is excluded by every caller through `isConnecting`, never here — this helper
+ * stays dumb about relation types so the boundary rule has exactly one home.
+ */
+function unionFind(ids: string[]) {
+  const parent = new Map<string, string>(ids.map((id) => [id, id]));
+  const find = (x: string): string => {
+    let r = x;
+    while (parent.get(r) !== r) r = parent.get(r)!;
+    // path-compress on the way back, iteratively — a deep chain must not blow the stack
+    while (parent.get(x) !== r) {
+      const next = parent.get(x)!;
+      parent.set(x, r);
+      x = next;
+    }
+    return r;
+  };
+  return {
+    find,
+    /** join two ids; ignores anything not on this table rather than inventing a node */
+    union(a: string, b: string) {
+      if (!parent.has(a) || !parent.has(b)) return;
+      const ra = find(a);
+      const rb = find(b);
+      if (ra !== rb) parent.set(ra, rb);
+    },
+  };
+}
+
+/** Join every id linked by a connecting bridge. The shared first half of every walk below. */
+function joinAll(fragments: Fragment[], bridges: Bridge[]) {
+  const uf = unionFind(fragments.map((f) => f.id));
+  for (const b of bridges) {
+    if (isConnecting(b)) uf.union(b.fragmentAId, b.fragmentBId);
+  }
+  return uf;
+}
+
 export interface Cluster {
   id: string;
   fragmentIds: string[];
@@ -24,22 +70,7 @@ export function findClusters(
   bridges: Bridge[],
   minSize = 3
 ): Cluster[] {
-  const parent = new Map<string, string>();
-  const find = (x: string): string => {
-    if (parent.get(x) !== x) parent.set(x, find(parent.get(x)!));
-    return parent.get(x)!;
-  };
-  const union = (a: string, b: string) => {
-    parent.set(find(a), find(b));
-  };
-
-  for (const f of fragments) parent.set(f.id, f.id);
-  for (const b of bridges) {
-    if (!isConnecting(b)) continue;
-    if (parent.has(b.fragmentAId) && parent.has(b.fragmentBId)) {
-      union(b.fragmentAId, b.fragmentBId);
-    }
-  }
+  const { find } = joinAll(fragments, bridges);
 
   const groups = new Map<string, string[]>();
   for (const f of fragments) {
@@ -77,17 +108,7 @@ export function findClusters(
  */
 export function largestClusterSize(fragments: Fragment[], bridges: Bridge[]): number {
   if (!fragments.length) return 0;
-  const parent = new Map<string, string>();
-  const find = (x: string): string => {
-    if (!parent.has(x)) parent.set(x, x);
-    if (parent.get(x) !== x) parent.set(x, find(parent.get(x)!));
-    return parent.get(x)!;
-  };
-  for (const f of fragments) parent.set(f.id, f.id);
-  for (const b of bridges) {
-    if (!isConnecting(b)) continue;
-    if (parent.has(b.fragmentAId) && parent.has(b.fragmentBId)) parent.set(find(b.fragmentAId), find(b.fragmentBId));
-  }
+  const { find } = joinAll(fragments, bridges);
   const counts = new Map<string, number>();
   for (const f of fragments) {
     const r = find(f.id);
@@ -172,19 +193,7 @@ export interface SeatCoverage {
 
 export function seatCoverage(fragments: Fragment[], bridges: Bridge[]): SeatCoverage {
   if (!fragments.length) return { total: 0, connected: 0, isolated: [] };
-  const parent = new Map<string, string>();
-  const find = (x: string): string => {
-    if (!parent.has(x)) parent.set(x, x);
-    if (parent.get(x) !== x) parent.set(x, find(parent.get(x)!));
-    return parent.get(x)!;
-  };
-  for (const f of fragments) parent.set(f.id, f.id);
-  for (const b of bridges) {
-    if (!isConnecting(b)) continue;
-    if (parent.has(b.fragmentAId) && parent.has(b.fragmentBId)) {
-      parent.set(find(b.fragmentAId), find(b.fragmentBId));
-    }
-  }
+  const { find } = joinAll(fragments, bridges);
 
   // seats per component, and the component sizes, in one pass
   const seatsByRoot = new Map<string, Set<string>>();
@@ -235,19 +244,14 @@ export function seatCoverage(fragments: Fragment[], bridges: Bridge[]): SeatCove
  * never a block: people may keep a redundant edge on purpose, and that choice is data.
  */
 export function countRedundantEdges(bridges: Bridge[]): number {
-  const parent = new Map<string, string>();
-  const find = (x: string): string => {
-    if (!parent.has(x)) parent.set(x, x);
-    if (parent.get(x) !== x) parent.set(x, find(parent.get(x)!));
-    return parent.get(x)!;
-  };
+  // every id these bridges touch — this one is edge-driven, so it seeds from the edges
+  const touched = [...new Set(bridges.flatMap((b) => [b.fragmentAId, b.fragmentBId]))];
+  const { find, union } = unionFind(touched);
   let redundant = 0;
   for (const b of bridges) {
     if (!isConnecting(b)) continue; // a boundary is not an extra link
-    const ra = find(b.fragmentAId);
-    const rb = find(b.fragmentBId);
-    if (ra === rb) redundant++; // both ends already connected → this edge closes a cycle
-    else parent.set(ra, rb);
+    if (find(b.fragmentAId) === find(b.fragmentBId)) redundant++; // closes a cycle
+    else union(b.fragmentAId, b.fragmentBId);
   }
   return redundant;
 }

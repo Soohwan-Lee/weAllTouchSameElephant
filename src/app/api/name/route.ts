@@ -139,7 +139,6 @@ function tableFor(input: NameInput): GroundingTable | null {
           explanation: b.explanation ?? "",
           evidenceA: b.evidenceA ?? "",
           evidenceB: b.evidenceB ?? "",
-          confidence: 1,
           status: "confirmed",
           createdBy: b.humanDrawn ? "human" : "ai",
         }) as Bridge

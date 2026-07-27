@@ -25,7 +25,6 @@ function sanitize(raw: unknown, fragments: Fragment[]): BridgeProposal[] {
     const rel = String(b.relationType ?? "") as RelationType;
     if (!ids.has(a) || !ids.has(c) || a === c) continue;
     if (!RELATION_TYPES.includes(rel)) continue;
-    const conf = Number(b.confidence);
     out.push({
       fragmentAId: a,
       fragmentBId: c,
@@ -33,7 +32,6 @@ function sanitize(raw: unknown, fragments: Fragment[]): BridgeProposal[] {
       explanation: String(b.explanation ?? "").slice(0, 400),
       evidenceA: String(b.evidenceA ?? "").slice(0, 200),
       evidenceB: String(b.evidenceB ?? "").slice(0, 200),
-      confidence: Number.isFinite(conf) ? Math.min(1, Math.max(0, conf)) : 0.6,
     });
   }
   return out;

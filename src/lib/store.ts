@@ -42,7 +42,6 @@ export function scenarioBridgesToProposals(
     explanation: b.explanation[lang],
     evidenceA: b.evidenceA[lang],
     evidenceB: b.evidenceB[lang],
-    confidence: b.confidence,
   }));
 }
 
@@ -531,7 +530,6 @@ export const useSession = create<SessionState>((set, get) => ({
         explanation: p.explanation,
         evidenceA: p.evidenceA,
         evidenceB: p.evidenceB,
-        confidence: p.confidence,
         status: "proposed",
         createdBy: "ai",
       });
@@ -664,7 +662,6 @@ export const useSession = create<SessionState>((set, get) => ({
       explanation,
       evidenceA: "",
       evidenceB: "",
-      confidence: 1,
       status: "edited",
       createdBy: "human",
       actorId: s.activeParticipantId ?? undefined,

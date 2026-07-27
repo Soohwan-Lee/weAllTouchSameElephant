@@ -124,7 +124,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "clearer audit evidence", ko: "명확한 감사 증거" },
         evidenceB: { en: "stronger traceability", ko: "강력한 추적성" },
-        confidence: 0.86,
       },
       {
         fragmentAId: "aud_support",
@@ -136,7 +135,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "can't see who changed settings", ko: "누가 바꿨는지 볼 수 없음" },
         evidenceB: { en: "audit evidence", ko: "감사 증거" },
-        confidence: 0.8,
       },
       {
         fragmentAId: "aud_security",
@@ -148,7 +146,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "no tamper-proof record", ko: "위변조 방지 기록 없음" },
         evidenceB: { en: "traceability of every change", ko: "모든 변경의 추적성" },
-        confidence: 0.85,
       },
       {
         fragmentAId: "aud_cs",
@@ -160,7 +157,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "don't trust our change history", ko: "변경 이력을 신뢰 못 함" },
         evidenceB: { en: "can't see who changed", ko: "누가 바꿨는지 못 봄" },
-        confidence: 0.78,
       },
       // SPINE: the capability drives revenue outcomes
       {
@@ -173,7 +169,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "deals stall", ko: "계약이 막힘" },
         evidenceB: { en: "depends on larger enterprise contracts", ko: "대형 계약에 달림" },
-        confidence: 0.82,
       },
       {
         fragmentAId: "aud_pm",
@@ -185,7 +180,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "bumped off the roadmap", ko: "로드맵에서 빠짐" },
         evidenceB: { en: "deals stall", ko: "계약이 막힘" },
-        confidence: 0.79,
       },
       {
         fragmentAId: "aud_security",
@@ -197,7 +191,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "no tamper-proof record", ko: "위변조 방지 기록 없음" },
         evidenceB: { en: "don't fully trust our change history", ko: "변경 이력을 신뢰 못 함" },
-        confidence: 0.77,
       },
       // TENSION: the fix collides with performance (kept alive)
       {
@@ -210,7 +203,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "traceability of every change", ko: "모든 변경의 추적성" },
         evidenceB: { en: "add real latency", ko: "실질적 지연 추가" },
-        confidence: 0.83,
       },
     ],
     reveal: {
@@ -362,7 +354,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "who the app is for", ko: "누구를 위한 앱인가" },
         evidenceB: { en: "what problem we're solving", ko: "무슨 문제를 푸는지" },
-        confidence: 0.84,
       },
       {
         fragmentAId: "cap_team",
@@ -374,7 +365,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "different app", ko: "다른 앱" },
         evidenceB: { en: "haven't agreed who", ko: "누구인지 미합의" },
-        confidence: 0.82,
       },
       {
         fragmentAId: "cap_advisor",
@@ -386,7 +376,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "pick one user and one core flow", ko: "한 사용자·한 핵심 흐름" },
         evidenceB: { en: "haven't agreed who", ko: "누구인지 미합의" },
-        confidence: 0.8,
       },
       // FACET B: "scope thrash" (scope / dev / qa fuse)
       {
@@ -399,7 +388,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "none feel finished", ko: "완성된 느낌이 아님" },
         evidenceB: { en: "no one owns which ship", ko: "무엇이 나갈지 주인 없음" },
-        confidence: 0.78,
       },
       {
         fragmentAId: "cap_scope",
@@ -411,7 +399,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "none feel finished", ko: "완성된 느낌이 아님" },
         evidenceB: { en: "plan changes I rewrite", ko: "계획 바뀌면 재작성" },
-        confidence: 0.82,
       },
       // SPINE: no shared target drives the scope thrash and the lost users
       {
@@ -424,7 +411,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "haven't agreed who", ko: "대상 미합의" },
         evidenceB: { en: "too many features", ko: "너무 많은 기능" },
-        confidence: 0.85,
       },
       {
         fragmentAId: "cap_research",
@@ -436,7 +422,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "who the app is for", ko: "누구를 위한 앱인가" },
         evidenceB: { en: "couldn't figure out the main flow", ko: "핵심 흐름을 이해 못 함" },
-        confidence: 0.8,
       },
       // TENSION: ship less vs the promises already made
       {
@@ -449,7 +434,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "pick one core flow", ko: "하나의 핵심 흐름" },
         evidenceB: { en: "promised too many features", ko: "너무 많은 기능을 약속" },
-        confidence: 0.76,
       },
     ],
     reveal: {
@@ -590,7 +574,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "flood whenever it rains", ko: "비만 오면 물이 고임" },
         evidenceB: { en: "water pools everywhere", ko: "물이 곳곳에 고임" },
-        confidence: 0.82,
       },
       // FACET B: "no safe route / no zones for who uses it" (parent / cyclist / dog fuse)
       {
@@ -603,7 +586,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "nowhere safe away from the road", ko: "도로에서 떨어진 안전한 곳 없음" },
         evidenceB: { en: "no safe way to cross", ko: "가로지를 안전한 길 없음" },
-        confidence: 0.79,
       },
       {
         fragmentAId: "park_dog",
@@ -615,7 +597,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "no zones", ko: "구역이 없음" },
         evidenceB: { en: "nowhere safe for kids", ko: "아이들이 놀 안전한 곳 없음" },
-        confidence: 0.76,
       },
       // FACET C bridge: benches complete the "who can actually use it" side
       {
@@ -628,7 +609,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "older people can't rest", ko: "나이 든 사람이 못 쉼" },
         evidenceB: { en: "nowhere safe for kids", ko: "아이들이 안전하게 놀 곳 없음" },
-        confidence: 0.74,
       },
       // SPINE: broken drainage drives the broken paths that block safe routes
       {
@@ -641,7 +621,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "water pools everywhere", ko: "물이 곳곳에 고임" },
         evidenceB: { en: "cracked and flood", ko: "갈라지고 물 고임" },
-        confidence: 0.78,
       },
       {
         fragmentAId: "park_runner",
@@ -653,7 +632,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "cracked and flood", ko: "갈라지고 물 고임" },
         evidenceB: { en: "no safe way to cross", ko: "가로지를 안전한 길 없음" },
-        confidence: 0.75,
       },
       // TENSION: one budget vs many needs (kept alive)
       {
@@ -666,7 +644,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "have to pick one thing", ko: "하나만 골라야 함" },
         evidenceB: { en: "nowhere safe for kids", ko: "아이들이 놀 안전한 곳 없음" },
-        confidence: 0.8,
       },
     ],
     reveal: {
@@ -805,7 +782,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "Roll it out now, everywhere", ko: "지금 전사에 깔고" },
         evidenceB: { en: "one team where it pays for itself", ko: "한 팀에서 본전을 뽑는" },
-        confidence: 0.9,
       },
       {
         // the rollout-shape axis: all-at-once vs power-users-first
@@ -818,7 +794,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "everyone gets it the same week", ko: "같은 주에 다 같이" },
         evidenceB: { en: "Give it to the ten people", ko: "열 명한테 먼저" },
-        confidence: 0.88,
       },
       {
         // the two "spread it" camps actually share one fear → the one real overlap
@@ -831,7 +806,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "playbook everyone else copies", ko: "나머지가 따라 할 플레이북" },
         evidenceB: { en: "whose job changes", ko: "누구 일이 바뀌는지" },
-        confidence: 0.72,
       },
       {
         // build-vs-buy sits UNDER the speed fight: data constraint gates every plan
@@ -844,7 +818,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "we build in-house or we don't", ko: "자체 구축하거나 안 하는" },
         evidenceB: { en: "now, everywhere", ko: "지금, 전사에" },
-        confidence: 0.8,
       },
       {
         // the one thing to KEEP SEPARATE: the jobs question is not a rollout tactic
@@ -857,7 +830,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "reads as layoffs", ko: "정리해고로 읽히고" },
         evidenceB: { en: "pays for itself", ko: "본전을 뽑는" },
-        confidence: 0.83,
       },
     ],
     reveal: {
@@ -990,7 +962,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "what happens to our jobs", ko: "우리 일자리가 어떻게" },
         evidenceB: { en: "no plan to retrain anyone", ko: "재교육할 계획 없음" },
-        confidence: 0.83,
       },
       {
         fragmentAId: "ai_cs",
@@ -1002,7 +973,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "trust erodes", ko: "신뢰가 무너짐" },
         evidenceB: { en: "liability is unclear", ko: "책임 소재 불분명" },
-        confidence: 0.76,
       },
       // SPINE: the cost push, run through an undefined purpose, produces the fear + risk
       {
@@ -1015,7 +985,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "automate the repetitive work", ko: "반복 업무 자동화" },
         evidenceB: { en: "replacing us", ko: "우릴 대체" },
-        confidence: 0.8,
       },
       {
         fragmentAId: "ai_exec",
@@ -1027,7 +996,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "margins fall behind", ko: "마진이 뒤처짐" },
         evidenceB: { en: "won't survive contact with it", ko: "실제 데이터에 닿으면 무너짐" },
-        confidence: 0.78,
       },
       {
         fragmentAId: "ai_legal",
@@ -1039,7 +1007,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "can't sign off", ko: "승인 못 함" },
         evidenceB: { en: "tickets come back angrier", ko: "문의가 더 화나서 돌아옴" },
-        confidence: 0.74,
       },
       {
         fragmentAId: "ai_exec",
@@ -1051,7 +1018,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "automate the repetitive work", ko: "반복 업무 자동화" },
         evidenceB: { en: "can't sign off without an accountability line", ko: "책임 라인 없이 승인 못 함" },
-        confidence: 0.76,
       },
       // TENSION: speed vs readiness — kept alive, not resolved
       {
@@ -1064,7 +1030,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "this year", ko: "올해" },
         evidenceB: { en: "isn't ready", ko: "준비 안 됨" },
-        confidence: 0.8,
       },
     ],
     reveal: {
@@ -1198,7 +1163,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "safety for my kids", ko: "아이들 안전" },
         evidenceB: { en: "empty out a block", ko: "블록을 비게 함" },
-        confidence: 0.75,
       },
       {
         fragmentAId: "sh_advocate",
@@ -1210,7 +1174,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "someone doesn't make it", ko: "누군가 못 넘김" },
         evidenceB: { en: "move the problem indoors", ko: "문제를 실내로 옮김" },
-        confidence: 0.72,
       },
       // SPINE: the unowned legitimacy question drives the councilmember's trap
       {
@@ -1223,7 +1186,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "what a shelter does to our home", ko: "쉼터가 집에 미치는 영향" },
         evidenceB: { en: "lose the other half", ko: "나머지 절반을 잃음" },
-        confidence: 0.73,
       },
       {
         fragmentAId: "sh_developer",
@@ -1235,7 +1197,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "permanent cost", ko: "영구 비용" },
         evidenceB: { en: "any decision costs me", ko: "어떤 결정도 대가가 큼" },
-        confidence: 0.7,
       },
       {
         fragmentAId: "sh_social",
@@ -1247,7 +1208,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "treatment and case work", ko: "치료와 사례 관리" },
         evidenceB: { en: "cost the city has to carry", ko: "시가 떠안는 비용" },
-        confidence: 0.68,
       },
       // TENSION: dignity vs revenue — genuinely incommensurable, kept alive
       {
@@ -1260,7 +1220,6 @@ export const SCENARIOS: Scenario[] = [
         },
         evidenceA: { en: "dignity and survival", ko: "존엄과 생존" },
         evidenceB: { en: "funds itself, adds tax base", ko: "자체 수익, 세수 증가" },
-        confidence: 0.82,
       },
     ],
     reveal: {

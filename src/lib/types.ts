@@ -22,7 +22,14 @@ export type RelationType = "overlap" | "tension" | "dependency" | "complement" |
 export type RevealMode = "explore" | "hypothesis" | "verdict";
 
 /** The modes actually offered in the UI — explore (open) and verdict (commit). */
-export const REVEAL_MODES: RevealMode[] = ["explore", "verdict"];
+/** Sharpness, in order. `hypothesis` sits between holding the space open and committing, and
+ *  it is the only one that hands back a way to be WRONG — it states the bet and the thing you
+ *  would see if it held. It had been dropped from this list while staying fully implemented,
+ *  which made the server's own hypothesis branch unreachable (`pickMode` downgrades anything
+ *  not listed here to "explore"). Giving a team something to disprove is the mechanism with
+ *  the empirical support: Schulz-Hardt et al. (2006) found any pre-discussion dissent raised
+ *  hidden-profile solution rates, mediated by discussion intensity. */
+export const REVEAL_MODES: RevealMode[] = ["explore", "hypothesis", "verdict"];
 
 export const RELATION_TYPES: RelationType[] = [
   "overlap",
@@ -96,7 +103,6 @@ export interface Bridge {
   /** short quote/paraphrase grounding the bridge in each fragment */
   evidenceA: string;
   evidenceB: string;
-  confidence: number; // 0..1
   status: BridgeStatus;
   createdBy: "ai" | "human";
   /** the participant who confirmed/edited/drew this bridge (the acting human). */
@@ -197,7 +203,6 @@ export interface BridgeProposal {
   explanation: string;
   evidenceA: string;
   evidenceB: string;
-  confidence: number;
 }
 
 /** Result of /api/name — a named elephant + the mode-specific "reading." */
@@ -263,7 +268,6 @@ export interface ScenarioBridge {
   explanation: { en: string; ko: string };
   evidenceA: { en: string; ko: string };
   evidenceB: { en: string; ko: string };
-  confidence: number;
 }
 
 /** Hand-written per-mode reveal for sample mode (no API key). Bilingual. */

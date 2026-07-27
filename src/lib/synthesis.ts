@@ -39,8 +39,6 @@ import type { Cluster } from "./clusters";
  * one that says "these are the same side"; the other three keep the pieces distinct.
  */
 
-export type FacetKind = "core" | "supporting";
-
 /** A "side of the elephant": pieces that are really the same thing seen differently. */
 export interface Facet {
   id: string;
@@ -49,7 +47,6 @@ export interface Facet {
   anchorId: string;
   /** dependency depth: 0 = a root pressure, higher = a downstream consequence */
   depth: number;
-  kind: FacetKind;
   /** how many other facets depend ON this one (out-degree — it drives them) */
   supports: number;
   /** how many other facets this one depends ON (in-degree — it's driven by them) */
@@ -62,10 +59,6 @@ export interface Facet {
 /** A tension that survived assembly — a live disagreement, not a defect. */
 export interface LiveTension {
   bridgeId: string;
-  facetA: string;
-  facetB: string;
-  /** true when both ends sit in the SAME facet (an internal, self-contained tension) */
-  internal: boolean;
 }
 
 /** A directed dependency between two facets (A feeds / drives B). */
@@ -89,7 +82,6 @@ export interface Synthesis {
   maxDepth: number;
   coverage: {
     total: number; // fragments in the cluster
-    joined: number; // fragments that share a facet with ≥1 other piece
     facetCount: number;
     tensionCount: number;
     /** 0..1 — how assembled the picture is (facets fused / integration reached) */
@@ -234,13 +226,11 @@ export function computeSynthesis(
     }
     const supports = supportsOf(fid);
     // "core" = a facet that fuses multiple pieces OR drives others; else supporting.
-    const kind: FacetKind = members.length > 1 || supports > 0 ? "core" : "supporting";
     return {
       id: fid,
       fragmentIds: members,
       anchorId,
       depth: depthOf(fid),
-      kind,
       supports,
       dependsOn: dependsOnOf(fid),
       isRoot: isRootOf(fid),
@@ -277,11 +267,10 @@ export function computeSynthesis(
     .map((b) => {
       const fa = facetIdOf(b.fragmentAId);
       const fb = facetIdOf(b.fragmentBId);
-      return { bridgeId: b.id, facetA: fa, facetB: fb, internal: fa === fb };
+      return { bridgeId: b.id };
     });
 
   // 7. COVERAGE / wholeness.
-  const joined = ids.filter((id) => (facetMembers.get(find(id))?.length ?? 1) > 1).length;
   const total = ids.length;
   const facetCount = facets.length;
 
@@ -373,7 +362,6 @@ export function computeSynthesis(
     maxDepth: maxPathDepth,
     coverage: {
       total,
-      joined,
       facetCount,
       tensionCount: tensions.length,
       wholeness,
