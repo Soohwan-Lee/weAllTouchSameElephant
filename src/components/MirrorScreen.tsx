@@ -16,6 +16,7 @@ import { StorySpine } from "./StorySpine";
 import { SynthesisSummary } from "./SynthesisSummary";
 import { Hint } from "./Hint";
 import { RevealRail, type RailSection } from "./RevealRail";
+import { VoiceTag } from "./VoiceTag";
 
 /**
  * The final picture — the assembled elephant.
@@ -388,6 +389,11 @@ export function MirrorScreen() {
                 <section id="watse-question" className="scroll-mt-20">
                   <RealQuestion
                     value={question ?? ""}
+                    // The AI's draft is seeded straight into this field, so a non-empty value
+                    // does NOT mean the team wrote it. Only a value that differs from the
+                    // AI's original is theirs — labelling the untouched draft "your words"
+                    // would be the tool putting words in their mouth.
+                    edited={!!question && question.trim() !== aiQuestion.current.trim()}
                     loading={loading}
                     onChange={(v) => main && setClusterQuestion(main.id, v)}
                     label={t("crux.realQuestion")}
@@ -628,7 +634,7 @@ function RevealResult({
         ) : mode === "hypothesis" ? (
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
-              💡 {t("reveal.hypothesisLabel")}
+              💡 {t("reveal.hypothesisLabel")} <VoiceTag who="ai" />
             </div>
             <p className="mt-2 text-balance text-xl font-semibold leading-snug text-ink sm:text-2xl">
               {result?.hypothesis}
@@ -637,7 +643,7 @@ function RevealResult({
         ) : (
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
-              🎯 {t("reveal.verdictLabel")}
+              🎯 {t("reveal.verdictLabel")} <VoiceTag who="ai" />
             </div>
             <p className="mt-2 text-balance text-2xl font-semibold leading-snug text-ink sm:text-[26px]">
               {result?.verdict}
@@ -678,6 +684,7 @@ function RevealResult({
 
 function RealQuestion({
   value,
+  edited,
   loading,
   onChange,
   label,
@@ -685,6 +692,8 @@ function RealQuestion({
   placeholder,
 }: {
   value: string;
+  /** true once the team has actually rewritten the AI's draft */
+  edited: boolean;
   loading: boolean;
   onChange: (v: string) => void;
   label: string;
@@ -697,11 +706,14 @@ function RealQuestion({
   // decision box below (the culminating action) read as the emphasis.
   return (
     <div className="animate-fade-up rounded-xl2 border border-line border-l-[3px] border-l-accent bg-paper-card p-5 shadow-card">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent-soft text-sm">
           ❓
         </span>
         <span className="text-[13px] font-bold text-ink">{label}</span>
+        {/* the AI drafts this question; the team rewrites it. Saying so is what makes the
+            rewrite discoverable — people left it untouched when it read as a fixed output. */}
+        <VoiceTag who={edited ? "team" : "ai"} />
       </div>
       {loading ? (
         <div className="mt-2 text-sm text-ink-faint">…</div>
@@ -1060,7 +1072,7 @@ function TradeOffPanel({ decision, cluster, onRevise }: { decision: string; clus
   return (
     <div className="animate-fade-up rounded-xl2 border border-ink/15 bg-paper-card p-5 shadow-card">
       <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-        ⚖️ {t("trade.label")}
+        ⚖️ {t("trade.label")} <VoiceTag who="ai" />
       </div>
       {/* say WHY this appeared — it shows up the moment a decision is written, which reads
           as unrelated chrome without this line. */}
@@ -1070,17 +1082,32 @@ function TradeOffPanel({ decision, cluster, onRevise }: { decision: string; clus
       ) : res && (res.tension || res.cost) ? (
         <>
           {res.tension && <div className="mt-2 text-sm font-medium text-ink">{res.tension}</div>}
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {/* The two sides are set AGAINST each other, not merely listed side by side: one
+              side is taken and the other gives way, and the layout should make that visible
+              at a glance. Spatially juxtaposing conflicting values is what stops a team
+              nodding past a cost it would otherwise rationalise away — and this panel exists
+              to be argued with, so the cost has to land before the contest buttons do. */}
+          <div className="mt-2.5 grid items-stretch gap-0 sm:grid-cols-[1fr_auto_1fr]">
             {res.favors && (
-              <div className="rounded-lg bg-accent-soft/30 px-3 py-2">
-                <div className="text-[10px] font-semibold uppercase tracking-wide text-accent">{t("trade.favors")}</div>
-                <div className="mt-0.5 text-[13px] leading-snug text-ink">{res.favors}</div>
+              <div className="rounded-l-lg rounded-r-lg border border-accent/30 bg-accent-soft/30 px-3 py-2.5 sm:rounded-r-none">
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-accent">
+                  ▲ {t("trade.favors")}
+                </div>
+                <div className="mt-0.5 text-[13px] font-medium leading-snug text-ink">{res.favors}</div>
               </div>
             )}
+            <div
+              aria-hidden
+              className="my-1 flex items-center justify-center px-2 text-[11px] font-semibold text-ink-faint sm:my-0 sm:border-y sm:border-line"
+            >
+              {t("trade.versus")}
+            </div>
             {res.cost && (
-              <div className="rounded-lg bg-tension/5 px-3 py-2">
-                <div className="text-[10px] font-semibold uppercase tracking-wide text-tension">{t("trade.cost")}</div>
-                <div className="mt-0.5 text-[13px] leading-snug text-ink">{res.cost}</div>
+              <div className="rounded-l-lg rounded-r-lg border border-tension/30 bg-tension/5 px-3 py-2.5 sm:rounded-l-none">
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-tension">
+                  ▼ {t("trade.cost")}
+                </div>
+                <div className="mt-0.5 text-[13px] font-medium leading-snug text-ink">{res.cost}</div>
               </div>
             )}
           </div>

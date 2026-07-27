@@ -535,8 +535,13 @@ const dict = {
   // ---- trade-off (after the decision): what it commits to giving up ----
   "trade.label": { en: "What this decision gives up", ko: "이 결정이 포기하는 것" },
   "trade.checking": { en: "Reading the cost…", ko: "대가를 읽는 중…" },
+  /** provenance tags — which blocks are the AI's proposals vs the team's own words */
+  "voice.ai": { en: "AI proposes", ko: "AI 제안" },
+  "voice.team": { en: "Your words", ko: "우리가 쓴 것" },
   "trade.favors": { en: "Leans toward", ko: "택하는 쪽" },
   "trade.cost": { en: "Gives way", ko: "밀리는 쪽" },
+  /** sits between the two sides so the trade reads as one against the other, not as a list */
+  "trade.versus": { en: "at the cost of", ko: "대신" },
   "trade.none": {
     en: "No kept tension lines up with this decision — nothing obvious is being traded off.",
     ko: "이 결정과 맞물리는 긴장이 없어요 — 뚜렷이 포기하는 건 없어 보여요.",
