@@ -156,6 +156,17 @@ The table above is the *input* side — what each step sees. The question that a
 | Trade-off tied to a real kept tension | 3/3 |
 | Next move rests on the team's spine | 3/3 |
 
+Once one such bug turned up, the pattern was worth hunting rather than waiting for. **Four hand-offs were dropping the team's work silently**, all with the same signature — a narrowing that looked like a reasonable default, with nothing reporting the loss:
+
+| What was lost | How it looked to the team |
+|---|---|
+| Every causal branch but the longest | 5 connected seats, a spine naming 3 |
+| **The entire second group** — `clusters[0]` is all anything reads | 3 people fully assembled into their own elephant, invisible, at **"100%"** |
+| `separate` boundaries crossing the cluster edge | The one link that says *"do not merge these"* — dropped, so the reading could merge them |
+| `supports` / `dependsOn` / `isKeystone` in the event log | The model saw the shape; the research payload couldn't reconstruct it |
+
+The second group is not fixed by feeding both to the model — two unconnected groups are genuinely two pictures, and merging them would invent a link nobody drew. So the reading now **says what it is not about**, names the other group's pieces, and offers the way back. Shown, never enforced.
+
 Building that trace found a real bug that reading the code had not: the **spine kept only the longest path from each root** and silently discarded every other branch. A root with three consequences — three different people — handed the model one of them, at 100% wholeness, with nothing reporting the loss. Every branch now survives, reduced by greedy set-cover so a dense table stays small (12 pieces: 1,024 chains and 75KB → one chain, 125 chars).
 
 **What it did not fix:** the verdict still rests on **3.0 of 5 seats**. The model now sees all five and cites three, so that is citation behaviour rather than missing data — an open question, not a solved one.
