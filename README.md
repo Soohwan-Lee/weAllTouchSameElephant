@@ -56,6 +56,8 @@ A session moves through three steps. Try it with no setup — six hand-written s
 
 Stuck on a blank card is the hardest moment, so the entry adapts to how sure you are: **write directly**, **pick an angle** the AI scatters, or **talk it through** — the AI asks a couple of open questions and turns *your own answer* into editable card drafts. It never writes the perspective for you.
 
+**Your seat aims the questions.** Saying what you're responsible for — "Sales — I own new-account onboarding" — picks the lens you're asked from, so two people are prompted differently and their cards diverge by seat instead of converging on the same generic complaint. Worth being precise about why: a live A/B of *no role* vs *one word* vs *a full sentence of context* measured **identically** on every output metric (3.0 of 5 seats, 4/4 cross-seat claims, 4/4 root, 12/12 grounded — `test/rolecontext.live.mts`). Richer role text does **not** improve the AI's reading. It earns its place by helping the *person* write a card only they could write, and that is the only claim made for it.
+
 <div align="center">
 <img src="docs/screenshots/02-gather.png" alt="Gather — write directly / get suggestions / talk it through, with per-piece attribution" width="820">
 </div>
@@ -140,6 +142,23 @@ The rule the whole pipeline is now audited against: **if a team authored it, the
 | **Trade-off** — the cost | title matching | a citable handle per kept tension, resolved back to the real link |
 
 And the reverse discipline, because more context is not free — [Context Rot](https://www.trychroma.com/research/context-rot) (Chroma, 2025) and [Anthropic's context-engineering guidance](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) both find that irrelevant context costs *accuracy*, not just tokens, and that same-domain distractors are the worst kind. A re-rendered fragment title is exactly that. So each prompt carries what only the engine knows and drops what the links already say: the reveal no longer re-lists kept tensions as bare title-pairs when the links block shows them with the team's own explanation. A card title now appears 2–3× per prompt instead of 4–5×.
+
+### Does the team's work survive the model, or only reach it?
+
+The table above is the *input* side — what each step sees. The question that actually matters is whether the five things a team reads at the end still rest on the pieces **they** wrote. Measured by running the real prompts through the model and verifying every citation server-side against the real handle table (`test/outputs.live.mts`, gpt-4.1, 3 runs):
+
+| | |
+|---|---|
+| Claims grounded in the team's own pieces | **89%** (24/27) |
+| Citations pointing at nothing | **0** |
+| Verdict names the engine's causal root | **3/3** |
+| **Verdict states the cross-seat claim no single card contains** | **3/3** |
+| Trade-off tied to a real kept tension | 3/3 |
+| Next move rests on the team's spine | 3/3 |
+
+Building that trace found a real bug that reading the code had not: the **spine kept only the longest path from each root** and silently discarded every other branch. A root with three consequences — three different people — handed the model one of them, at 100% wholeness, with nothing reporting the loss. Every branch now survives, reduced by greedy set-cover so a dense table stays small (12 pieces: 1,024 chains and 75KB → one chain, 125 chars).
+
+**What it did not fix:** the verdict still rests on **3.0 of 5 seats**. The model now sees all five and cites three, so that is citation behaviour rather than missing data — an open question, not a solved one.
 
 ### The links have to cross people, and asking for that did nothing
 
