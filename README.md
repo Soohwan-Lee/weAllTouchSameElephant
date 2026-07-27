@@ -129,6 +129,12 @@ The rule the whole pipeline is now audited against: **if a team authored it, the
 | **Directions** — starting moves | a crux title and title-pairs | the pieces in their own words, the causal spine, and why each tension is one |
 | **Trade-off** — the cost | title matching | a citable handle per kept tension, resolved back to the real link |
 
+And the reverse discipline, because more context is not free — [Context Rot](https://www.trychroma.com/research/context-rot) (Chroma, 2025) and [Anthropic's context-engineering guidance](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) both find that irrelevant context costs *accuracy*, not just tokens, and that same-domain distractors are the worst kind. A re-rendered fragment title is exactly that. So each prompt carries what only the engine knows and drops what the links already say: the reveal no longer re-lists kept tensions as bare title-pairs when the links block shows them with the team's own explanation. A card title now appears 2–3× per prompt instead of 4–5×.
+
+**Claims come after their citations.** [Tam et al. (EMNLP 2024)](https://arxiv.org/abs/2408.02442) found structured output degrades reasoning; later work located the cause in *ordering* — a schema that emits the verdict before its support lets the model pick a label and then hunt for justification. So bridge proposals emit evidence and explanation **before** the relation type, and the reveal emits each claim's citations **before** the claim. It's the same discipline the tool asks of the team.
+
+**"Assembled" means related, not merged.** The wholeness score counted only `overlap` fusion, so a table wired end-to-end by `dependency` and `tension` read **0%** — a team that had built a complete causal chain was told they had assembled nothing. It is now the share of pieces carrying any connecting relation, with `separate` excluded so declaring boundaries can't inflate it.
+
 ### The prompt sees where the team overruled the AI
 
 The most information-dense thing in a session was being written to the event log and never read again. When a team takes a link the AI called `overlap` — *"these are the same thing"* — and re-types it to `tension` — *"no, these genuinely pull against each other"* — they are making an explicit boundary-work claim: **they refused a merge.** That override, whether a link was hand-drawn, whether the explanation was rewritten in the team's own words, and the explanation text itself now all travel into the reveal prompt:
@@ -211,8 +217,18 @@ src/
 │   └── scenarios.ts  six bilingual, hand-authored scenarios
 └── components/       StartScreen · GatherScreen · ConnectScreen · MirrorScreen · …
 
-test/                 grounding unit tests — `npm test`
+test/
+├── grounding.test.mts   handle minting, citation verification, override rendering
+├── synthesis.test.mts   wholeness, keystone-by-causal-position, `separate` as a boundary
+└── pipeline.trace.mts   end-to-end: does a card's text actually reach each prompt?
 ```
+
+```bash
+npm test                          # unit tests
+npx tsx test/pipeline.trace.mts   # trace one session through every prompt
+```
+
+The trace is the answer to *"does the team's work actually reach the AI, or does it just look like it does?"* — it puts a distinctive token in every card and link, runs a real session through the real modules, and checks those tokens survive into each prompt. It also prints each prompt's size and how often a card title repeats, which is how the duplication above was found.
 
 ---
 
