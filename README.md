@@ -104,6 +104,31 @@ The reading isn't the AI free-associating over a list. Before the model is ever 
 
 The LLM receives this structure — facets, spine, root, live tensions, an assembled-ness score — and is instructed to *read it*, not invent one.
 
+### The reading is checked against the team's own table
+
+"Read it, don't invent one" used to be a request the prompt made and nothing verified. Now it's enforced mechanically:
+
+- **Every piece and link gets a citable handle** — `[F1]`, `[B2]` — minted per request and listed in the prompt. They are the only references the model is allowed to use.
+- **The model must cite what each claim rests on** (`"grounds":["F2","B1"]`), for the name, each reading, and the question.
+- **The server verifies every citation** against the real table. A handle that points at nothing is dropped; a claim left with no surviving citation is recorded as unsupported. Hallucinated references cannot reach the screen because code removes them, not because a prompt asked nicely.
+- **Verified citations resolve back to real fragment/bridge ids** and land in the session log, so an analysis can ask which pieces the AI's framing actually leaned on — and which parts of the table it ignored.
+
+This makes *"the AI reflects the team's structure rather than free-associating around it"* a **measured property of each response** (a grounding rate and a fabrication rate) instead of a design promise. Grounding never rewrites the model's prose or blocks a response — it only removes citations and reports what survived, so a bad model day degrades to today's behavior rather than a blank screen.
+
+### The prompt sees where the team overruled the AI
+
+The most information-dense thing in a session was being written to the event log and never read again. When a team takes a link the AI called `overlap` — *"these are the same thing"* — and re-types it to `tension` — *"no, these genuinely pull against each other"* — they are making an explicit boundary-work claim: **they refused a merge.** That override, whether a link was hand-drawn, whether the explanation was rewritten in the team's own words, and the explanation text itself now all travel into the reveal prompt:
+
+```
+[B2] F2 <--tension--> F1 : "The faster we scale, the more the floor's trust erodes"
+      ↳ THE TEAM OVERRODE THE AI: it proposed "overlap", the team re-typed it to "tension".
+[B3] F2 -/-separate-/- F3 : "Fatigue and compliance are different kinds of claim"
+      ↳ KEEP APART: the team declared these two must NOT be merged.
+      ↳ THE TEAM DREW THIS THEMSELVES — the AI never proposed it.
+```
+
+No amount of re-reading the final graph would recover this: it is the record of a boundary being *contested and settled*. It is also, concretely, an input **no general-purpose assistant can be given** — pasting the same fragments into a chat window cannot reproduce a history the tool itself created.
+
 ---
 
 ## Built for research
@@ -117,6 +142,7 @@ The design records not just what teams were *shown* but what they *pushed back o
 - **AI-framing kept vs overridden** — the AI's proposed name/question is stored beside the team's final version.
 - **Contested costs** — when the team relocates or rejects the trade-off the AI names.
 - **Blind-spot conversion** — a named seat *shown* vs actually *filled by a human* vs *dismissed as not-a-gap*.
+- **Grounding of the AI's framing** — which of the team's own pieces and links each reading actually cited (verified, as ids), what share of its claims were anchored at all, and what share of its citations pointed at nothing. Pairs with the accept-vs-override signal above to ask a sharper question than either alone: *did teams keep the framings that were read off their structure, and override the ones that weren't?*
 
 The design line — the AI never authors perspective content — is what keeps the representational gap a thing to *observe* rather than an artifact the tool manufactures.
 
