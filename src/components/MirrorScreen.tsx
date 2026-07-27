@@ -110,15 +110,22 @@ export function MirrorScreen() {
     // Carry the link's own explanation and whether the team re-typed it. Two 3-word titles
     // are not enough for anything downstream to tell WHY a pair is in tension; the sentence
     // the team wrote about it is.
-    const tensions = synth.tensions.map((tn) => {
+    // A missing endpoint is a bug, not a piece called "?". These titles travel to the reveal,
+    // the trade-off, and the directions prompt, so a `?? "?"` fallback would send the model a
+    // real-looking link to a piece that does not exist — and the trade-off would then
+    // word-match a decision against the string "?". Drop the tension instead of inventing it.
+    const tensions = synth.tensions.flatMap((tn) => {
       const b = bridges.find((x) => x.id === tn.bridgeId);
-      return {
-        id: b?.id,
-        a: byId(b?.fragmentAId ?? "")?.title ?? "?",
-        b: byId(b?.fragmentBId ?? "")?.title ?? "?",
-        why: b?.explanation,
-        retyped: b ? Boolean(bridgeHistory.get(b.id)?.retyped) : false,
-      };
+      const a = b && byId(b.fragmentAId);
+      const c = b && byId(b.fragmentBId);
+      if (!b || !a || !c) return [];
+      return [{
+        id: b.id,
+        a: a.title,
+        b: c.title,
+        why: b.explanation,
+        retyped: Boolean(bridgeHistory.get(b.id)?.retyped),
+      }];
     });
     // The pieces and the causal spine were computed here for the reveal and then dropped
     // before the decision-directions call, which left it reasoning from headline titles.
@@ -224,14 +231,19 @@ export function MirrorScreen() {
         // The link's own text and its edit history used to be dropped here, which meant the
         // reveal was read off a bare typed graph while the team's actual words about WHY two
         // pieces connect — and every place they overruled the AI — stayed invisible to it.
-        bridges: clusterBridges.map((b) => {
+        // Same rule as the tensions above: a link whose endpoint does not resolve is dropped
+        // rather than sent as a link to a piece named "?".
+        bridges: clusterBridges.flatMap((b) => {
           const h = bridgeHistory.get(b.id);
-          return {
+          const fa = byId(b.fragmentAId);
+          const fb = byId(b.fragmentBId);
+          if (!fa || !fb) return [];
+          return [{
             id: b.id,
             aId: b.fragmentAId,
             bId: b.fragmentBId,
-            aTitle: byId(b.fragmentAId)?.title ?? "?",
-            bTitle: byId(b.fragmentBId)?.title ?? "?",
+            aTitle: fa.title,
+            bTitle: fb.title,
             relationType: b.relationType,
             explanation: b.explanation,
             evidenceA: b.evidenceA,
@@ -241,7 +253,7 @@ export function MirrorScreen() {
             retyped: Boolean(h?.retyped),
             rewritten: Boolean(h?.edited),
             humanDrawn: b.createdBy === "human",
-          };
+          }];
         }),
         cruxTitle,
         facets,
