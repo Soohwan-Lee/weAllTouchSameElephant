@@ -63,7 +63,7 @@ export function bridgePrompt(
 Think first, then propose:
 1. Read all fragments as partial views of ONE underlying situation. What is the situation?
 2. Find the CAUSAL SPINE: which piece is a root pressure, which are downstream symptoms of it? Direction is the most valuable thing you can surface — it's what tells the team what's a cause vs a symptom.
-3. Propose bridges that CONNECT THE PICTURE TOGETHER (prefer links that grow one connected group over links between already-linked pieces or isolated side-pairs).
+3. Propose bridges that CONNECT THE PICTURE TOGETHER (prefer links that grow one connected group over links between already-linked pieces or isolated side-pairs). Include the honest cross-person links you find — a relationship between two people's pieces is often the one neither of them could state alone — but never invent one to spread the coverage.
 
 Hard rules:
 - You do NOT summarize, conclude, or recommend a decision. Only propose bridges between PAIRS of fragments (by id).
