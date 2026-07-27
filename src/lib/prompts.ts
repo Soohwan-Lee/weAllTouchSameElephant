@@ -78,8 +78,8 @@ ${RELATION_GUIDE}
 Fragments:
 ${list}${historyBlock}
 
-Return ONLY valid JSON of this exact shape (no prose, no markdown):
-{"bridges":[{"fragmentAId":"<cause/root id for dependency>","fragmentBId":"<effect/symptom id for dependency>","relationType":"dependency|tension|overlap|complement|separate","explanation":"<one concrete sentence in ${language} naming the specific relationship and, for dependency, the direction>","evidenceA":"<short snippet from A>","evidenceB":"<short snippet from B>","confidence":<0..1>}]}
+Return ONLY valid JSON of this exact shape (no prose, no markdown). FIELD ORDER MATTERS — the evidence and the explanation come BEFORE the relation type, because you must work out what the relationship actually is before you name it, not pick a label and then justify it:
+{"bridges":[{"fragmentAId":"<cause/root id for dependency>","fragmentBId":"<effect/symptom id for dependency>","evidenceA":"<short snippet from A>","evidenceB":"<short snippet from B>","explanation":"<one concrete sentence in ${language} naming the specific relationship and, for dependency, the direction>","relationType":"dependency|tension|overlap|complement|separate"}]}
 If there are no strong bridges, return {"bridges":[]}.`;
 }
 
@@ -110,6 +110,10 @@ export interface NameInput {
    *  the places where the team overruled the AI's reading of a connection. */
   bridges: Array<{
     id?: string;
+    /** the pieces this link joins, by id. Titles alone cannot identify them: two pieces can
+     *  carry the same title, and a title lookup then silently resolves to the wrong one. */
+    aId?: string;
+    bId?: string;
     aTitle: string;
     bTitle: string;
     relationType: RelationType;
@@ -125,8 +129,6 @@ export interface NameInput {
   cruxTitle?: string;
   /** the assembled shape: the sides the pieces fused into (root→symptom) */
   facets?: FacetSummary[];
-  /** live tensions the team kept (pairs pulling in different directions) */
-  tensions?: Array<{ a: string; b: string }>;
   /** the causal chains the team built, root→symptom (e.g. ["A", "B", "C"]) —
    *  the actual spine, so the model can see what drives what, not just per-side depth */
   spine?: string[][];
@@ -195,8 +197,15 @@ export function namePrompt(
         })
         .join("\n");
 
-  // Give the model the SHAPE the team built, not just a flat list — this is what
-  // lets it say something specific instead of a generic theme.
+  // The SHAPE block carries only what the ENGINE knows and the link list does not: which
+  // pieces fused into one side, which side is the causal root, and the chains that ordering
+  // produces. Everything derivable from the links themselves stays out of it.
+  //
+  // It used to also re-list the kept tensions as bare title-pairs. That was pure duplication —
+  // the links block already shows every tension WITH the team's own explanation of why it is
+  // one — and worse, the two could disagree: the tension list was built from the whole graph
+  // while the links block is filtered to this cluster, so a tension could be asserted here
+  // that had no visible link above it.
   let shapeBlock = "";
   if (input.facets?.length) {
     const sides = input.facets
@@ -204,12 +213,15 @@ export function namePrompt(
         const tag = f.isKeystone
           ? " [ROOT — drives others but nothing drives it; likely the real core even though it may be linked to FEW pieces]"
           : "";
-        const pieces = [f.anchor, ...f.members.filter((m) => m !== f.anchor)];
+        // `members` already includes the anchor, so listing it separately printed the same
+        // title twice on one line and blurred which piece was the anchor.
+        const others = f.members.filter((m) => m !== f.anchor);
+        const also = others.length ? ` — also holds ${others.map((p) => `"${p}"`).join(", ")}` : "";
         const role = f.depth === 0 ? "root pressure" : `downstream (depth ${f.depth})`;
-        return `  • SIDE "${f.anchor}"${tag} — ${role}, drives ${f.supports} other side(s), driven by ${f.dependsOn} — fuses: ${pieces.map((p) => `"${p}"`).join(", ")}`;
+        return `  • SIDE "${f.anchor}"${tag} — ${role}, drives ${f.supports} other side(s), driven by ${f.dependsOn}${also}`;
       })
       .join("\n");
-    shapeBlock += `\n\nThe shape the team assembled (their pieces fused into these "sides of the elephant", laid out root pressures → visible symptoms). IMPORTANT: the real core is about CAUSAL POSITION, not how many pieces a side has — a root that drives the rest matters more than a big cluster of symptoms:\n${sides}`;
+    shapeBlock += `\n\nThe shape the team assembled (their pieces grouped into these "sides of the elephant", laid out root pressures → visible symptoms). IMPORTANT: the real core is about CAUSAL POSITION, not how many pieces a side has — a root that drives the rest matters more than a big cluster of symptoms:\n${sides}`;
   }
   if (input.spine?.length) {
     const chains = input.spine
@@ -220,13 +232,37 @@ export function namePrompt(
       shapeBlock += `\n\nThe causal chains they built (read left→right as "drives / is needed by"). The LEFTMOST link in a chain is upstream of everything to its right — that is where the core usually hides:\n${chains}`;
     }
   }
-  if (input.tensions?.length) {
-    const tens = input.tensions.map((t) => `  • "${t.a}" ↔ "${t.b}"`).join("\n");
-    shapeBlock += `\n\nLive tensions they deliberately kept (do NOT resolve these away — they are load-bearing disagreements):\n${tens}`;
-  }
   if (typeof input.wholeness === "number") {
-    shapeBlock += `\n\nAssembled-ness: ${input.wholeness}% (100% would mean every difference was flattened — a healthy elephant keeps several sides and live tensions).`;
+    shapeBlock += `\n\nAssembled-ness: ${input.wholeness}% of their pieces are related to at least one other piece. A low number means much of the table is still sitting unconnected — say so plainly rather than reading a whole elephant out of a few linked pieces.`;
   }
+
+  // Output field order is deliberate: each claim's CITATIONS come immediately before the
+  // claim itself. Emitting a verdict first and its support afterwards invites the model to
+  // pick a label and then hunt for justification — the ordering effect behind the known
+  // "structured output degrades reasoning" result. Citing first makes the claim follow the
+  // evidence, which is also exactly the discipline this tool asks of the team.
+  const cite = (name: string, what: string) => `"${name}":["<handles for ${what}>"]`;
+  const readingField = spec.shape.replace(/<([^>]+)>/g, (_m, d) => `<${d}, in ${language}>`);
+  const fields: string[] = [];
+  // explore returns several readings, so its citations are one handle list PER reading,
+  // positionally matched to the readings array (see traceFor in the name route).
+  if (table)
+    fields.push(
+      mode === "explore"
+        ? `"readingGrounds":[["<handles for reading 1>"],["<handles for reading 2>"]]`
+        : cite("readingGrounds", "the reading")
+    );
+  fields.push(readingField);
+  if (table) fields.push(cite("nameGrounds", "the name"));
+  fields.push(`"name":"<2-5 word handle for the elephant in ${language}>"`);
+  fields.push(`"note":"<one short clause on why this name, in ${language}>"`);
+  if (table) fields.push(cite("questionGrounds", "the question"));
+  fields.push(
+    `"question":"<one open question in ${language}, with NO 'so the real question is' lead-in>"`
+  );
+  const orderNote = table
+    ? "\nEmit the fields in exactly this order. Each claim's grounds come FIRST, then the claim — decide what the table supports, then say it.\n"
+    : "";
 
   return `A team laid out their partial views as pieces and CONNECTED them by hand into one shape — sides of the same "elephant." They did the assembling; you did NOT. Your job now is to read the SHAPE THEY BUILT and hand back the "${spec.label}" they asked for.
 
@@ -253,14 +289,9 @@ ${frags}
 Links the team confirmed:
 ${links}${shapeBlock}
 ${table ? `\n${CITATION_RULES}\n` : ""}
+${orderNote}
 Return ONLY valid JSON of this exact shape (no prose, no markdown):
-{"name":"<2-5 word handle for the elephant in ${language}>","note":"<one short clause on why this name, in ${language}>",${
-    table ? `"nameGrounds":["<handles the name rests on>"],` : ""
-  }${spec.shape.replace(/<([^>]+)>/g, (_m, d) => `<${d}, in ${language}>`)},${
-    table ? `"readingGrounds":[${spec.label === "EXPLORE" ? `["<handles for reading 1>"],["<handles for reading 2>"]` : `"<handles>"`}],` : ""
-  }"question":"<one open question in ${language}, with NO 'so the real question is' lead-in>"${
-    table ? `,"questionGrounds":["<handles the question rests on>"]` : ""
-  }}`;
+{${fields.join(",")}}`;
 }
 
 /** One "angle seed" — a possible vantage on the decision, NOT a finished fragment.
@@ -270,8 +301,6 @@ export interface SeedSuggestion {
   angle: string;
   /** a one-line nudge that opens the angle — a prompt to answer, not a claim to keep */
   nudge: string;
-  /** which vantage this angle comes from (e.g. "frontline", "customer") — for grouping */
-  lens: string;
 }
 
 /**
@@ -294,7 +323,7 @@ Rules:
 - Write in ${language}.
 
 Return ONLY valid JSON of this exact shape (no prose, no markdown):
-{"seeds":[{"angle":"<2-5 word handle in ${language}>","nudge":"<one open question in ${language}>","lens":"<one-word vantage tag>"}]}`;
+{"seeds":[{"angle":"<2-5 word handle in ${language}>","nudge":"<one open question in ${language}>"}]}`;
 }
 
 /** A card candidate extracted from what the person SAID — a draft they then edit/approve. */

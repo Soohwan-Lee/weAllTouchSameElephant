@@ -196,6 +196,8 @@ export function MirrorScreen() {
           const h = bridgeHistory.get(b.id);
           return {
             id: b.id,
+            aId: b.fragmentAId,
+            bId: b.fragmentBId,
             aTitle: byId(b.fragmentAId)?.title ?? "?",
             bTitle: byId(b.fragmentBId)?.title ?? "?",
             relationType: b.relationType,
@@ -211,7 +213,6 @@ export function MirrorScreen() {
         }),
         cruxTitle,
         facets,
-        tensions,
         spine,
         wholeness: Math.round(synth.coverage.wholeness * 100),
       };

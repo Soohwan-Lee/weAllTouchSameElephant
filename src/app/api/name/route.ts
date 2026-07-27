@@ -122,15 +122,19 @@ function tableFor(input: NameInput): GroundingTable | null {
           y: 0,
         }) as Fragment
     );
+  // Resolve a link's ends by id. Falling back to a title lookup would silently mis-resolve
+  // when two pieces share a title, and drop the link entirely when neither matches — the link
+  // would vanish from the prompt while its title still appeared in the shape block.
   const titleToId = new Map(frags.map((f) => [f.title, f.id]));
+  const endId = (id: string | undefined, title: string) => id ?? titleToId.get(title) ?? "";
   const bridges = input.bridges
     .filter((b) => b.id)
     .map(
       (b) =>
         ({
           id: b.id!,
-          fragmentAId: titleToId.get(b.aTitle) ?? "",
-          fragmentBId: titleToId.get(b.bTitle) ?? "",
+          fragmentAId: endId(b.aId, b.aTitle),
+          fragmentBId: endId(b.bId, b.bTitle),
           relationType: b.relationType,
           explanation: b.explanation ?? "",
           evidenceA: b.evidenceA ?? "",

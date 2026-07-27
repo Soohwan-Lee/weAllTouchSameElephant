@@ -91,9 +91,12 @@ export async function POST(req: NextRequest) {
     const settled = new Set<string>();
     for (const c of context?.confirmed ?? []) settled.add([c.aId, c.bId].sort().join("|"));
     for (const r of context?.rejectedPairs ?? []) settled.add([r.aId, r.bId].sort().join("|"));
+    // Kept in the model's own order. It used to be sorted by a self-reported `confidence`
+    // that no screen ever showed — the score's only effect was this ordering, and asking for
+    // it cost a field that biases the ones that matter. The model is already told to lead
+    // with its sharpest links, so its order is the ranking.
     const bridges = sanitize(parsed, fragments)
       .filter((b) => !settled.has([b.fragmentAId, b.fragmentBId].sort().join("|")))
-      .sort((a, b) => b.confidence - a.confidence)
       .slice(0, max);
     return NextResponse.json({ bridges, mode: "live" });
   } catch (err) {
