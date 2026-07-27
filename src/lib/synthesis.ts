@@ -282,11 +282,28 @@ export function computeSynthesis(
 
   // 7. COVERAGE / wholeness.
   const joined = ids.filter((id) => (facetMembers.get(find(id))?.length ?? 1) > 1).length;
-  // wholeness: the fewer, larger the facets (relative to fragment count), the more assembled.
-  // 1 facet holding everything = 1.0; every piece its own facet = ~0.
   const total = ids.length;
   const facetCount = facets.length;
-  const wholeness = total <= 1 ? 1 : Math.max(0, Math.min(1, (total - facetCount) / (total - 1)));
+
+  // Wholeness = the share of pieces the team actually related to something.
+  //
+  // This used to be (total - facetCount) / (total - 1), which counts only overlap-FUSION.
+  // Overlap is the rare relation — it says "these two are the same thing" — so a table wired
+  // end to end by dependency and tension scored 0%. The team built a complete causal chain and
+  // the screen, and the reveal prompt, told them they had assembled nothing.
+  //
+  // Relating two distinct sides IS assembly; fusing them is just the one case where assembly
+  // also collapses a distinction. So count a piece as assembled when it has any connecting
+  // relation. `separate` is excluded: declaring a boundary is a real act, but it is the
+  // opposite of joining, and counting it would let a team score high for keeping everything
+  // apart.
+  const wired = new Set<string>();
+  for (const b of clusterBridges) {
+    if (b.relationType === "separate") continue;
+    wired.add(b.fragmentAId);
+    wired.add(b.fragmentBId);
+  }
+  const wholeness = total ? wired.size / total : 0;
 
   // loose fragments: in the cluster but with no confirmed bridge at all
   const touched = new Set<string>();
