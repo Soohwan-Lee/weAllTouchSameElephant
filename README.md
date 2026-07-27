@@ -115,6 +115,20 @@ The LLM receives this structure — facets, spine, root, live tensions, an assem
 
 This makes *"the AI reflects the team's structure rather than free-associating around it"* a **measured property of each response** (a grounding rate and a fabrication rate) instead of a design promise. Grounding never rewrites the model's prose or blocks a response — it only removes citations and reports what survived, so a bad model day degrades to today's behavior rather than a blank screen.
 
+### Every AI step sees the work, not a summary of it
+
+> ⚠️ **Current version / tentative.** The pipeline below is the state as of this revision and is still being evaluated — treat it as the working design, not a settled contribution.
+
+The rule the whole pipeline is now audited against: **if a team authored it, the step that reasons about it must see it.** Each AI call had been quietly reduced to a thin slice of what the team actually built, so work done on one screen went unrepresented on the next.
+
+| Step | Saw before | Sees now |
+|---|---|---|
+| **Connect** — propose links | the pieces, nothing else. A "find more" round was byte-identical to the first, so it could re-offer a pair just rejected | what's confirmed, what was **dismissed**, and where the team **corrected its relation types** — plus a server-side filter, so settled pairs can't come back regardless of what the model does |
+| **Blind spot** — name a missing seat | isolated cards. Asked to spot "one side of a trade-off only" while shown no trade-offs | the links, the kept tensions, and which pieces are still loose |
+| **Reveal** — read the shape | a typed graph of titles | fragment bodies, author seats, each link's **explanation and evidence**, hand-drawn links, and every AI-override |
+| **Directions** — starting moves | a crux title and title-pairs | the pieces in their own words, the causal spine, and why each tension is one |
+| **Trade-off** — the cost | title matching | a citable handle per kept tension, resolved back to the real link |
+
 ### The prompt sees where the team overruled the AI
 
 The most information-dense thing in a session was being written to the event log and never read again. When a team takes a link the AI called `overlap` — *"these are the same thing"* — and re-types it to `tension` — *"no, these genuinely pull against each other"* — they are making an explicit boundary-work claim: **they refused a merge.** That override, whether a link was hand-drawn, whether the explanation was rewritten in the team's own words, and the explanation text itself now all travel into the reveal prompt:
@@ -186,14 +200,18 @@ Without a key, every AI route falls back to a hand-written or graph-grounded res
 
 ```
 src/
-├── app/api/          bridges · name · seeds · talk · blindspot · tradeoff  (+ sample fallbacks)
+├── app/api/          bridges · name · seeds · talk · blindspot · tradeoff · directions
+│                     (every route has a deterministic sample fallback)
 ├── lib/
 │   ├── synthesis.ts  the graph engine (facets · causal DAG · root · tensions)
 │   ├── clusters.ts   connected-group detection; `separate` excluded from every walk
+│   ├── grounding.ts  citable handles + server-side verification of what the AI cited
 │   ├── store.ts      session state + the append-only boundary-work event log + export
 │   ├── prompts.ts    every prompt — each one forbids authoring perspective content
 │   └── scenarios.ts  six bilingual, hand-authored scenarios
 └── components/       StartScreen · GatherScreen · ConnectScreen · MirrorScreen · …
+
+test/                 grounding unit tests — `npm test`
 ```
 
 ---
