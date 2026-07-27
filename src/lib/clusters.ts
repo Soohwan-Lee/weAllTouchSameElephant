@@ -139,6 +139,94 @@ export function isReachable(
   return false;
 }
 
+/** Whose piece this is. Falls back to the piece's own id so an unattributed fragment
+ *  counts as its own seat rather than silently merging with every other unattributed one. */
+export const seatOf = (f: Fragment) => f.authorName || f.authorRole || `__anon_${f.id}`;
+
+/**
+ * SEAT COVERAGE — how many PEOPLE the assembled shape actually reaches.
+ *
+ * The gate that guards the reveal counts PIECES (`largestClusterSize >= 3`). That is not the
+ * same question, and the difference is the whole problem this tool exists to solve: a table of
+ * six pieces from four people, where every link sits inside one person's three pieces, passes
+ * the piece gate with ONE seat connected. The picture looks assembled and is one voice.
+ *
+ * This is measured, not assumed — see test/seats.test.mts. It is also what the reveal was
+ * quietly failing on: a tension-only table reached 2.0 of 5 seats, always the same two,
+ * because the model can only read across links the team actually drew.
+ *
+ * Why coverage and not airtime: Lu, Yuan & McLeod's meta-analysis (2012; 65 studies, 3,189
+ * groups) found information COVERAGE — whether a unique item surfaces at all — predicts
+ * decision quality more strongly than discussion FOCUS, how much airtime it gets. So the
+ * number worth optimizing is how many seats are in the shape at all, not how evenly the
+ * links are spread among them.
+ */
+export interface SeatCoverage {
+  /** distinct seats with at least one piece on the table */
+  total: number;
+  /** distinct seats present in the largest connected group */
+  connected: number;
+  /** seat labels with no connecting link to anyone else's piece — the unheard */
+  isolated: string[];
+}
+
+export function seatCoverage(fragments: Fragment[], bridges: Bridge[]): SeatCoverage {
+  if (!fragments.length) return { total: 0, connected: 0, isolated: [] };
+  const parent = new Map<string, string>();
+  const find = (x: string): string => {
+    if (!parent.has(x)) parent.set(x, x);
+    if (parent.get(x) !== x) parent.set(x, find(parent.get(x)!));
+    return parent.get(x)!;
+  };
+  for (const f of fragments) parent.set(f.id, f.id);
+  for (const b of bridges) {
+    if (!isConnecting(b)) continue;
+    if (parent.has(b.fragmentAId) && parent.has(b.fragmentBId)) {
+      parent.set(find(b.fragmentAId), find(b.fragmentBId));
+    }
+  }
+
+  // seats per component, and the component sizes, in one pass
+  const seatsByRoot = new Map<string, Set<string>>();
+  const sizeByRoot = new Map<string, number>();
+  for (const f of fragments) {
+    const r = find(f.id);
+    if (!seatsByRoot.has(r)) seatsByRoot.set(r, new Set());
+    seatsByRoot.get(r)!.add(seatOf(f));
+    sizeByRoot.set(r, (sizeByRoot.get(r) ?? 0) + 1);
+  }
+
+  let bestRoot: string | null = null;
+  for (const [r, n] of sizeByRoot) {
+    if (bestRoot === null || n > sizeByRoot.get(bestRoot)!) bestRoot = r;
+  }
+
+  // A seat is "heard" only if one of its pieces links to a piece from a DIFFERENT seat.
+  // Linking your own two notes together is not being heard by the table.
+  const crossed = new Set<string>();
+  const byId = new Map(fragments.map((f) => [f.id, f]));
+  for (const b of bridges) {
+    if (!isConnecting(b)) continue;
+    const a = byId.get(b.fragmentAId);
+    const c = byId.get(b.fragmentBId);
+    if (!a || !c) continue;
+    const sa = seatOf(a);
+    const sc = seatOf(c);
+    if (sa !== sc) {
+      crossed.add(sa);
+      crossed.add(sc);
+    }
+  }
+  const allSeats = new Set(fragments.map(seatOf));
+  const isolated = [...allSeats].filter((s) => !crossed.has(s) && !s.startsWith("__anon_"));
+
+  return {
+    total: allSeats.size,
+    connected: bestRoot ? seatsByRoot.get(bestRoot)!.size : 0,
+    isolated,
+  };
+}
+
 /**
  * How many confirmed edges are "extra" — i.e. connect two pieces already in the same
  * component when the edge was added. This is |edges| − (|nodes touched| − |components|),
