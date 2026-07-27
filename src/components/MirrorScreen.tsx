@@ -17,6 +17,7 @@ import { SynthesisSummary } from "./SynthesisSummary";
 import { Hint } from "./Hint";
 import { RevealRail, type RailSection } from "./RevealRail";
 import { VoiceTag } from "./VoiceTag";
+import { WhoseWords } from "./WhoseWords";
 
 /**
  * The final picture — the assembled elephant.
@@ -654,6 +655,13 @@ function RevealResult({
 
         {result?.note && !loading && (
           <div className="mt-3 text-[12px] leading-relaxed text-ink-soft">{result.note}</div>
+        )}
+
+        {/* Whose pieces this reading actually rested on. Sits directly under the reading
+            because the two are one claim: a synthesis that leans on two of six voices looks
+            identical to one that integrates all six until the interface says which. */}
+        {!loading && result?.grounding && (
+          <WhoseWords fragmentIds={result.grounding.fragmentIds} />
         )}
 
         {/* the name — a secondary handle, below the reading (the reading is the point) */}
