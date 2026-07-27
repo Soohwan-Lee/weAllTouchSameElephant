@@ -7,7 +7,9 @@ export const maxDuration = 30;
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-5.4-mini";
 
-type Pair = { a: string; b: string };
+/** A kept tension / separation. `id` is the real bridge id; `retyped` marks a relation the
+ *  team changed INTO a tension after the AI proposed something else. */
+type Pair = { a: string; b: string; id?: string; retyped?: boolean };
 
 /**
  * Words too generic to signal that a decision actually touches a tension's side. Includes
@@ -36,10 +38,36 @@ function tokens(s: string): Set<string> {
   );
 }
 
-/** how many significant tokens a tension side shares with the decision text */
+/**
+ * How many significant tokens a tension side shares with the decision text.
+ *
+ * Exact set matching is not enough for Korean, which is agglutinative: the decision
+ * "먼저 ROI부터 증명한다" and the tension side "ROI 증명" are plainly about the same thing, but
+ * tokenize to {roi부터, 증명한다} and {roi, 증명} — zero exact overlap, so the decision looked
+ * unrelated to a tension it obviously leans on and fell through to the opportunity-cost
+ * branch. English split on spaces and happened to work, which is exactly how this stayed
+ * hidden.
+ *
+ * So a side token also counts when it is a prefix of a decision token (or vice versa) with
+ * the longer one at least 2 characters — enough to absorb particles and verb endings
+ * (ROI/ROI부터, 증명/증명한다) without letting short fragments match everything. The threshold
+ * is on the SIDE token's length, so a 1-character side token still requires an exact hit.
+ */
 function overlapScore(decisionTokens: Set<string>, sideTitle: string): number {
   let n = 0;
-  for (const w of tokens(sideTitle)) if (decisionTokens.has(w)) n++;
+  for (const w of tokens(sideTitle)) {
+    if (decisionTokens.has(w)) {
+      n++;
+      continue;
+    }
+    if (w.length < 2) continue;
+    for (const d of decisionTokens) {
+      if (d.length >= 2 && (d.startsWith(w) || w.startsWith(d))) {
+        n++;
+        break;
+      }
+    }
+  }
   return n;
 }
 
@@ -75,23 +103,32 @@ function sampleTradeOff(
     if (sA === 0 && sB === 0) continue;
     const favors = sA >= sB ? t.a : t.b;
     const against = sA >= sB ? t.b : t.a;
-    const score = Math.max(sA, sB);
+    // A tension the team RE-TYPED into a tension is one they explicitly insisted was a real
+    // trade-off, overruling the AI's softer reading. Between two tensions the decision
+    // touches about equally, that one is the more honest cost to surface — so it breaks the
+    // tie. It never manufactures a match on its own: a tension with no word overlap is still
+    // skipped above, so this only ranks candidates the decision already engages.
+    const score = Math.max(sA, sB) + (t.retyped ? 0.5 : 0);
     if (!best || score > best.score) best = { tension: t, favors, against, score };
   }
 
-  // require at least ONE genuine shared term — otherwise the decision doesn't engage the
+  // Require at least ONE genuine shared term — otherwise the decision doesn't engage the
   // tension and forcing a favors/against split is the exact context-free bug we're fixing.
-  if (best && best.score >= 1) {
+  // The re-typed bonus is deliberately fractional so it can only ever ORDER candidates that
+  // already cleared this bar; it can never lift a tension the decision never touched.
+  if (best && Math.floor(best.score) >= 1) {
     return ko
       ? {
           tension: `"${best.tension.a}" ⟷ "${best.tension.b}"`,
           favors: `"${best.favors}" 쪽`,
           cost: `그만큼 "${best.against}"은(는) 뒤로 밀립니다.`,
+          groundedBridgeId: best.tension.id,
         }
       : {
           tension: `"${best.tension.a}" vs "${best.tension.b}"`,
           favors: `the "${best.favors}" side`,
           cost: `"${best.against}" is what gives way.`,
+          groundedBridgeId: best.tension.id,
         };
   }
 
@@ -132,20 +169,48 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ...sampleTradeOff(decision, tensions, separations, lang), mode: "sample" });
   }
 
+  // Mint a citable handle per kept tension/separation so the model must POINT at the one it
+  // used instead of paraphrasing it — the difference between a cost we can trace to a link
+  // the team confirmed and a cost that merely sounds like one.
+  const withHandles = (list: Pair[], prefix: string) =>
+    list.map((p, i) => ({ ...p, handle: p.id ? `${prefix}${i + 1}` : undefined }));
+  const tensionsH = withHandles(tensions, "T");
+  const separationsH = withHandles(separations, "S");
+  const handleToId = new Map<string, string>();
+  [...tensionsH, ...separationsH].forEach((p) => {
+    if (p.handle && p.id) handleToId.set(p.handle, p.id);
+  });
+
   try {
     const client = new OpenAI({ apiKey });
     const completion = await client.chat.completions.create({
       model: MODEL,
-      messages: [{ role: "user", content: tradeOffPrompt(decision, tensions, separations, lang) }],
+      messages: [
+        { role: "user", content: tradeOffPrompt(decision, tensionsH, separationsH, lang) },
+      ],
       response_format: { type: "json_object" },
       temperature: 0.4,
     });
     const parsed = JSON.parse(completion.choices[0]?.message?.content ?? "{}") as Record<string, unknown>;
+    // Resolve the cited handle back to a real bridge id. An invented handle resolves to
+    // nothing and is simply dropped — the prose still ships, but it is recorded as an
+    // untraceable cost rather than being passed off as read off the team's own tension.
+    const cited = Array.isArray(parsed.grounds) ? parsed.grounds : [];
+    let groundedBridgeId: string | undefined;
+    for (const c of cited) {
+      const key = String(c).trim().replace(/^\[|\]$/g, "").toUpperCase();
+      const id = handleToId.get(key);
+      if (id) {
+        groundedBridgeId = id;
+        break;
+      }
+    }
     return NextResponse.json({
       tension: String(parsed.tension ?? "").trim().slice(0, 160),
       favors: String(parsed.favors ?? "").trim().slice(0, 160),
       cost: String(parsed.cost ?? "").trim().slice(0, 200),
       mode: "live",
+      groundedBridgeId,
     });
   } catch (err) {
     console.error("[tradeoff] LLM error", err);

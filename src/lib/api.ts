@@ -130,12 +130,23 @@ export async function fetchBlindSpot(
   }
 }
 
+/** `id`/`retyped` travel so the server can hand the model a citable handle per tension and
+ *  then check that the cost it names belongs to a tension the team really kept. Both are
+ *  optional: a caller that sends only titles gets the previous, uncited behavior. */
 export async function fetchTradeOff(
   decision: string,
-  tensions: Array<{ a: string; b: string }>,
-  separations: Array<{ a: string; b: string }>,
+  tensions: Array<{ a: string; b: string; id?: string; retyped?: boolean }>,
+  separations: Array<{ a: string; b: string; id?: string }>,
   lang: "en" | "ko"
-): Promise<{ tension: string; favors: string; cost: string; mode: string }> {
+): Promise<{
+  tension: string;
+  favors: string;
+  cost: string;
+  mode: string;
+  /** the bridge id of the kept tension the cost was read off, when the model cited one and
+   *  it verified. Absent means the cost is an opportunity cost, not tied to a tension. */
+  groundedBridgeId?: string;
+}> {
   try {
     const res = await fetch("/api/tradeoff", {
       method: "POST",
