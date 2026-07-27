@@ -51,7 +51,12 @@ const dict = {
     ko: "조각은 하나의 짧은 생각이에요 — 증상, 우려, 의존 관계, 예상되는 결과 등. 한두 문장이면 됩니다. 다양한 각도를 더할수록 핵심이 또렷해져요.",
   },
   "gather.author": { en: "Your name", ko: "이름" },
-  "gather.role": { en: "Role / team", ko: "역할 / 팀" },
+  "gather.role": { en: "Your seat", ko: "당신의 자리" },
+  // A concrete example beats an abstract label: "Sales" invites one word, "Sales — I own
+  // onboarding" shows that what you're responsible for is welcome too. The extra words help
+  // the PERSON aim their card (they pick the lens and the questions); measured A/B shows they
+  // do not change the AI's reading — see test/rolecontext.live.mts.
+  "gather.rolePlaceholder": { en: "Sales — I own new-account onboarding", ko: "영업 — 신규 고객 온보딩 담당" },
   "gather.title": { en: "Short label", ko: "짧은 제목" },
   "gather.body": { en: "What you see (1–3 sentences)", ko: "당신이 본 것 (1~3문장)" },
   "gather.add": { en: "Add piece", ko: "조각 추가" },
@@ -83,6 +88,9 @@ const dict = {
     ko: "종류를 고르면 채워 넣을 시작 문장을 드려요 — 당신의 말로 바꾸세요.",
   },
   "scaffold.lensLabel": { en: "Answer from your seat", ko: "당신의 자리에서 답하기" },
+  // Shown when the lens was picked from the role someone typed, so the questions changing
+  // under them reads as "it listened", not as the form moving on its own.
+  "scaffold.lensFromRole": { en: "from your role — change it if it's off", ko: "역할에서 고름 — 아니면 바꾸세요" },
   "scaffold.promptLabel": { en: "A question to spark it", ko: "떠올릴 실마리 질문" },
   "scaffold.useFrame": { en: "Use this starter", ko: "이 시작 문장 쓰기" },
   "scaffold.shuffle": { en: "Another question", ko: "다른 질문" },
@@ -109,7 +117,7 @@ const dict = {
   },
   "people.add": { en: "Add person", ko: "사람 추가" },
   "people.namePlaceholder": { en: "Name", ko: "이름" },
-  "people.rolePlaceholder": { en: "Role / seat", ko: "역할 / 자리" },
+  "people.rolePlaceholder": { en: "Sales — owns onboarding", ko: "영업 — 온보딩 담당" },
   "people.adding": { en: "Adding as", ko: "지금 추가하는 사람" },
   "people.empty": {
     en: "No one added yet — or skip and add pieces anonymously.",

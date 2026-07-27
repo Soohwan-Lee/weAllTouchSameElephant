@@ -11,6 +11,7 @@ import {
   PIECE_TYPES,
   PIECE_TYPE_META,
   ROLE_LENSES,
+  lensForRole,
   starterFrame,
   type PieceType,
 } from "@/lib/starters";
@@ -59,6 +60,23 @@ export function GatherScreen() {
   const [pieceType, setPieceType] = useState<PieceType | null>(null);
   const [lensId, setLensId] = useState("generic");
   const [qIdx, setQIdx] = useState(0);
+  // Once someone picks a lens themselves, their choice is final — the role must never
+  // silently move it out from under them mid-card.
+  const [lensPicked, setLensPicked] = useState(false);
+
+  // Whoever is writing right now: a named participant if the table has them, else the free
+  // role field. The lens follows from that, so saying "Sales" once is enough to be asked a
+  // sales question — instead of typing your role in one box and classifying yourself again
+  // in another two fields away.
+  const activeRole = useSession((s) => {
+    const p = s.participants.find((x) => x.id === s.activeParticipantId);
+    return p?.role ?? "";
+  });
+  const effectiveRole = activeRole || authorRole;
+  useEffect(() => {
+    if (lensPicked) return;
+    setLensId(lensForRole(effectiveRole));
+  }, [effectiveRole, lensPicked]);
 
   // the decision prompt is read-only when it came from a scenario; editable on a blank table
   const decisionEditable = !scenarioId;
@@ -323,13 +341,21 @@ export function GatherScreen() {
             </div>
 
             {/* role lens */}
-            <div className="mt-3 text-[11px] font-medium text-ink-soft">{t("scaffold.lensLabel")}</div>
+            <div className="mt-3 flex flex-wrap items-baseline gap-x-1.5 text-[11px] font-medium text-ink-soft">
+              <span>{t("scaffold.lensLabel")}</span>
+              {/* say WHY these questions changed — an unexplained switch reads as the form
+                  moving on its own, and the person stops trusting the field they just typed */}
+              {!lensPicked && lensId !== "generic" && (
+                <span className="font-normal text-ink-faint">· {t("scaffold.lensFromRole")}</span>
+              )}
+            </div>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {ROLE_LENSES.map((l) => (
                 <button
                   key={l.id}
                   onClick={() => {
                     setLensId(l.id);
+                    setLensPicked(true); // a deliberate choice outranks the role guess
                     setQIdx(0);
                   }}
                   className={[
@@ -367,9 +393,9 @@ export function GatherScreen() {
           {participants.length > 0 ? (
             <AuthorSwitcher />
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-3">
               <Field label={t("gather.author")} value={authorName} onChange={setAuthorName} placeholder="Jamie" />
-              <Field label={t("gather.role")} value={authorRole} onChange={setAuthorRole} placeholder="Sales" />
+              <Field label={t("gather.role")} value={authorRole} onChange={setAuthorRole} placeholder={t("gather.rolePlaceholder")} />
             </div>
           )}
           <div className="mt-3">

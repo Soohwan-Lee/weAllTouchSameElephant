@@ -141,6 +141,43 @@ export const ROLE_LENSES: RoleLens[] = [
 ];
 
 /**
+ * Guess which lens fits the role someone typed.
+ *
+ * The lenses above are the strongest scaffold this tool has — role-tuned questions that make
+ * two people's cards diverge by seat instead of converging on the same generic complaint. But
+ * they sat behind a separate chip row while the person ALSO typed their role into a box two
+ * fields away, and nothing connected the two: you could write "Sales" and still be asked the
+ * generic question. The information was already there; the tool just wasn't listening.
+ *
+ * Deliberately a hint, not a decision — it only preselects, and the chips stay visible so any
+ * lens can be picked. A wrong guess costs a click; the alternative was asking everyone to
+ * classify themselves twice. Unmatched roles keep "generic", which is the honest default.
+ *
+ * Note this is NOT here to help the model: a live A/B of no-role vs one-word vs a full
+ * sentence of role context measured identically on every output metric (test/rolecontext
+ * .live.mts — 3.0 of 5 seats, 4/4 cross-seat claims, 4/4 root, in all three conditions). The
+ * value of the role is upstream, in helping the PERSON write a card only they could write.
+ */
+const LENS_HINTS: Array<{ lens: string; en: RegExp; ko: RegExp }> = [
+  { lens: "customer", en: /\b(sales|support|success|account|service|cs|marketing|community|helpdesk)\b/i,
+    ko: /(영업|고객|지원|서비스|마케팅|상담|CS)/ },
+  // stems, not whole words: "Engineering" and "Designer" must match as readily as "eng".
+  { lens: "builder", en: /\b(eng|dev|design|data|platform|infra|tech|qa|research|architect|scien)/i,
+    ko: /(개발|엔지니|디자|기술|데이터|연구|인프라)/ },
+  { lens: "lead", en: /\b(lead|manager|head|director|pm|product manager|founder|owner|chief|vp|exec)\b/i,
+    ko: /(리더|팀장|매니저|대표|본부장|기획|총괄|임원|PM)/ },
+  { lens: "frontline", en: /\b(ops|operations|frontline|field|floor|logistics|staff|nurse|teacher|driver|clerk)\b/i,
+    ko: /(운영|현장|실무|물류|직원|간호|교사|기사)/ },
+];
+
+export function lensForRole(role: string): string {
+  const r = (role ?? "").trim();
+  if (!r || r === "—") return "generic";
+  for (const h of LENS_HINTS) if (h.en.test(r) || h.ko.test(r)) return h.lens;
+  return "generic";
+}
+
+/**
  * The fill-in FRAME for a chosen type — a sentence skeleton the person completes in
  * their own words. This kills the blank field without generating the content: the blanks
  * (___) are theirs to fill. No model, deterministic.

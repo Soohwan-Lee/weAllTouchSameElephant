@@ -89,7 +89,7 @@ export function ParticipantBar() {
           onChange={(e) => setRole(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && add()}
           placeholder={t("people.rolePlaceholder")}
-          className="w-32 rounded-lg border border-line bg-paper px-2.5 py-1.5 text-[13px] text-ink outline-none transition placeholder:text-line focus:border-ink/40"
+          className="w-56 rounded-lg border border-line bg-paper px-2.5 py-1.5 text-[13px] text-ink outline-none transition placeholder:text-line focus:border-ink/40"
         />
         <button
           onClick={add}
