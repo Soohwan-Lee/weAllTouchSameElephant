@@ -133,13 +133,37 @@ The rule the whole pipeline is now audited against: **if a team authored it, the
 
 | Step | Saw before | Sees now |
 |---|---|---|
-| **Connect** — propose links | the pieces, nothing else. A "find more" round was byte-identical to the first, so it could re-offer a pair just rejected | what's confirmed, what was **dismissed**, and where the team **corrected its relation types** — plus a server-side filter, so settled pairs can't come back regardless of what the model does |
+| **Connect** — propose links | the pieces, nothing else. A "find more" round was byte-identical to the first, so it could re-offer a pair just rejected | what's confirmed, what was **dismissed**, and where the team **corrected its relation types** — plus a server-side filter, so settled pairs can't come back regardless of what the model does. Which proposals **reach the tray** is now a selection rule, not the model's ordering (below) |
 | **Blind spot** — name a missing seat | isolated cards. Asked to spot "one side of a trade-off only" while shown no trade-offs | the links, the kept tensions, and which pieces are still loose |
 | **Reveal** — read the shape | a typed graph of titles | fragment bodies, author seats, each link's **explanation and evidence**, hand-drawn links, and every AI-override |
 | **Directions** — starting moves | a crux title and title-pairs | the pieces in their own words, the causal spine, and why each tension is one |
 | **Trade-off** — the cost | title matching | a citable handle per kept tension, resolved back to the real link |
 
 And the reverse discipline, because more context is not free — [Context Rot](https://www.trychroma.com/research/context-rot) (Chroma, 2025) and [Anthropic's context-engineering guidance](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) both find that irrelevant context costs *accuracy*, not just tokens, and that same-domain distractors are the worst kind. A re-rendered fragment title is exactly that. So each prompt carries what only the engine knows and drops what the links already say: the reveal no longer re-lists kept tensions as bare title-pairs when the links block shows them with the team's own explanation. A card title now appears 2–3× per prompt instead of 4–5×.
+
+### The links have to cross people, and asking for that did nothing
+
+A connection between two of *your own* notes is you restating yourself. A connection between **your piece and someone else's** is the table assembling — and it's where the finding lives that neither of you could state alone, because each only saw their side of it. The reveal can only read across links the team actually drew, so if the links stay inside one person, the final reading is one voice wearing the group's name.
+
+This was a real failure, found by execution rather than by reading the code: the gate to the reveal asks for a connected group of **three pieces**, and three pieces can all belong to one person. A table of six pieces from four people, every link inside one person's three, **passes the gate with one voice holding the whole shape** — and nothing said so.
+
+The obvious fix — tell the model to prefer links that cross people — **was measured and did nothing:**
+
+| | cross-seat links | seats reached | quietest seat reached |
+|---|---|---|---|
+| Baseline | 64% | 2.8 / 4 | **0 of 5 runs** |
+| *Prompt asks for it* | *58%* | *2.4 / 4* | *1 of 5* |
+| **Server-side selection** | **100%** | **4.0 / 4** | **5 of 5** |
+
+<sub>gpt-4.1, 5 runs per condition, identical table (`test/seatbridge.live.mts`, `test/seatselect.live.mts`).</sub>
+
+That null is a local replication of [HiddenBench](https://arxiv.org/abs/2505.11556) (Li, Naito & Shirado, ICML 2026), which found multi-agent LLMs score **30.1%** under distributed information vs **80.7%** for a single agent given everything — because "agents cannot recognize or act under latent information asymmetry." Crucially those failures **"persist across prompting strategies,"** while the intervention that worked was *structural* (0.037 → 0.800). The failing test is kept in the repo for that reason: it's the argument for why this isn't a prompt.
+
+So the rule lives where compliance isn't optional. The route asks the model for more links than it will show, then selects: take the proposal that brings in a person linked to **nobody**, then any cross-person link, then the rest — the model's own order breaking ties. It only ever picks among links the model genuinely proposed and never reorders on quality, so it **cannot manufacture a connection**, and the team still confirms or rejects every one.
+
+The objective is **max-min**, which two independent literatures arrive at separately: [Alsobay et al.](https://arxiv.org/abs/2508.08242) (CSCW 2026, N=1,475) found LLM facilitation worked by *"raising the minimum level of engagement,"* and the [collective-dialogues](https://arxiv.org/abs/2503.01769) bridging rule ranks by the **lowest** agreement across groups. Coverage rather than airtime follows [Lu, Yuan & McLeod's meta-analysis](https://journals.sagepub.com/doi/10.1177/1088868311417243) (2012; 65 studies, 3,189 groups): whether a unique item surfaces **at all** predicts decision quality more strongly than how much discussion it gets.
+
+Connect now also shows **how many people are in the shape**, and names those whose pieces link to no one — while it can still be fixed, rather than at the end when it can't. Shown, never enforced: the gate stays on pieces, because a team may have good reason to leave a piece out, and blocking would make the tool a supervisor instead of a mirror.
 
 **Claims come after their citations.** [Tam et al. (EMNLP 2024)](https://arxiv.org/abs/2408.02442) found structured output degrades reasoning; later work located the cause in *ordering* — a schema that emits the verdict before its support lets the model pick a label and then hunt for justification. So bridge proposals emit evidence and explanation **before** the relation type, and the reveal emits each claim's citations **before** the claim. It's the same discipline the tool asks of the team.
 
@@ -174,7 +198,8 @@ Four things follow, each one implemented here:
 | | What changes in a group |
 |---|---|
 | **`separate` is a relation** | An individual never needs to formally refuse a merge. A team does — and here "keep these apart" is a graph operation with a real cost: pieces joined only by `separate` never form a group, so the gate to the reveal stays shut. Declaring a boundary is a claim, not silence. |
-| **Citations resolve to people** | Personal tools cite back to documents. Here the source is a colleague, so the reading names seats — and names how many it *didn't* use. |
+| **Suggestions are selected for coverage of *people*** | An individual tool ranks suggestions by relevance to one reader; the only published diversity-aware rule in this space ([Relatedly](https://arxiv.org/abs/2302.06754), CHI 2023) is marginal relevance against *that reader's* history. With a group, the quantity worth covering is **whose views are in the picture at all**. The closest precedent, [CLIP](https://vis.cs.ucdavis.edu/vis2014papers/TVCG/papers/1633_20tvcg12-Mahyar-2346573.pdf) (Mahyar & Tory, TVCG 2014), does link collaborators automatically — but on **exact entity matches** ("we both mentioned George Prado"), which cannot express *your constraint causes their delay*. |
+| **Citations resolve to people** | Personal tools cite back to documents. Here the source is a colleague, so the reading names seats — and names how many it *didn't* use. Treat this as a legibility aid, not a fix: two large experiments ([Alsobay et al.](https://arxiv.org/abs/2508.08242), N=1,475; [Parisi & Thain](https://arxiv.org/abs/2605.14097), FAccT 2026, N=879) found participation displays raise engagement **without improving decisions**, the latter naming the risk *"illusion of inclusion."* That's why the mechanism is the selection rule upstream, not this label. |
 | **Refusals are kept** | Rejected bridges are preserved with their full payload rather than deleted, because a group's "no" is data about the group. |
 | **Synthesis is deferred** | Reading is gated behind assembly. Sensecape lets a user re-abstract at will; for a group, an early AI reading is an anchor ([anchoring is the strongest determinant of deliberative outcome](https://link.springer.com/article/10.1007/s10670-024-00814-7)). |
 
@@ -193,6 +218,7 @@ The design records not just what teams were *shown* but what they *pushed back o
 - **AI-framing kept vs overridden** — the AI's proposed name/question is stored beside the team's final version.
 - **Contested costs** — when the team relocates or rejects the trade-off the AI names.
 - **Blind-spot conversion** — a named seat *shown* vs actually *filled by a human* vs *dismissed as not-a-gap*.
+- **Seat coverage** — how many people the assembled shape actually reaches, and who links to no one. The measure separates two things a piece count conflates: a team that assembled *a lot* and a team that assembled *across itself*. Because it's shown but never enforced, whether a team acts on an unlinked name is itself the boundary-work signal — is leaving someone out an oversight they fix, or a distinction they defend?
 - **Grounding of the AI's framing** — which of the team's own pieces and links each reading actually cited (verified, as ids), what share of its claims were anchored at all, and what share of its citations pointed at nothing. Pairs with the accept-vs-override signal above to ask a sharper question than either alone: *did teams keep the framings that were read off their structure, and override the ones that weren't?*
 
 The design line — the AI never authors perspective content — is what keeps the representational gap a thing to *observe* rather than an artifact the tool manufactures.
