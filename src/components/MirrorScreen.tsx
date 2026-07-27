@@ -68,11 +68,26 @@ export function MirrorScreen() {
   // about where a boundary runs, and it used to be written to the log and never read again.
   // Reading it back here lets the reveal prompt see the connections as the team FOUGHT them,
   // not just as they finally stand.
+  const setStep = useSession((s) => s.setStep);
   const events = useSession((s) => s.events);
   const bridgeHistory = useMemo(() => bridgeEditsFrom(events), [events]);
   const clusters = findClusters(fragments, bridges, 3);
   const main = clusters[0];
   const byId = (id: string) => fragments.find((f) => f.id === id);
+
+  // WHAT THIS READING IS NOT ABOUT.
+  //
+  // Everything below reads `clusters[0]`. A table can assemble into two genuine elephants —
+  // four pieces on cost, three on hiring, both fully wired — and only the larger one reaches
+  // the model, the spine, or the screen. Worse, wholeness is computed INSIDE that cluster,
+  // so the second group's people are invisible while the number reads 100%. Verified by
+  // execution: 3 pieces from 3 people dropped, "100%" displayed.
+  //
+  // Same failure as the spine keeping one branch, one level up. It is not fixed by feeding
+  // everything to the model — two unconnected groups are genuinely two pictures, and merging
+  // them would invent a link the team never drew. The fix is to stop it being silent.
+  const outside = fragments.filter((f) => !main?.fragmentIds.includes(f.id));
+  const otherGroups = clusters.slice(1);
 
   const named = main ? clusterNames[main.id] : undefined;
   const question = main ? clusterQuestions[main.id] : undefined;
@@ -171,8 +186,31 @@ export function MirrorScreen() {
       const { cruxTitle, facets, tensions, spine, wholeness } = shape;
 
       const clusterFrags = main.fragmentIds.map(byId).filter(Boolean) as typeof fragments;
-      const clusterBridges = bridges.filter(
-        (b) => main.fragmentIds.includes(b.fragmentAId) && main.fragmentIds.includes(b.fragmentBId)
+      // A `separate` boundary can point at a piece outside the cluster (that is exactly what
+      // `separate` does — it refuses to pull the two together). Carry that far end along as a
+      // citable piece, or the grounding layer drops the boundary for having a dangling end and
+      // we are back to losing it.
+      const farEnds = bridges
+        .filter((b) => b.relationType === "separate")
+        .flatMap((b) => [b.fragmentAId, b.fragmentBId])
+        .filter((id) => !main.fragmentIds.includes(id));
+      for (const id of new Set(farEnds)) {
+        const f = byId(id);
+        if (f && bridges.some((b) =>
+          b.relationType === "separate" &&
+          ((b.fragmentAId === id && main.fragmentIds.includes(b.fragmentBId)) ||
+           (b.fragmentBId === id && main.fragmentIds.includes(b.fragmentAId)))
+        )) clusterFrags.push(f);
+      }
+      // Both ends inside the cluster — EXCEPT for `separate`, which by definition never joins
+      // its two pieces into a cluster, so a boundary drawn across the cluster edge would
+      // otherwise always be dropped. That is the one link this tool must never lose: it is the
+      // team saying "these must NOT be merged", and losing it lets the reading merge them.
+      const inMain = (id: string) => main.fragmentIds.includes(id);
+      const clusterBridges = bridges.filter((b) =>
+        b.relationType === "separate"
+          ? inMain(b.fragmentAId) || inMain(b.fragmentBId)
+          : inMain(b.fragmentAId) && inMain(b.fragmentBId)
       );
       const input = {
         // ids travel so the server can mint citable handles; role travels because who is
@@ -239,7 +277,7 @@ export function MirrorScreen() {
         bridgeCount: clusterBridges.length,
         wholeness: input.wholeness,
         keystoneTitle: cruxTitle,
-        facets: facets.map((f) => ({ anchor: f.anchor, members: f.members, depth: f.depth })),
+        facets,
         spine,
         tensionCount: tensions.length,
         aiName: res.name,
@@ -386,6 +424,46 @@ export function MirrorScreen() {
                     named={named}
                     onAcceptName={acceptFraming}
                   />
+                  {/* Directly under the reading, because this is where the impression that
+                      it covers everyone is formed. Only when there IS something outside. */}
+                  {result && outside.length > 0 && (
+                    <div className="mt-3 rounded-lg border border-dashed border-line bg-paper-sunken/40 px-3 py-2.5 text-[11px] leading-snug">
+                      <div className="font-semibold uppercase tracking-wide text-ink-faint">
+                        {t("outside.heading")}
+                      </div>
+                      <ul className="mt-1.5 space-y-1 text-ink-soft">
+                        {otherGroups.map((g) => (
+                          <li key={g.id}>
+                            ◇ {t("outside.group").replace("{n}", String(g.fragmentIds.length))}{" "}
+                            <span className="text-ink-faint">
+                              ({g.fragmentIds.map((id) => byId(id)?.title).filter(Boolean).join(" · ")})
+                            </span>
+                          </li>
+                        ))}
+                        {(() => {
+                          // pieces in no group of 3 at all — written, stored, and until now
+                          // absent from the reveal without a word
+                          const loose = outside.filter(
+                            (f) => !otherGroups.some((g) => g.fragmentIds.includes(f.id))
+                          );
+                          return loose.length ? (
+                            <li>
+                              ◇ {t("outside.loose").replace("{n}", String(loose.length))}{" "}
+                              <span className="text-ink-faint">
+                                ({loose.map((f) => f.title).join(" · ")})
+                              </span>
+                            </li>
+                          ) : null;
+                        })()}
+                      </ul>
+                      <button
+                        onClick={() => setStep("connect")}
+                        className="mt-2 font-medium text-accent underline-offset-2 hover:underline"
+                      >
+                        {t("outside.fix")} →
+                      </button>
+                    </div>
+                  )}
                 </section>
                 <section id="watse-question" className="scroll-mt-20">
                   <RealQuestion
@@ -1004,6 +1082,7 @@ function TradeOffPanel({ decision, cluster, onRevise }: { decision: string; clus
   // Which links the team re-typed INTO a tension, recovered from the event log — see the
   // same lookup in MirrorScreen. A tension the team argued the AI into is the one they are
   // surest is real, so it deserves priority when naming what a decision costs.
+  const setStep = useSession((s) => s.setStep);
   const events = useSession((s) => s.events);
   const bridgeHistory = useMemo(() => bridgeEditsFrom(events), [events]);
   const [loading, setLoading] = useState(false);

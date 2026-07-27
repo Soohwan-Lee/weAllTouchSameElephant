@@ -87,6 +87,20 @@ const dict = {
     en: "Pick a kind and we'll hand you a starter to fill in — in your own words.",
     ko: "종류를 고르면 채워 넣을 시작 문장을 드려요 — 당신의 말로 바꾸세요.",
   },
+  // What the reading is NOT about. A table can assemble into two separate groups, and only
+  // the biggest one is read — so say what was left out, by name, instead of implying the
+  // picture covers everyone.
+  "outside.heading": { en: "Not in this picture", ko: "이 그림에 없는 것" },
+  "outside.group": {
+    en: "{n} pieces formed a second group of their own — this reading doesn't cover them.",
+    ko: "{n}개 조각이 따로 두 번째 묶음을 이뤘어요 — 이 해석에는 안 들어갑니다.",
+  },
+  "outside.loose": {
+    en: "{n} pieces aren't connected to anything yet.",
+    ko: "{n}개 조각이 아직 아무것과도 안 이어졌어요.",
+  },
+  "outside.fix": { en: "Go back and link them", ko: "돌아가서 이어주기" },
+
   "scaffold.lensLabel": { en: "Answer from your seat", ko: "당신의 자리에서 답하기" },
   // Shown when the lens was picked from the role someone typed, so the questions changing
   // under them reads as "it listened", not as the form moving on its own.

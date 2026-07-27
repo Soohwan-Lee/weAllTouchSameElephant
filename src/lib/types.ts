@@ -34,6 +34,22 @@ export const RELATION_TYPES: RelationType[] = [
 
 /** A person at the table. Locally-modeled multi-person now; the seam a future
  *  "each participant connects from their own device" build attaches to. */
+/** A "side of the elephant" handed to the naming prompt — the shape the team built. */
+export interface FacetSummary {
+  /** the anchor piece's title (the side's handle) */
+  anchor: string;
+  /** the other pieces fused into this side */
+  members: string[];
+  /** 0 = a root pressure, higher = a downstream symptom */
+  depth: number;
+  /** how many other sides this one drives */
+  supports: number;
+  /** how many other sides drive this one */
+  dependsOn: number;
+  /** true if this is the ROOT the rest grow from (causal position, not link count) */
+  isKeystone: boolean;
+}
+
 export interface Participant {
   id: string;
   name: string;
@@ -144,7 +160,12 @@ export type SessionEvent =
       bridgeCount: number;
       wholeness: number;
       keystoneTitle?: string;
-      facets: Array<{ anchor: string; members: string[]; depth: number }>;
+      /** the sides EXACTLY as the prompt saw them. This used to be narrowed to
+       *  anchor/members/depth, which dropped supports/dependsOn/isKeystone — so the log
+       *  could not say which side was the keystone or what drove what, even though the
+       *  model was shown all of it. The point of this event is to reconstruct the shape
+       *  the team was looking at; a narrowed copy cannot. */
+      facets: FacetSummary[];
       spine: string[][];
       tensionCount: number;
       /** the AI's full reading, verbatim */

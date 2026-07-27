@@ -1,4 +1,5 @@
-import type { Fragment, RelationType, RevealMode } from "./types";
+import type { FacetSummary, Fragment, RelationType, RevealMode } from "./types";
+export type { FacetSummary };
 import { CITATION_RULES, renderBridges, renderFragments, type GroundingTable } from "./grounding";
 
 const RELATION_GUIDE = `Relation types — pick the ONE that is truest, in this priority when more than one seems to fit:
@@ -81,22 +82,6 @@ ${list}${historyBlock}
 Return ONLY valid JSON of this exact shape (no prose, no markdown). FIELD ORDER MATTERS — the evidence and the explanation come BEFORE the relation type, because you must work out what the relationship actually is before you name it, not pick a label and then justify it:
 {"bridges":[{"fragmentAId":"<cause/root id for dependency>","fragmentBId":"<effect/symptom id for dependency>","evidenceA":"<short snippet from A>","evidenceB":"<short snippet from B>","explanation":"<one concrete sentence in ${language} naming the specific relationship and, for dependency, the direction>","relationType":"dependency|tension|overlap|complement|separate"}]}
 If there are no strong bridges, return {"bridges":[]}.`;
-}
-
-/** A "side of the elephant" handed to the naming prompt — the shape the team built. */
-export interface FacetSummary {
-  /** the anchor piece's title (the side's handle) */
-  anchor: string;
-  /** the other pieces fused into this side */
-  members: string[];
-  /** 0 = a root pressure, higher = a downstream symptom */
-  depth: number;
-  /** how many other sides this one drives */
-  supports: number;
-  /** how many other sides drive this one */
-  dependsOn: number;
-  /** true if this is the ROOT the rest grow from (causal position, not link count) */
-  isKeystone: boolean;
 }
 
 export interface NameInput {
