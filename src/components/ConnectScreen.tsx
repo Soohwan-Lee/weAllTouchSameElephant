@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useSession, scenarioBridgesToProposals, bridgeEditsFrom } from "@/lib/store";
 import { getScenario } from "@/lib/scenarios";
-import { countRedundantEdges, largestClusterSize } from "@/lib/clusters";
+import { countRedundantEdges, largestClusterSize, seatCoverage } from "@/lib/clusters";
 import { fetchBridges } from "@/lib/api";
 import { BridgeCard } from "./BridgeCard";
 import { Hint } from "./Hint";
@@ -32,6 +32,11 @@ export function ConnectScreen() {
   const biggestGroup = largestClusterSize(fragments, bridges);
   const canMirror = biggestGroup >= 3;
   const groupNeed = Math.max(0, 3 - biggestGroup);
+  // How many PEOPLE the shape reaches. The gate above counts pieces, which is a different
+  // question: three linked pieces can all belong to one person, and then the reveal reads
+  // one voice. Shown but never enforced — a team may have good reason to leave a piece out,
+  // and blocking on it would make the tool a supervisor rather than a mirror.
+  const seats = seatCoverage(fragments, bridges);
 
   async function suggest() {
     setLoading(true);
@@ -160,6 +165,39 @@ export function ConnectScreen() {
               <p className="mt-1.5 text-[11px] leading-snug text-ink-faint">
                 {canMirror ? t("group.ready") : t("group.needMore").replace("{n}", String(groupNeed))}
               </p>
+            </div>
+          )}
+
+          {/* Whose pieces are in the shape. Only meaningful once more than one person has
+              put something on the table — on a solo table it would be noise. */}
+          {seats.total > 1 && (
+            <div className="mb-3 rounded-lg border border-line bg-paper-sunken/50 px-3 py-2">
+              <div className="flex items-center justify-between text-[11px] font-medium">
+                <span className="text-ink-soft">{t("seats.label")}</span>
+                <span className={seats.isolated.length ? "text-ink-faint" : "text-accent"}>
+                  {t("seats.count")
+                    .replace("{n}", String(seats.connected))
+                    .replace("{total}", String(seats.total))}
+                </span>
+              </div>
+              {seats.isolated.length > 0 ? (
+                <>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+                    <span className="text-ink-faint">{t("seats.notLinked")}</span>
+                    {seats.isolated.map((s) => (
+                      <span
+                        key={s}
+                        className="rounded-full border border-dashed border-line px-2 py-0.5 text-ink-faint"
+                      >
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="mt-1.5 text-[11px] leading-snug text-ink-faint">{t("seats.why")}</p>
+                </>
+              ) : (
+                <p className="mt-1.5 text-[11px] leading-snug text-ink-faint">{t("seats.allIn")}</p>
+              )}
             </div>
           )}
 

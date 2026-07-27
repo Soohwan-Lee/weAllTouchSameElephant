@@ -263,6 +263,24 @@ const dict = {
     en: "This group is big enough to assemble. Add more to make it richer, or head to the whole picture.",
     ko: "이 묶음은 조립하기에 충분해요. 더 이으면 풍부해지고, 아니면 전체 그림으로 넘어가세요.",
   },
+  // ---- seat coverage: how many PEOPLE the shape reaches, not how many pieces ----
+  // A shape can pass the piece gate while one person's notes hold all of it. The reveal
+  // reads only where links were drawn, so a seat with no cross-link is a seat the whole
+  // rest of the session cannot hear. Said here, at Connect, while it can still be fixed.
+  "seats.label": { en: "People in this group", ko: "이 묶음에 들어온 사람" },
+  "seats.count": { en: "{n} of {total}", ko: "{total}명 중 {n}명" },
+  "seats.notLinked": {
+    en: "Not linked to anyone yet:",
+    ko: "아직 아무와도 안 이어진 사람:",
+  },
+  "seats.why": {
+    en: "The reveal can only read across links you drew — a piece linked to no one else stays out of it.",
+    ko: "마지막 해석은 여러분이 이은 곳까지만 읽을 수 있어요 — 아무와도 안 이어진 조각은 빠집니다.",
+  },
+  "seats.allIn": {
+    en: "Everyone's pieces reach someone else's.",
+    ko: "모든 사람의 조각이 다른 사람과 이어졌어요.",
+  },
   "mirror.lockedGroup": {
     en: "Link 3 pieces into ONE connected group to reveal the whole — not just 3 links.",
     ko: "전체를 보려면 조각 3개를 하나의 묶음으로 이어야 해요 — 선 3개가 아니라.",
