@@ -2,6 +2,7 @@
 
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/store";
+import { seatOf } from "@/lib/clusters";
 
 /**
  * Whose pieces this reading was actually read off.
@@ -20,6 +21,14 @@ import { useSession } from "@/lib/store";
  * The ids come from the server-verified grounding trace, so a fabricated citation can never
  * put a name here — the handle has to have resolved to a real piece on this table.
  */
+/** The display name for a seat. Shares one definition of "whose piece is this" with the graph
+ *  layer, so the panel on Connect and the names under the reading can't drift apart; the only
+ *  difference is that an unattributed piece shows a dash here instead of its synthetic id. */
+const label = (f: { authorName: string; authorRole: string; id: string }) => {
+  const s = seatOf(f as Parameters<typeof seatOf>[0]);
+  return s.startsWith("__anon_") ? "—" : s;
+};
+
 export function WhoseWords({ fragmentIds }: { fragmentIds: string[] }) {
   const { t } = useI18n();
   const fragments = useSession((s) => s.fragments);
@@ -34,7 +43,7 @@ export function WhoseWords({ fragmentIds }: { fragmentIds: string[] }) {
   // and listing the seat twice would overstate how many perspectives the reading covers.
   const seats = new Map<string, { label: string; titles: string[] }>();
   for (const f of cited) {
-    const key = f.authorName || f.authorRole || "—";
+    const key = label(f);
     if (!seats.has(key)) seats.set(key, { label: key, titles: [] });
     seats.get(key)!.titles.push(f.title);
   }
@@ -43,12 +52,12 @@ export function WhoseWords({ fragmentIds }: { fragmentIds: string[] }) {
   // used" is a statistic; "sales and support aren't in this" is something a team can act on —
   // and the person in that seat can see, in one glance, that the reading did not include them.
   const heard = new Set(
-    cited.map((f) => f.authorName || f.authorRole || "—")
+    cited.map(label)
   );
   const unheard = [
     ...new Set(
       fragments
-        .map((f) => f.authorName || f.authorRole || "—")
+        .map(label)
         .filter((s) => s !== "—" && !heard.has(s))
     ),
   ];

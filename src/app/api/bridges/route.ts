@@ -3,6 +3,7 @@ import OpenAI from "openai";
 import { bridgePrompt, type BridgeContext } from "@/lib/prompts";
 import type { BridgeProposal, Fragment, RelationType } from "@/lib/types";
 import { RELATION_TYPES } from "@/lib/types";
+import { seatOf } from "@/lib/clusters";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -66,16 +67,25 @@ function selectForSeatCoverage(
   context: BridgeContext | undefined,
   max: number
 ): BridgeProposal[] {
-  const seatOf = (id: string) => {
+  // one definition of "whose piece is this", shared with the graph layer — three copies of
+  // this expression with three different fallbacks is how the seat count and the seat panel
+  // quietly start disagreeing.
+  // `seatOf` gives an unattributed piece its own synthetic seat so it never merges with other
+  // unattributed ones. That is right for counting, but wrong here: two anonymous pieces would
+  // read as "crossing seats" and win the ranking on a table that has no seats at all. Blank
+  // means unknown, and unknown must not earn the cross-seat bonus.
+  const seatFor = (id: string) => {
     const f = fragments.find((x) => x.id === id);
-    return f ? f.authorName || f.authorRole || "" : "";
+    if (!f) return "";
+    const s = seatOf(f);
+    return s.startsWith("__anon_") ? "" : s;
   };
   // Seats already reaching someone else's piece — those are not the minimum to raise.
   const heard = new Set<string>();
   for (const c of context?.confirmed ?? []) {
     if (c.relationType === "separate") continue; // a boundary joins nobody
-    const a = seatOf(c.aId);
-    const b = seatOf(c.bId);
+    const a = seatFor(c.aId);
+    const b = seatFor(c.bId);
     if (a && b && a !== b) { heard.add(a); heard.add(b); }
   }
 
@@ -87,8 +97,8 @@ function selectForSeatCoverage(
     for (let i = 0; i < candidates.length; i++) {
       if (taken.has(i)) continue;
       const c = candidates[i];
-      const a = seatOf(c.fragmentAId);
-      const b = seatOf(c.fragmentBId);
+      const a = seatFor(c.fragmentAId);
+      const b = seatFor(c.fragmentBId);
       // gain 2: brings in a seat nobody has reached · 1: crosses seats · 0: same seat
       const crosses = a && b && a !== b;
       const gain = !crosses ? 0 : (!heard.has(a) || !heard.has(b)) ? 2 : 1;
@@ -99,8 +109,8 @@ function selectForSeatCoverage(
     const c = candidates[best];
     taken.add(best);
     picked.push(c);
-    const a = seatOf(c.fragmentAId);
-    const b = seatOf(c.fragmentBId);
+    const a = seatFor(c.fragmentAId);
+    const b = seatFor(c.fragmentBId);
     if (a && b && a !== b) { heard.add(a); heard.add(b); }
   }
   return picked;
