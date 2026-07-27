@@ -115,6 +115,10 @@ The LLM receives this structure — facets, spine, root, live tensions, an assem
 
 This makes *"the AI reflects the team's structure rather than free-associating around it"* a **measured property of each response** (a grounding rate and a fabrication rate) instead of a design promise. Grounding never rewrites the model's prose or blocks a response — it only removes citations and reports what survived, so a bad model day degrades to today's behavior rather than a blank screen.
 
+> **What a live ablation actually showed** — and what it didn't. Running the real model across four conditions that differ only in how much of the team's work the prompt carries (`test/ablation2.live.mts`), the **bare** prompt named the causal root as reliably as the full one: 5/5 in both, while the payload nearly doubled. Typed relations *with direction* turn out to carry most of that signal on their own — a point in favour of the relation model, but **not** evidence that more context yields a better reading.
+>
+> What the added context does buy is measurable and different: the grounded conditions cite the team's own pieces at a **100% rate with 0% fabrication**, and cite *selectively* — the model names only the pieces it actually used. The bare condition cannot cite at all, having been given nothing to cite. So the honest claim is not "our pipeline produces better insight" but **"our pipeline makes the insight traceable to the team's own pieces."**
+
 ### Every AI step sees the work, not a summary of it
 
 > ⚠️ **Current version / tentative.** The pipeline below is the state as of this revision and is still being evaluated — treat it as the working design, not a settled contribution.
