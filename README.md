@@ -79,7 +79,13 @@ Each bridge is **typed** — and the type is the point. `dependency` (one drives
 
 A synthesis engine reads structure over the confirmed graph — fusing genuinely-same pieces into *facets*, ordering them by what drives what, finding the causal root, and keeping real tensions as their own strand. The AI then reads that shape back in the mode you ask for: **hold it open** (a few competing readings) or **commit to one core** (the single sharpest claim). Then it hands the pen back: name the elephant, sharpen the real question, write *your own* decision.
 
-The final screen is one continuous argument — **reading → real question → your next move → its trade-off** — with a sticky rail down the side so the spine stays legible and the *decision* stays the centre of gravity. The AI's reading reads as a proposal (calm); the decision reads as the team's own (the one place the accent lives). The assembled map, story and stats sit below as inspectable **evidence**.
+The final screen is one continuous argument — **reading → real question → your next move → its trade-off** — with a sticky rail down the side so the spine stays legible and the *decision* stays the centre of gravity. Each block says **who is speaking**: `◇ AI proposes` for a suggestion you may reject, `✍ your words` for the team's own. (The question's tag is computed against the AI's draft, not against emptiness — the draft is seeded into the field, so calling an untouched one "your words" would put words in the team's mouth.) The assembled map, story and stats sit below as inspectable **evidence**.
+
+And the reading says **whose pieces it was read off** — resolved from the verified citations, so a fabricated one can never put a person's name there:
+
+> Read from **Tae** · 5 other piece(s) not drawn on
+
+That second clause is the useful half. A synthesis leaning on one of six voices reads exactly like one integrating all six, and a team had no way to tell them apart. Driving a live session against the real model produced precisely that line: the verdict named a root and rested on a single piece. Previously an invisible failure; now a contestable one — *"that's just Tae's point"* is an argument the interface makes available.
 
 <div align="center">
 <img src="docs/screenshots/06-verdict.png" alt="See the whole — a sticky spine (reading → question → your move → trade-off), the decision as the anchor" width="820">
@@ -152,6 +158,27 @@ The most information-dense thing in a session was being written to the event log
 ```
 
 No amount of re-reading the final graph would recover this: it is the record of a boundary being *contested and settled*. It is also, concretely, an input **no general-purpose assistant can be given** — pasting the same fragments into a chat window cannot reproduce a history the tool itself created.
+
+---
+
+## Why a group tool can't just be an individual one
+
+> ⚠️ **Current version / tentative** — the design argument below is implemented and inspectable, but no pilot has run. Treat it as a position, not a finding.
+
+Mature tools already do *sensemaking over many perspectives* — Sensecape, Graphologue, Selenite, NotebookLM. Nearly all of them assume **one user reading many sources**. Almost none assume **many users who are themselves the sources**, and that inversion breaks the assumptions rather than stretching them:
+
+An individual tool treats perspectives as **external artifacts** the user is sovereign over — free to cluster, abstract, discard and re-summarize, answering to no one. When a group works on *its own* perspectives, the material was authored by people in the room. **Summarizing becomes a political act, discarding a social one, and the AI's structure has to be contestable by the person whose words were structured.**
+
+Four things follow, each one implemented here:
+
+| | What changes in a group |
+|---|---|
+| **`separate` is a relation** | An individual never needs to formally refuse a merge. A team does — and here "keep these apart" is a graph operation with a real cost: pieces joined only by `separate` never form a group, so the gate to the reveal stays shut. Declaring a boundary is a claim, not silence. |
+| **Citations resolve to people** | Personal tools cite back to documents. Here the source is a colleague, so the reading names seats — and names how many it *didn't* use. |
+| **Refusals are kept** | Rejected bridges are preserved with their full payload rather than deleted, because a group's "no" is data about the group. |
+| **Synthesis is deferred** | Reading is gated behind assembly. Sensecape lets a user re-abstract at will; for a group, an early AI reading is an anchor ([anchoring is the strongest determinant of deliberative outcome](https://link.springer.com/article/10.1007/s10670-024-00814-7)). |
+
+**What is *not* solved:** shared attention. A single shared screen sidesteps the problem that two people at different zoom levels are not looking at the same thing — it doesn't answer it. That returns the moment sessions go per-device, which is exactly why that sits on the roadmap rather than in the build.
 
 ---
 
