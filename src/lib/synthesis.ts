@@ -316,22 +316,53 @@ export function computeSynthesis(
   // 8. SPINE — the causal chains, each from a source (nothing drives it) to a sink
   //    (drives nothing), following the longest path. This is what lets the naming model
   //    see "A → B → C" as a story, not just per-side depths. Cycle-safe.
+  //    EVERY branch, not just the longest one. This used to keep only the single longest path
+  //    per source, which silently deleted whole sides of the picture: a root with three
+  //    consequences — three different people — handed the model ONE of them, at 100% wholeness,
+  //    with nothing reporting the loss. Measured on a real table: five connected seats, a spine
+  //    naming three, and the reading then rested on exactly those three. The people who
+  //    disappeared were disappeared HERE, by the engine, before the model ever saw them.
   const sources = facetIds.filter((fid) => (inFacets.get(fid)?.size ?? 0) === 0 && (outFacets.get(fid)?.size ?? 0) > 0);
-  const longestFrom = (fid: string, seen: Set<string>): string[] => {
+  // The path count is exponential in the worst case, so cap the enumeration itself rather than
+  // only its output — a pathological table must not be able to hang the reveal. The cap is far
+  // above any real session (a dense 12-piece table produced 1,024 paths) and, because the
+  // selection below is longest-first, the chains that survive truncation are the informative
+  // ones. Tables this dense are already covered by a handful of long chains.
+  const MAX_PATHS = 4000;
+  let pathCount = 0;
+  const chainsFrom = (fid: string, seen: Set<string>): string[][] => {
     const outs = [...(outFacets.get(fid) ?? [])].filter((n) => !seen.has(n));
-    if (!outs.length) return [fid];
-    let best: string[] = [];
-    for (const n of outs) {
-      const tail = longestFrom(n, new Set([...seen, fid]));
-      if (tail.length > best.length) best = tail;
+    if (!outs.length || pathCount >= MAX_PATHS) {
+      pathCount++;
+      return [[fid]];
     }
-    return [fid, ...best];
+    const out: string[][] = [];
+    for (const n of outs) {
+      for (const tail of chainsFrom(n, new Set([...seen, fid]))) out.push([fid, ...tail]);
+      if (pathCount >= MAX_PATHS) break;
+    }
+    return out.length ? out : [[fid]];
   };
-  const spine = sources
-    .map((s) => longestFrom(s, new Set()))
+  //    Enumerating every path is 2^n on a dense graph — 12 pieces produced 1,024 chains and
+  //    75KB of prompt, which is the Context-Rot failure this pipeline is otherwise careful to
+  //    avoid. What the model actually needs is not every route through the shape but every
+  //    PIECE placed on some route. So take chains longest-first and keep one only while it
+  //    still introduces a side nothing else has covered. That is a greedy set-cover: every
+  //    facet reachable from a source appears at least once, and near-duplicate paths through
+  //    the same pieces are dropped.
+  const allChains = sources
+    .flatMap((s) => chainsFrom(s, new Set()))
     .filter((chain) => chain.length >= 2)
     // longest, most-reaching chains first
     .sort((a, b) => b.length - a.length);
+  const coveredFacets = new Set<string>();
+  const spine: string[][] = [];
+  for (const chain of allChains) {
+    if (chain.some((fid) => !coveredFacets.has(fid))) {
+      spine.push(chain);
+      chain.forEach((fid) => coveredFacets.add(fid));
+    }
+  }
 
   return {
     facets,

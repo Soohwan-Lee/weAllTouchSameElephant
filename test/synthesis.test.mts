@@ -74,4 +74,46 @@ t("a piece with no confirmed link is reported loose", () => {
   assert.deepEqual(s.looseFragmentIds.sort(), ["f3", "f4"]);
 });
 
+// The spine is what tells the naming model "A drove B drove C". It used to keep only the
+// LONGEST path per source, so a root with several consequences handed the model one of them
+// and silently dropped the others — at 100% wholeness, with nothing reporting the loss. On a
+// real 5-person table that cost two people their place in the reading.
+console.log("\n[spine]");
+t("every branch off a root reaches the spine, not just the longest", () => {
+  const s = synth(f4, [
+    B("b1", "f1", "f2", "dependency"),
+    B("b2", "f1", "f3", "dependency"),
+    B("b3", "f1", "f4", "dependency"),
+  ]);
+  const anchors = new Set(
+    s.spine.flat().map((fid) => s.facets.find((x) => x.id === fid)!.anchorId)
+  );
+  for (const id of ["f1", "f2", "f3", "f4"]) {
+    assert.ok(anchors.has(id), `${id} dropped from the spine`);
+  }
+});
+
+t("a chain that adds no new piece is not repeated", () => {
+  // f1→f2→f3 plus a shortcut f1→f3: the shortcut covers nothing new, so it is dropped.
+  const s = synth(f4, [
+    B("b1", "f1", "f2", "dependency"),
+    B("b2", "f2", "f3", "dependency"),
+    B("b3", "f1", "f3", "dependency"),
+  ]);
+  assert.equal(s.spine.length, 1, "redundant path kept");
+  assert.equal(s.spine[0].length, 3, "should keep the chain that covers all three");
+});
+
+t("a dense table stays small and still covers every piece", () => {
+  const n = 12;
+  const frags = Array.from({ length: n }, (_, i) => F(`g${i}`, `G${i}`));
+  const bs = [];
+  for (let i = 0; i < n; i++)
+    for (let j = i + 1; j < n; j++) bs.push(B(`b${i}_${j}`, `g${i}`, `g${j}`, "dependency"));
+  const s = synth(frags, bs);
+  const covered = new Set(s.spine.flat());
+  assert.equal(covered.size, s.facets.length, "a piece went missing from the spine");
+  assert.ok(s.spine.length <= 8, `spine exploded to ${s.spine.length} chains`);
+});
+
 console.log(`\n${pass} assertions passed.\n`);
