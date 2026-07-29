@@ -244,21 +244,18 @@ export function computeSynthesis(
   //    over a densely-connected symptom — that's the whole point (a bottleneck upstream
   //    isn't always the loudest, most-linked node).
   //
-  //    Ranking (all among facets that drive at least one other side):
-  //      1. genuine roots first (nothing drives them)
-  //      2. among those, the one that reaches the MOST of the picture downstream
-  //         (net leverage = supports − dependsOn), so a true source beats a mid-chain
-  //      3. tie-break toward lower depth (more upstream), then smaller fan-in
+  //    Rank only genuine roots. If every driver is also driven, the flow is a cycle and
+  //    there is no honest single root to name; leaving the keystone null is more useful than
+  //    turning facet iteration order into a confident diagnosis.
   let keystoneFacetId: string | null = null;
   if (facets.length > 1) {
-    const drivers = facets.filter((f) => f.supports > 0);
-    if (drivers.length) {
+    const roots = facets.filter((f) => f.isRoot);
+    if (roots.length) {
       const score = (f: (typeof facets)[number]) =>
-        (f.isRoot ? 10_000 : 0) + // a real root dominates a mid-chain symptom
         (f.supports - f.dependsOn) * 100 + // net downstream leverage
         (maxPathDepth - depthMemo.get(f.id)!) * 5 - // more upstream = closer to source
         f.dependsOn; // fewer things upstream of it
-      keystoneFacetId = drivers.slice().sort((a, b) => score(b) - score(a))[0].id;
+      keystoneFacetId = roots.slice().sort((a, b) => score(b) - score(a))[0].id;
     }
   }
 

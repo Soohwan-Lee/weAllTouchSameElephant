@@ -64,6 +64,17 @@ t("complement endpoint order cannot manufacture a causal root", () => {
   assert.equal(rootOf(reversed), "f2");
 });
 
+t("a causal cycle has no invented keystone", () => {
+  const s = synth(f4.slice(0, 3), [
+    B("b1", "f1", "f2", "dependency"),
+    B("b2", "f2", "f3", "dependency"),
+    B("b3", "f3", "f1", "dependency"),
+  ]);
+  assert.deepEqual(s.facets.filter((f) => f.isRoot), []);
+  assert.equal(s.keystoneFacetId, null);
+  assert.deepEqual(s.spine, []);
+});
+
 console.log("\n[separate is a boundary, not glue]");
 t("`separate` never fuses two pieces into one facet", () => {
   const s = synth(f4, [B("b1", "f1", "f2", "separate")]);
