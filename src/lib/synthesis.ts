@@ -21,9 +21,10 @@ import type { Cluster } from "./clusters";
  *   1. FACETS   — pieces that are truly the SAME thing seen differently become one side of
  *                 the elephant. Only "overlap" fuses (transitively). This is deliberate:
  *                 the four relations are NOT interchangeable, and conflating them was a bug.
- *   2. FLOW     — directional relations that shape the spine, NOT the merge:
+ *   2. FLOW     — causal relations that shape the spine, NOT the merge:
  *                   • "dependency"  — A causes/blocks/enables B  → facet(A) → facet(B)
- *                   • "complement"  — A supplies context B NEEDS → facet(A) → facet(B)
+ *                 "complement" still connects two pieces, but does not claim that either
+ *                 side causes the other, so it cannot manufacture a causal root.
  *                 "complement" used to fuse (union-find), which over-merged genuinely
  *                 distinct sides and inflated facet size — feeding the very "big cluster =
  *                 important" bias we're trying to kill. A completes B is a DIRECTIONAL bond
@@ -94,9 +95,9 @@ export interface Synthesis {
 /** Only "overlap" fuses two pieces into the SAME side. The others keep them distinct:
  *  complement/dependency become directional flow; tension stays its own strand. */
 const isFusing = (r: RelationType) => r === "overlap";
-/** Relations that create a directional bond (A → B): dependency (A drives B) and
- *  complement (A supplies context B needs, so B leans on A). */
-const isDirectional = (r: RelationType) => r === "dependency" || r === "complement";
+/** Only an explicit dependency creates causal flow (A → B). `complement` means the pieces
+ *  complete one another without claiming that either one causes the other. */
+const isDirectional = (r: RelationType) => r === "dependency";
 
 /**
  * Fuse fragments into facets using overlap/complement bridges (union-find),
@@ -157,9 +158,9 @@ export function computeSynthesis(
     }
   }
 
-  // 2. FACET FLOW from directional bridges (A drives B → facet(A) → facet(B)).
-  //    Both "dependency" (A causes/blocks B) and "complement" (A supplies context B needs,
-  //    so B leans on A) point the same way: A is more upstream, B rests on it.
+  // 2. FACET FLOW from causal bridges (A drives B → facet(A) → facet(B)).
+  //    Only "dependency" carries that claim. `complement` still assembles the component,
+  //    but its endpoint order must not decide which side becomes the root.
   //    Track BOTH out-edges (this side drives others) and in-edges (others drive it),
   //    because "what's the root?" is about in-edges, not raw connection count.
   const flowKey = (a: string, b: string) => `${a}->${b}`;

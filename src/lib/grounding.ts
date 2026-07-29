@@ -172,7 +172,7 @@ export function renderBridges(table: GroundingTable): string {
   return table.bridges
     .map((b) => {
       const arrow =
-        b.relationType === "dependency" || b.relationType === "complement"
+        b.relationType === "dependency"
           ? `${b.aHandle} --${b.relationType}--> ${b.bHandle}`
           : b.relationType === "separate"
           ? `${b.aHandle} -/-${b.relationType}-/- ${b.bHandle}`

@@ -106,7 +106,8 @@ And once you've written the decision, the tool mirrors the **cost** it commits t
 The reading isn't the AI free-associating over a list. Before the model is ever called, a **deterministic graph engine** computes the shape and injects it as fact:
 
 - **Facets via union-find** — only `overlap` fuses two pieces into one side; `tension` and `separate` never do.
-- **A causal DAG** from the directional relations — `dependency` and `complement` set the flow.
+- **A causal DAG** from explicit `dependency` relations. `complement` still connects two
+  pieces, but does not make either one the cause of the other.
 - **Root by causal position, not link count** — the piece that drives the rest but nothing drives *it* is the root, even when it's sparsely connected (which is exactly why teams miss it).
 - **A `separate` edge is a boundary, not glue** — it's excluded from every graph walk (clustering, the assembly gate, reachability), so "keep apart" genuinely holds pieces apart.
 

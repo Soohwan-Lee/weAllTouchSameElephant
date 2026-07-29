@@ -49,6 +49,21 @@ t("the root drives others but nothing drives it, even when sparsely linked", () 
   assert.equal(keystone.fragmentIds[0], "f1", "a sparsely-linked source must beat a busy mid-chain node");
 });
 
+t("complement endpoint order cannot manufacture a causal root", () => {
+  const forward = synth(f4, [
+    B("b1", "f1", "f2", "complement"),
+    B("b2", "f2", "f3", "dependency"),
+  ]);
+  const reversed = synth(f4, [
+    B("b1", "f2", "f1", "complement"),
+    B("b2", "f2", "f3", "dependency"),
+  ]);
+  const rootOf = (s: ReturnType<typeof synth>) =>
+    s.facets.find((x) => x.id === s.keystoneFacetId)?.anchorId;
+  assert.equal(rootOf(forward), "f2");
+  assert.equal(rootOf(reversed), "f2");
+});
+
 console.log("\n[separate is a boundary, not glue]");
 t("`separate` never fuses two pieces into one facet", () => {
   const s = synth(f4, [B("b1", "f1", "f2", "separate")]);

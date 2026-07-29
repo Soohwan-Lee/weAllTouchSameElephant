@@ -174,6 +174,12 @@ t("every fragment is rendered with its handle and role", () => {
 t("direction is preserved for dependency", () => {
   assert.match(renderBridges(table), /F1 --dependency--> F3/);
 });
+t("complement is rendered without a causal arrow", () => {
+  const tb = buildGroundingTable(frags, [B("br-c", "frag-aaa", "frag-bbb", "complement")]);
+  const txt = renderBridges(tb);
+  assert.match(txt, /F1 <--complement--> F2/);
+  assert.doesNotMatch(txt, /F1 --complement--> F2/);
+});
 t("tension renders bidirectionally", () => {
   assert.match(renderBridges(table), /F2 <--tension--> F1/);
 });
