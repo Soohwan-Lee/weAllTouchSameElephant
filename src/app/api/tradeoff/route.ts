@@ -9,7 +9,15 @@ const MODEL = process.env.OPENAI_MODEL || "gpt-5.4-mini";
 
 /** A kept tension / separation. `id` is the real bridge id; `retyped` marks a relation the
  *  team changed INTO a tension after the AI proposed something else. */
-type Pair = { a: string; b: string; id?: string; retyped?: boolean };
+type Pair = {
+  a: string;
+  b: string;
+  id?: string;
+  retyped?: boolean;
+  why?: string;
+  evidenceA?: string;
+  evidenceB?: string;
+};
 
 /**
  * Words too generic to signal that a decision actually touches a tension's side. Includes

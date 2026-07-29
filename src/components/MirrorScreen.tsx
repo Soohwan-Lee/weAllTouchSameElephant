@@ -1138,6 +1138,8 @@ function TradeOffPanel({ decision, cluster, onRevise }: { decision: string; clus
   const title = (id: string) => fragments.find((f) => f.id === id)?.title ?? "?";
   const inCluster = (b: (typeof bridges)[number]) =>
     cluster.fragmentIds.includes(b.fragmentAId) && cluster.fragmentIds.includes(b.fragmentBId);
+  const touchesCluster = (b: (typeof bridges)[number]) =>
+    cluster.fragmentIds.includes(b.fragmentAId) || cluster.fragmentIds.includes(b.fragmentBId);
   // Carry each tension's id so the named cost can be traced back to the exact link it was
   // read off, and `retyped` so a tension the team INSISTED on (they overruled the AI to call
   // it a trade-off) outranks one they merely accepted when both fit the decision equally.
@@ -1147,11 +1149,23 @@ function TradeOffPanel({ decision, cluster, onRevise }: { decision: string; clus
       id: b.id,
       a: title(b.fragmentAId),
       b: title(b.fragmentBId),
+      why: b.explanation,
+      evidenceA: b.evidenceA,
+      evidenceB: b.evidenceB,
       retyped: Boolean(bridgeHistory.get(b.id)?.retyped),
     }));
   const separations = bridges
-    .filter((b) => b.relationType === "separate" && inCluster(b))
-    .map((b) => ({ id: b.id, a: title(b.fragmentAId), b: title(b.fragmentBId) }));
+    // A boundary commonly crosses the component edge precisely because it refuses to join
+    // the two pieces. Keep it when either endpoint belongs to the elephant being read.
+    .filter((b) => b.relationType === "separate" && touchesCluster(b))
+    .map((b) => ({
+      id: b.id,
+      a: title(b.fragmentAId),
+      b: title(b.fragmentBId),
+      why: b.explanation,
+      evidenceA: b.evidenceA,
+      evidenceB: b.evidenceB,
+    }));
 
   const reveal = async () => {
     setOpened(true);

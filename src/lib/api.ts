@@ -124,8 +124,23 @@ export async function fetchBlindSpot(
  *  optional: a caller that sends only titles gets the previous, uncited behavior. */
 export async function fetchTradeOff(
   decision: string,
-  tensions: Array<{ a: string; b: string; id?: string; retyped?: boolean }>,
-  separations: Array<{ a: string; b: string; id?: string }>,
+  tensions: Array<{
+    a: string;
+    b: string;
+    id?: string;
+    retyped?: boolean;
+    why?: string;
+    evidenceA?: string;
+    evidenceB?: string;
+  }>,
+  separations: Array<{
+    a: string;
+    b: string;
+    id?: string;
+    why?: string;
+    evidenceA?: string;
+    evidenceB?: string;
+  }>,
   lang: "en" | "ko"
 ): Promise<{
   tension: string;

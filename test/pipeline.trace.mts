@@ -116,6 +116,7 @@ const tens = synth.tensions.map((tn) => { const b = bridges.find((x) => x.id ===
 const tp = tradeOffPrompt("We fund the rollout before proving ROI", tens, [], "en");
 console.log(`  trade-off sees the kept tension:        ${has(tp, "Floor is exhausted")}`);
 console.log(`  trade-off can cite it by handle:        ${has(tp, "[T1]")}`);
+console.log(`  trade-off sees why it is a tension:     ${has(tp, "OKAPI")}`);
 const dp = directionsPrompt("fund it", "what to prove first?", input.cruxTitle, tens, "en",
   clusterFrags.map((f) => ({ title: f.title, body: f.body, role: f.authorRole })), input.spine!);
 console.log("  directions sees CARD bodies:");

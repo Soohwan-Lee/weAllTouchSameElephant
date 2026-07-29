@@ -474,8 +474,23 @@ export interface TradeOff {
 
 export function tradeOffPrompt(
   decision: string,
-  keptTensions: Array<{ a: string; b: string; handle?: string; retyped?: boolean }>,
-  separations: Array<{ a: string; b: string; handle?: string }>,
+  keptTensions: Array<{
+    a: string;
+    b: string;
+    handle?: string;
+    retyped?: boolean;
+    why?: string;
+    evidenceA?: string;
+    evidenceB?: string;
+  }>,
+  separations: Array<{
+    a: string;
+    b: string;
+    handle?: string;
+    why?: string;
+    evidenceA?: string;
+    evidenceB?: string;
+  }>,
   lang: "en" | "ko"
 ) {
   const language = lang === "ko" ? "Korean" : "English";
@@ -486,16 +501,28 @@ export function tradeOffPrompt(
     ? keptTensions
         .map((t) => {
           const h = t.handle ? `[${t.handle}] ` : "";
+          const why = t.why ? `\n    why: "${t.why}"` : "";
+          const evidence =
+            t.evidenceA || t.evidenceB
+              ? `\n    evidence: "${t.evidenceA ?? ""}" · "${t.evidenceB ?? ""}"`
+              : "";
           // a re-typed tension is one the team INSISTED was a trade-off after the AI called it
           // something softer — the least safe one to wave away.
           const over = t.retyped ? ` (the team re-typed this INTO a tension — they insist it is a real trade-off)` : "";
-          return `- ${h}"${t.a}" ⟷ "${t.b}"${over}`;
+          return `- ${h}"${t.a}" ⟷ "${t.b}"${over}${why}${evidence}`;
         })
         .join("\n")
     : "(none)";
   const seps = separations.length
     ? separations
-        .map((s) => `- ${s.handle ? `[${s.handle}] ` : ""}"${s.a}" ∦ "${s.b}" (kept apart on purpose)`)
+        .map((s) => {
+          const why = s.why ? `\n    why: "${s.why}"` : "";
+          const evidence =
+            s.evidenceA || s.evidenceB
+              ? `\n    evidence: "${s.evidenceA ?? ""}" · "${s.evidenceB ?? ""}"`
+              : "";
+          return `- ${s.handle ? `[${s.handle}] ` : ""}"${s.a}" ∦ "${s.b}" (kept apart on purpose)${why}${evidence}`;
+        })
         .join("\n")
     : "(none)";
 
