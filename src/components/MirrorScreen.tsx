@@ -33,6 +33,7 @@ export function MirrorScreen() {
   const fragments = useSession((s) => s.fragments);
   const bridges = useSession((s) => s.bridges);
   const scenarioId = useSession((s) => s.scenarioId);
+  const decisionPrompt = useSession((s) => s.decisionPrompt);
   const assembled = useSession((s) => s.assembled);
   const setAssembled = useSession((s) => s.setAssembled);
   const revealView = useSession((s) => s.revealView);
@@ -498,6 +499,7 @@ export function MirrorScreen() {
                       value={decision ?? ""}
                       onChange={(v) => main && setClusterDecision(main.id, v)}
                       onCommit={(v) => logEvent({ type: "decision_written", text: v })}
+                      decisionPrompt={decisionPrompt}
                       realQuestion={question ?? ""}
                       cruxTitle={shape.cruxTitle}
                       tensions={shape.tensions}
@@ -852,6 +854,7 @@ function NextStep({
   value,
   onChange,
   onCommit,
+  decisionPrompt,
   realQuestion,
   cruxTitle,
   tensions,
@@ -862,6 +865,8 @@ function NextStep({
   value: string;
   onChange: (v: string) => void;
   onCommit: (v: string) => void;
+  /** the original decision this session is about; distinct from the answer draft in `value` */
+  decisionPrompt: string;
   realQuestion: string;
   cruxTitle?: string;
   /** `why` is the team's own sentence about the tension; `retyped` marks one they insisted on */
@@ -885,7 +890,15 @@ function NextStep({
     setDirLoading(true);
     try {
       const { fetchDirections } = await import("@/lib/api");
-      const { directions: d } = await fetchDirections(value, realQuestion, cruxTitle, tensions, lang, pieces, spine);
+      const { directions: d } = await fetchDirections(
+        decisionPrompt,
+        realQuestion,
+        cruxTitle,
+        tensions,
+        lang,
+        pieces,
+        spine
+      );
       setDirections(d);
     } finally {
       setDirLoading(false);
