@@ -1,7 +1,9 @@
 import type { BridgeProposal, Fragment, NameResult, RelationType, RevealMode } from "./types";
 import type { BridgeContext, CardCandidate, NameInput, SeedSuggestion } from "./prompts";
 
-export type BridgeMode = "live" | "sample" | "empty" | "error";
+/** `insufficient` is distinct from `empty`: the model answered, but nothing it proposed could
+ *  be traced back to a span in the cards. The cause is thin material, not a missing table. */
+export type BridgeMode = "live" | "sample" | "empty" | "error" | "insufficient";
 
 export async function fetchTalkQuestions(
   decision: string,

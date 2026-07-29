@@ -4,6 +4,7 @@ import { bridgePrompt, type BridgeContext } from "@/lib/prompts";
 import type { BridgeProposal, Fragment, RelationType } from "@/lib/types";
 import { RELATION_TYPES } from "@/lib/types";
 import { seatOf } from "@/lib/clusters";
+import { filterToVerifiedEvidence } from "@/lib/evidence";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -173,9 +174,24 @@ export async function POST(req: NextRequest) {
     const settled = new Set<string>();
     for (const c of context?.confirmed ?? []) settled.add([c.aId, c.bId].sort().join("|"));
     for (const r of context?.rejectedPairs ?? []) settled.add([r.aId, r.bId].sort().join("|"));
-    const candidates = sanitize(parsed, fragments)
+    const proposed = sanitize(parsed, fragments)
       .filter((b) => !settled.has([b.fragmentAId, b.fragmentBId].sort().join("|")));
+    // Every snippet the team will read has to be quotable off the card it is attached to.
+    // Dropping happens BEFORE selection so seat coverage chooses among links that can survive
+    // being checked, rather than spending a seat on one that gets pulled afterwards.
+    const candidates = filterToVerifiedEvidence(proposed, fragments);
+    const unquotable = proposed.length - candidates.length;
+    if (unquotable > 0) {
+      console.log(`[bridges] dropped ${unquotable}/${proposed.length} proposals — evidence not a span of the cited card`);
+    }
     const bridges = selectForSeatCoverage(candidates, fragments, context, max);
+    // The model spoke and nothing it said survived. That is a real state and its own answer:
+    // "no strong connections found" reads as a judgment about the cards, so a team told that
+    // after every proposal failed verification would go edit pieces that were never the
+    // problem. Naming it lets the UI say what would actually help instead.
+    if (!bridges.length && proposed.length) {
+      return NextResponse.json({ bridges: [], mode: "insufficient" });
+    }
     return NextResponse.json({ bridges, mode: "live" });
   } catch (err) {
     console.error("[bridges] LLM error", err);

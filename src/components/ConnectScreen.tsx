@@ -25,6 +25,7 @@ export function ConnectScreen() {
 
   const [loading, setLoading] = useState(false);
   const [emptyResult, setEmptyResult] = useState(false);
+  const [insufficient, setInsufficient] = useState(false);
   const [failed, setFailed] = useState(false);
   const [mode, setMode] = useState<string | null>(null);
 
@@ -42,6 +43,7 @@ export function ConnectScreen() {
   async function suggest() {
     setLoading(true);
     setEmptyResult(false);
+    setInsufficient(false);
     setFailed(false);
     try {
       // scale the ask to the table: more pieces → more bridges per round (cap 6)
@@ -80,6 +82,14 @@ export function ConnectScreen() {
       // sending people off to edit perfectly good pieces to fix a network error.
       if (apiMode === "error" && !getScenario(scenarioId)) {
         setFailed(true);
+        return;
+      }
+      // The server checked the proposals against the cards and none survived. Falling through
+      // to the scenario's pre-baked bridges here would hand back links the live table cannot
+      // support and hide the one thing worth saying — that the cards need more substance.
+      if (apiMode === "insufficient") {
+        setMode("live");
+        setInsufficient(true);
         return;
       }
       let added = 0;
@@ -227,7 +237,7 @@ export function ConnectScreen() {
           </button>
 
           <div className="flex-1 space-y-3">
-            {tray.length === 0 && !loading && !emptyResult && (
+            {tray.length === 0 && !loading && !emptyResult && !insufficient && (
               <div className="rounded-xl border border-dashed border-line bg-paper-sunken/40 p-6 text-center text-sm text-ink-faint">
                 {t("connect.trayEmpty")}
               </div>
@@ -241,6 +251,11 @@ export function ConnectScreen() {
                 >
                   ↻ {t("common.retry")}
                 </button>
+              </div>
+            )}
+            {insufficient && tray.length === 0 && (
+              <div className="rounded-xl border border-dashed border-line bg-paper-sunken/40 p-6 text-center text-sm leading-snug text-ink-faint">
+                {t("connect.insufficient")}
               </div>
             )}
             {emptyResult && tray.length === 0 && (

@@ -212,6 +212,12 @@ const dict = {
     en: "No strong connections found right now. Try adding or editing a piece.",
     ko: "지금은 뚜렷한 연결을 찾지 못했어요. 조각을 추가하거나 수정해 보세요.",
   },
+  // Says what would help, and blames nobody. The team did not do anything wrong; there is
+  // simply not enough concrete material on the cards for a link to be quotable off them.
+  "connect.insufficient": {
+    en: "Not enough material to propose a connection yet — add concrete facts, numbers, or examples to the cards.",
+    ko: "아직 관계를 제안할 만한 재료가 부족해요 — 카드에 구체적인 사실·수치·사례를 더 담아보세요.",
+  },
   "connect.allDone": {
     en: "You've looked at every pair. Nice — head to the whole picture.",
     ko: "모든 조각 쌍을 살펴봤어요. 좋아요 — 전체 그림으로 넘어가세요.",
