@@ -6,6 +6,7 @@ import {
   resolveToIds,
   renderFragments,
   renderBridges,
+  traceNameResult,
 } from "../src/lib/grounding.ts";
 
 const F = (id: string, title: string, role = "ops") => ({
@@ -200,6 +201,30 @@ t("empty table renders '(none)' rather than blank", () => {
   const empty = buildGroundingTable([], []);
   assert.equal(renderFragments(empty), "(none)");
   assert.equal(renderBridges(empty), "(none)");
+});
+
+console.log("\n[shown-claim trace]");
+t("fallback prose cannot inherit citations from a missing model claim", () => {
+  const parsed = {
+    name: "A model name",
+    nameGrounds: ["F1"],
+    question: "A model question?",
+    questionGrounds: ["F2"],
+    verdict: "",
+    verdictGrounds: ["B1"],
+  };
+  const shown = {
+    name: "A model name",
+    note: "",
+    question: "A model question?",
+    mode: "verdict" as const,
+    verdict: "A local fallback verdict",
+  };
+  const trace = traceNameResult(parsed, "verdict", table, shown, new Set(["verdict"]));
+  assert.deepEqual(trace.fragmentIds.sort(), ["frag-aaa", "frag-bbb"]);
+  assert.deepEqual(trace.bridgeIds, [], "the fallback verdict must not inherit B1");
+  assert.equal(trace.rate, 0.667);
+  assert.equal(trace.claims, 3);
 });
 
 console.log(`\n${pass} assertions passed.\n`);

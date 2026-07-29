@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { namePrompt, type NameInput } from "@/lib/prompts";
-import type { GroundingTrace, NameResult, RevealMode } from "@/lib/types";
+import type { NameResult, RevealMode } from "@/lib/types";
 import { REVEAL_MODES, stripQuestionLeadIn } from "@/lib/types";
 import {
   buildGroundingTable,
-  groundingReport,
-  resolveToIds,
-  verifyClaim,
-  type GroundedClaim,
+  traceNameResult,
   type GroundingTable,
 } from "@/lib/grounding";
 import type { Bridge, Fragment } from "@/lib/types";
@@ -154,50 +151,6 @@ function tableFor(input: NameInput): GroundingTable | null {
   return buildGroundingTable(frags, bridges, history);
 }
 
-/**
- * Check every claim in a response against the table and collapse the result into the trace
- * the client stores.
- *
- * Deliberately non-destructive: the caller keeps whatever prose the model produced no matter
- * how the verification lands. A model that cites nothing, or cites only invented handles,
- * yields a trace with `rate: 0` — a recorded fact about that run, not a reason to blank the
- * screen. The trace is the measurement; the prose is still the team's to judge.
- */
-function traceFor(
-  parsed: Record<string, unknown>,
-  mode: RevealMode,
-  table: GroundingTable
-): GroundingTrace {
-  const claims: Array<GroundedClaim<unknown>> = [
-    verifyClaim(parsed.name, parsed.nameGrounds, table),
-    verifyClaim(parsed.question, parsed.questionGrounds, table),
-  ];
-  // explore returns several readings, each with its own citation list; verdict/hypothesis one.
-  // The field is named after the claim (`verdictGrounds`, `readingsGrounds`), but accept the
-  // older generic name too: a citation we fail to find is scored as an ungrounded claim, so
-  // being strict here would mean under-reporting grounding rather than catching an error.
-  const rg = parsed[`${mode}Grounds`] ?? parsed.readingsGrounds ?? parsed.readingGrounds;
-  if (mode === "explore") {
-    const readings = Array.isArray(parsed.readings) ? parsed.readings : [];
-    readings.forEach((r, i) => {
-      const g = Array.isArray(rg) ? rg[i] : undefined;
-      claims.push(verifyClaim(r, g, table));
-    });
-  } else {
-    claims.push(verifyClaim(parsed[mode], rg, table));
-  }
-
-  const report = groundingReport(claims);
-  const { fragmentIds, bridgeIds } = resolveToIds(report.citedHandles, table);
-  return {
-    fragmentIds,
-    bridgeIds,
-    rate: Number(report.rate.toFixed(3)),
-    fabricationRate: Number(report.fabricationRate.toFixed(3)),
-    claims: report.claims,
-  };
-}
-
 export async function POST(req: NextRequest) {
   let body: { input?: NameInput; lang?: "en" | "ko"; mode?: unknown };
   try {
@@ -233,9 +186,10 @@ export async function POST(req: NextRequest) {
     const parsed = JSON.parse(text) as Record<string, unknown>;
     const name = String(parsed.name ?? "").trim().slice(0, 60);
     if (!name) return NextResponse.json({ ...localName(input, lang, mode), mode });
-    const question =
-      stripQuestionLeadIn(String(parsed.question ?? "").trim()).slice(0, 220) ||
-      localName(input, lang, mode).question;
+    const fallbackClaims = new Set<"question" | RevealMode>();
+    const modelQuestion = stripQuestionLeadIn(String(parsed.question ?? "").trim()).slice(0, 220);
+    const question = modelQuestion || localName(input, lang, mode).question;
+    if (!modelQuestion) fallbackClaims.add("question");
 
     const out: Record<string, unknown> = {
       name,
@@ -247,17 +201,31 @@ export async function POST(req: NextRequest) {
       const readings = Array.isArray(parsed.readings)
         ? parsed.readings.map((r) => String(r).trim().slice(0, 280)).filter(Boolean).slice(0, 3)
         : [];
-      out.readings = readings.length ? readings : localName(input, lang, mode).readings;
+      if (readings.length) out.readings = readings;
+      else {
+        out.readings = localName(input, lang, mode).readings;
+        fallbackClaims.add(mode);
+      }
     } else if (mode === "hypothesis") {
-      out.hypothesis =
-        String(parsed.hypothesis ?? "").trim().slice(0, 240) ||
-        localName(input, lang, mode).hypothesis;
+      const hypothesis = String(parsed.hypothesis ?? "").trim().slice(0, 240);
+      out.hypothesis = hypothesis || localName(input, lang, mode).hypothesis;
+      if (!hypothesis) fallbackClaims.add(mode);
     } else {
-      out.verdict =
-        String(parsed.verdict ?? "").trim().slice(0, 240) || localName(input, lang, mode).verdict;
+      const verdict = String(parsed.verdict ?? "").trim().slice(0, 240);
+      out.verdict = verdict || localName(input, lang, mode).verdict;
+      if (!verdict) fallbackClaims.add(mode);
     }
-    // Verified against the team's own table — see `traceFor`. Never gates the response.
-    if (table) out.grounding = traceFor(parsed, mode, table);
+    // Verified against the team's own table. Trace the exact claims that will be shown;
+    // local fallback prose cannot inherit citations from a missing model field.
+    if (table) {
+      out.grounding = traceNameResult(
+        parsed,
+        mode,
+        table,
+        out as unknown as NameResult,
+        fallbackClaims
+      );
+    }
     return NextResponse.json(out);
   } catch (err) {
     console.error("[name] LLM error", err);

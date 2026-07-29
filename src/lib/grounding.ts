@@ -1,4 +1,12 @@
-import type { Bridge, BridgeEdit, Fragment, RelationType } from "./types";
+import type {
+  Bridge,
+  BridgeEdit,
+  Fragment,
+  GroundingTrace,
+  NameResult,
+  RelationType,
+  RevealMode,
+} from "./types";
 
 /**
  * GROUNDING — the layer that makes the LLM's output *checkable* against the team's own table.
@@ -319,4 +327,52 @@ export function resolveToIds(grounds: string[], table: GroundingTable): { fragme
     else if (h.startsWith(BRIDGE_PREFIX)) bridgeIds.push(hit.id);
   }
   return { fragmentIds, bridgeIds };
+}
+
+/**
+ * Trace the exact claims that reached the screen. When a missing model field was replaced
+ * by local fallback prose, that fallback remains visible but cannot inherit citations the
+ * model returned beside an empty claim.
+ */
+export function traceNameResult(
+  parsed: Record<string, unknown>,
+  mode: RevealMode,
+  table: GroundingTable,
+  shown: NameResult,
+  fallbackClaims: Set<"question" | RevealMode> = new Set()
+): GroundingTrace {
+  const claims: Array<GroundedClaim<unknown>> = [
+    verifyClaim(shown.name, parsed.nameGrounds, table),
+    verifyClaim(
+      shown.question,
+      fallbackClaims.has("question") ? undefined : parsed.questionGrounds,
+      table
+    ),
+  ];
+  const rg = parsed[`${mode}Grounds`] ?? parsed.readingsGrounds ?? parsed.readingGrounds;
+  if (mode === "explore") {
+    const readings = shown.readings ?? [];
+    readings.forEach((reading, i) => {
+      const grounds = !fallbackClaims.has(mode) && Array.isArray(rg) ? rg[i] : undefined;
+      claims.push(verifyClaim(reading, grounds, table));
+    });
+  } else {
+    claims.push(
+      verifyClaim(
+        shown[mode],
+        fallbackClaims.has(mode) ? undefined : rg,
+        table
+      )
+    );
+  }
+
+  const report = groundingReport(claims);
+  const { fragmentIds, bridgeIds } = resolveToIds(report.citedHandles, table);
+  return {
+    fragmentIds,
+    bridgeIds,
+    rate: Number(report.rate.toFixed(3)),
+    fabricationRate: Number(report.fabricationRate.toFixed(3)),
+    claims: report.claims,
+  };
 }
