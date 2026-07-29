@@ -24,6 +24,7 @@ const fragments = [
   F("f3", "No audit trail", "There is no record of who approved what, so NARWHAL disputes go nowhere.", "legal"),
   F("f4", "Support queue grew", "Tickets doubled since the pilot; the AXOLOTL backlog is now weeks.", "support"),
 ];
+const decision = "Should we scale the WOMBAT pilot this quarter?";
 const bridges = [
   B("b1", "f1", "f3", "dependency", "Budget delay keeps pushing the PANGOLIN logging work back"),
   B("b2", "f2", "f1", "tension", "Every push to scale faster costs more OKAPI trust on the floor"),
@@ -52,7 +53,8 @@ say("STAGE 2 · CONNECT — do the team's cards reach the bridge prompt?");
 const bp = bridgePrompt(fragments, "en", 3, {
   confirmed: [{ aId: "f1", bId: "f3", relationType: "dependency" as any, retyped: true, aiRelationType: "overlap" as any }],
   rejectedPairs: [{ aId: "f2", bId: "f4" }],
-});
+}, decision);
+console.log(`  original decision scopes the prompt:             ${has(bp, "WOMBAT")}`);
 for (const f of fragments) {
   const tok = f.body.match(/[A-Z]{4,}/)![0];
   console.log(`  card "${f.title}" body token ${tok}: ${has(bp, tok)}`);
@@ -88,6 +90,7 @@ const facets: FacetSummary[] = synth.facets.map((f) => ({
   depth: f.depth, supports: f.supports, dependsOn: f.dependsOn, isKeystone: f.id === synth.keystoneFacetId,
 }));
 const input: NameInput = {
+  decision,
   fragments: clusterFrags.map((f) => ({ id: f.id, title: f.title, body: f.body, authorRole: f.authorRole })),
   bridges: clusterBridges.map((b) => ({ id: b.id, aTitle: byId(b.fragmentAId)?.title ?? "?", bTitle: byId(b.fragmentBId)?.title ?? "?",
     relationType: b.relationType, explanation: b.explanation, evidenceA: b.evidenceA, evidenceB: b.evidenceB,
@@ -108,6 +111,7 @@ console.log(`  hand-drawn link surfaced:      ${has(np, "THE TEAM DREW THIS THEM
 console.log(`  keep-apart spelled out:        ${has(np, "KEEP APART")}`);
 console.log(`  citation contract present:     ${has(np, "CITATION")}`);
 console.log(`  engine's ROOT tagged:          ${has(np, "[ROOT")}`);
+console.log(`  original decision scopes reveal: ${has(np, "WOMBAT")}`);
 
 // ── STAGE 3c: downstream steps ──
 say("STAGE 3c · DOWNSTREAM — trade-off & directions");

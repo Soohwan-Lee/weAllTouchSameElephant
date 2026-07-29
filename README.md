@@ -111,7 +111,7 @@ The reading isn't the AI free-associating over a list. Before the model is ever 
 - **Root by causal position, not link count** — the piece that drives the rest but nothing drives *it* is the root, even when it's sparsely connected (which is exactly why teams miss it).
 - **A `separate` edge is a boundary, not glue** — it's excluded from every graph walk (clustering, the assembly gate, reachability), so "keep apart" genuinely holds pieces apart.
 
-The LLM receives this structure — facets, spine, root, live tensions, an assembled-ness score — and is instructed to *read it*, not invent one.
+The LLM receives the original session question plus this structure — facets, spine, root, live tensions, an assembled-ness score — and is instructed to *read it*, not invent one. The question is supplied only as scope; cards and confirmed links remain the evidence.
 
 ### The reading is checked against the team's own table
 
@@ -119,10 +119,10 @@ The LLM receives this structure — facets, spine, root, live tensions, an assem
 
 - **Every piece and link gets a citable handle** — `[F1]`, `[B2]` — minted per request and listed in the prompt. They are the only references the model is allowed to use.
 - **The model must cite what each claim rests on** (`"grounds":["F2","B1"]`), for the name, each reading, and the question.
-- **The server verifies every citation** against the real table. A handle that points at nothing is dropped; a claim left with no surviving citation is recorded as unsupported. Hallucinated references cannot reach the screen because code removes them, not because a prompt asked nicely.
+- **The server verifies every citation handle** against the real table. A handle that points at nothing is dropped; a claim left with no surviving citation is recorded as unsupported. Hallucinated references cannot reach the screen because code removes them, not because a prompt asked nicely.
 - **Verified citations resolve back to real fragment/bridge ids** and land in the session log, so an analysis can ask which pieces the AI's framing actually leaned on — and which parts of the table it ignored.
 
-This makes *"the AI reflects the team's structure rather than free-associating around it"* a **measured property of each response** (a grounding rate and a fabrication rate) instead of a design promise. Grounding never rewrites the model's prose or blocks a response — it only removes citations and reports what survived, so a bad model day degrades to today's behavior rather than a blank screen.
+This makes *"the AI pointed at real parts of the team's structure"* a **measured property of each response** (a citation-validity rate and a fabrication rate) instead of a design promise. It does **not** prove semantic entailment: a valid `[F2]` can still be a weak or mistaken justification for the sentence beside it. Grounding never rewrites the model's prose or blocks a response — it only removes invalid citations and reports what survived, so a bad model day degrades to today's behavior rather than a blank screen.
 
 > **What a live ablation actually showed** — and what it didn't. Running the real model across four conditions that differ only in how much of the team's work the prompt carries (`test/ablation2.live.mts`), the **bare** prompt named the causal root as reliably as the full one: 5/5 in both, while the payload nearly doubled. Typed relations *with direction* turn out to carry most of that signal on their own — a point in favour of the relation model, but **not** evidence that more context yields a better reading.
 >
@@ -136,9 +136,9 @@ The rule the whole pipeline is now audited against: **if a team authored it, the
 
 | Step | Saw before | Sees now |
 |---|---|---|
-| **Connect** — propose links | the pieces, nothing else. A "find more" round was byte-identical to the first, so it could re-offer a pair just rejected | what's confirmed, what was **dismissed**, and where the team **corrected its relation types** — plus a server-side filter, so settled pairs can't come back regardless of what the model does. Which proposals **reach the tray** is now a selection rule, not the model's ordering (below) |
+| **Connect** — propose links | the pieces, nothing else. A "find more" round was byte-identical to the first, so it could re-offer a pair just rejected | the original session question as scope; what's confirmed, what was **dismissed**, and where the team **corrected its relation types** — plus a server-side filter, so settled pairs can't come back regardless of what the model does. Which proposals **reach the tray** is now a selection rule, not the model's ordering (below) |
 | **Blind spot** — name a missing seat | isolated cards. Asked to spot "one side of a trade-off only" while shown no trade-offs | the links, the kept tensions, and which pieces are still loose |
-| **Reveal** — read the shape | a typed graph of titles | fragment bodies, author seats, each link's **explanation and evidence**, hand-drawn links, and every AI-override |
+| **Reveal** — read the shape | a typed graph of titles | the original session question as scope; fragment bodies, author seats, each link's **explanation and evidence**, hand-drawn links, and every AI-override |
 | **Directions** — starting moves | a crux title and title-pairs | the pieces in their own words, the causal spine, and why each tension is one |
 | **Trade-off** — the cost | title matching | a citable handle per kept tension, resolved back to the real link |
 
@@ -278,7 +278,7 @@ OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-5.4-mini   # optional; this is the default
 ```
 
-Without a key, every AI route falls back to a hand-written or graph-grounded response, so the full flow always works.
+Without a key, routes use deterministic sample/graph fallbacks. The bundled scenarios keep their hand-authored connection proposals and reveals; on a custom session, connection suggestions are empty and the team must draw links manually before continuing.
 
 ---
 

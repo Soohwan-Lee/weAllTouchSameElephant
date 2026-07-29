@@ -221,6 +221,9 @@ export function MirrorScreen() {
           : inMain(b.fragmentAId) && inMain(b.fragmentBId)
       );
       const input = {
+        // The original question scopes what these fragments are about. It is deliberately
+        // context rather than citable evidence; claims still have to point at cards/links.
+        decision: decisionPrompt,
         // ids travel so the server can mint citable handles; role travels because who is
         // speaking is part of what a piece IS on this table.
         fragments: clusterFrags.map((f) => ({

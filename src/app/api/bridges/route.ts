@@ -120,6 +120,7 @@ export async function POST(req: NextRequest) {
     lang?: "en" | "ko";
     max?: number;
     context?: BridgeContext;
+    decision?: string;
   };
   try {
     body = await req.json();
@@ -129,6 +130,7 @@ export async function POST(req: NextRequest) {
   const fragments = body.fragments ?? [];
   const lang = body.lang === "ko" ? "ko" : "en";
   const max = Math.min(6, Math.max(1, body.max ?? 3));
+  const decision = String(body.decision ?? "").slice(0, 400);
   // What the team has already confirmed or dismissed — so a later round proposes something
   // new instead of re-offering work they have already done or refused.
   const context: BridgeContext | undefined = body.context
@@ -158,7 +160,7 @@ export async function POST(req: NextRequest) {
       // and at max=3 the model often returns 3 links that all sit inside one person's pieces —
       // leaving nothing cross-seat to select. The overshoot is what gives the rule a choice;
       // the extras are discarded, never shown.
-      messages: [{ role: "user", content: bridgePrompt(fragments, lang, Math.min(8, max + 3), context) }],
+      messages: [{ role: "user", content: bridgePrompt(fragments, lang, Math.min(8, max + 3), context, decision) }],
       response_format: { type: "json_object" },
       temperature: 0.4,
     });

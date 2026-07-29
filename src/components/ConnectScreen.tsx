@@ -15,6 +15,7 @@ export function ConnectScreen() {
   const fragments = useSession((s) => s.fragments);
   const tray = useSession((s) => s.tray);
   const bridges = useSession((s) => s.bridges);
+  const decisionPrompt = useSession((s) => s.decisionPrompt);
   const scenarioId = useSession((s) => s.scenarioId);
   const rejectedPairKeys = useSession((s) => s.rejectedPairKeys);
   const addProposals = useSession((s) => s.addProposals);
@@ -68,7 +69,13 @@ export function ConnectScreen() {
           return { aId, bId };
         }),
       };
-      const { bridges: proposals, mode: apiMode } = await fetchBridges(fragments, lang, max, context);
+      const { bridges: proposals, mode: apiMode } = await fetchBridges(
+        fragments,
+        lang,
+        max,
+        context,
+        decisionPrompt
+      );
       // a failed call on a blank table used to render as "no strong connections found",
       // sending people off to edit perfectly good pieces to fix a network error.
       if (apiMode === "error" && !getScenario(scenarioId)) {

@@ -22,7 +22,8 @@ export function bridgePrompt(
   fragments: Fragment[],
   lang: "en" | "ko",
   maxBridges: number,
-  context?: BridgeContext
+  context?: BridgeContext,
+  decision = ""
 ) {
   const list = fragments
     .map((f) => `- id=${f.id} | ${f.title} — ${f.body} (by ${f.authorRole})`)
@@ -59,8 +60,18 @@ export function bridgePrompt(
     historyBlock += `\n\nThis is a LATER round: propose only connections that are genuinely NEW relative to everything above. If every worthwhile link is already made, returning an empty list is the correct answer — do not pad the round with weak pairs to look productive.`;
   }
 
+  const decisionBlock = decision.trim()
+    ? `\nThe question/decision that brought this table together:
+"${decision.trim()}"
+
+Use this question as SCOPE, not as evidence. It tells you what situation the cards are about,
+but every proposed relationship must still be supported by the two card texts.
+`
+    : "";
+
   return `You are helping a team see how their scattered fragments connect into ONE bigger picture — the "blind men and the elephant" problem. Each teammate wrote a partial view of the same situation. Your ONLY job is to propose the connections (bridges) that assemble those views into a single coherent shape.
 
+${decisionBlock}
 Think first, then propose:
 1. Read all fragments as partial views of ONE underlying situation. What is the situation?
 2. Find the CAUSAL SPINE: which piece is a root pressure, which are downstream symptoms of it? Direction is the most valuable thing you can surface — it's what tells the team what's a cause vs a symptom.
@@ -85,6 +96,9 @@ If there are no strong bridges, return {"bridges":[]}.`;
 }
 
 export interface NameInput {
+  /** The original question/decision that scoped the session. It is context, not evidence:
+   *  final claims must still cite the team's pieces and confirmed links. */
+  decision?: string;
   /** Pieces, carrying the ids/roles the grounding layer needs to mint citable handles.
    *  `id`/`authorRole` are optional so an older caller (or a test) that passes only
    *  title+body still type-checks and simply gets un-annotated handles. */
@@ -161,6 +175,9 @@ export function namePrompt(
 ) {
   const language = lang === "ko" ? "Korean" : "English";
   const spec = MODE_SPEC[mode];
+  const decisionBlock = input.decision?.trim()
+    ? `\n\nThe original question/decision that scoped this table:\n"${input.decision.trim()}"\nTreat this as SCOPE, not evidence. Do not answer it directly or cite it; use it only to avoid reading the cards as if they belonged to a different situation.`
+    : "";
 
   // Handle-rendered when we can cite, plain when we can't — same prose either way.
   const frags = table
@@ -290,7 +307,7 @@ Hard rules:
 - Write everything in ${language}. Keep each sentence tight.
 
 Pieces on the table:
-${frags}
+${frags}${decisionBlock}
 
 Links the team confirmed:
 ${links}${shapeBlock}

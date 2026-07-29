@@ -63,13 +63,14 @@ export async function fetchBridges(
   fragments: Fragment[],
   lang: "en" | "ko",
   max = 3,
-  context?: BridgeContext
+  context?: BridgeContext,
+  decision = ""
 ): Promise<{ bridges: BridgeProposal[]; mode: BridgeMode }> {
   try {
     const res = await fetch("/api/bridges", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fragments, lang, max, context }),
+      body: JSON.stringify({ fragments, lang, max, context, decision }),
     });
     if (!res.ok) return { bridges: [], mode: "error" };
     return await res.json();
