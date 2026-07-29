@@ -7,8 +7,10 @@ import { getScenario } from "@/lib/scenarios";
 import { countRedundantEdges, largestClusterSize, seatCoverage } from "@/lib/clusters";
 import { fetchBridges } from "@/lib/api";
 import { BridgeCard } from "./BridgeCard";
+import { ContestCard } from "./ContestCard";
 import { Hint } from "./Hint";
 import { ManualConnect } from "./ManualConnect";
+import type { ContestProposal } from "@/lib/types";
 
 export function ConnectScreen() {
   const { t, lang } = useI18n();
@@ -21,6 +23,8 @@ export function ConnectScreen() {
   const addProposals = useSession((s) => s.addProposals);
   const unconfirmBridge = useSession((s) => s.unconfirmBridge);
   const undoRejection = useSession((s) => s.undoRejection);
+  const contests = useSession((s) => s.contests);
+  const recordContest = useSession((s) => s.recordContest);
   const setStep = useSession((s) => s.setStep);
 
   const [loading, setLoading] = useState(false);
@@ -28,6 +32,18 @@ export function ConnectScreen() {
   const [insufficient, setInsufficient] = useState(false);
   const [failed, setFailed] = useState(false);
   const [mode, setMode] = useState<string | null>(null);
+  // At most one live second look at a time — the server returns at most one per round, and a
+  // stack of them would be the tool arguing rather than asking.
+  //
+  // Held WITH the id of the bridge it was raised against. Resolving by pair alone was wrong:
+  // a team can take a link back and re-draw the same two cards, and the stale question would
+  // silently re-attach to a link it was never about — and then un-confirm THAT one.
+  const [contest, setContest] = useState<{ proposal: ContestProposal; bridgeId: string } | null>(
+    null
+  );
+  // Which "suggest" round this is. The server uses it to space second looks out (at most one
+  // every other round) and to rotate which link gets looked at.
+  const [round, setRound] = useState(0);
 
   const byId = (id: string) => fragments.find((f) => f.id === id);
   // gate on the biggest connected GROUP, not the raw bridge count (see largestClusterSize).
@@ -64,25 +80,48 @@ export function ConnectScreen() {
             relationType: b.relationType,
             retyped: Boolean(h?.retyped),
             aiRelationType: aiType && aiType !== b.relationType ? aiType : undefined,
+            // `createdBy` decides eligibility for a second look — a hand-drawn link must never
+            // be one, since un-confirming it deletes it. The evidence travels so the server can
+            // tell a genuine re-reading from the model handing back the link's own snippets.
+            createdBy: b.createdBy,
+            evidenceA: b.evidenceA,
+            evidenceB: b.evidenceB,
           };
         }),
         rejectedPairs: [...rejectedPairKeys].map((k) => {
           const [aId, bId] = k.split("::");
           return { aId, bId };
         }),
+        // Pairs whose link the AI has already questioned once and the team answered. Asking
+        // the same question again would be pressing them, so the server drops these.
+        contested: contests.map((c) => ({ aId: c.aId, bId: c.bId })),
+        round,
       };
-      const { bridges: proposals, mode: apiMode } = await fetchBridges(
-        fragments,
-        lang,
-        max,
-        context,
-        decisionPrompt
-      );
+      setRound((r) => r + 1);
+      const {
+        bridges: proposals,
+        mode: apiMode,
+        contest: raised,
+      } = await fetchBridges(fragments, lang, max, context, decisionPrompt);
       // a failed call on a blank table used to render as "no strong connections found",
       // sending people off to edit perfectly good pieces to fix a network error.
       if (apiMode === "error" && !getScenario(scenarioId)) {
         setFailed(true);
         return;
+      }
+      // Set before the branches below: a round can find no new bridges and still have a fair
+      // question about an existing link, and that question is the round's only useful output
+      // when it happens. Only ever replaced by a fresh one, never stacked.
+      //
+      // Bound to the bridge id as it stands right now, so the question stays attached to the
+      // exact link it was asked about rather than to whatever later occupies that pair.
+      if (raised) {
+        const target = bridges.find(
+          (b) =>
+            (b.fragmentAId === raised.aId && b.fragmentBId === raised.bId) ||
+            (b.fragmentAId === raised.bId && b.fragmentBId === raised.aId)
+        );
+        if (target) setContest({ proposal: raised, bridgeId: target.id });
       }
       // The server checked the proposals against the cards and none survived. Falling through
       // to the scenario's pre-baked bridges here would hand back links the live table cannot
@@ -110,6 +149,14 @@ export function ConnectScreen() {
       setLoading(false);
     }
   }
+
+  // The exact link a live contest was raised against, by id. The team can take that link back
+  // themselves between rounds — and even re-draw the same two cards — so matching on identity
+  // is what keeps a stale question from re-attaching to a link it was never about. If the
+  // original link is gone, the question is about nothing and the card goes with it.
+  const contestBridge = contest
+    ? bridges.find((b) => b.id === contest.bridgeId) ?? null
+    : null;
 
   const usedPairs = bridges.length + tray.length + rejectedPairKeys.size;
   const totalPairs = (fragments.length * (fragments.length - 1)) / 2;
@@ -237,6 +284,41 @@ export function ConnectScreen() {
           </button>
 
           <div className="flex-1 space-y-3">
+            {/* The one place the AI questions the team's own work. Rendered above the
+                proposals because it is about a decision they already made, and below it
+                everything is still just an offer. */}
+            {contestBridge && contest && (
+              <ContestCard
+                contest={contest.proposal}
+                bridge={contestBridge}
+                fragA={byId(contest.proposal.aId)}
+                fragB={byId(contest.proposal.bId)}
+                onKeep={() => {
+                  recordContest({
+                    aId: contest.proposal.aId,
+                    bId: contest.proposal.bId,
+                    confirmedType: contestBridge.relationType,
+                    suggestedType: contest.proposal.suggestedType,
+                    outcome: "kept",
+                  });
+                  setContest(null);
+                }}
+                onRevisit={() => {
+                  recordContest({
+                    aId: contest.proposal.aId,
+                    bId: contest.proposal.bId,
+                    confirmedType: contestBridge.relationType,
+                    suggestedType: contest.proposal.suggestedType,
+                    outcome: "revisited",
+                  });
+                  // The existing way back off the board: an AI link returns to the tray as a
+                  // proposal, where the team can re-type, rewrite, or dismiss it with the
+                  // affordances they already know.
+                  unconfirmBridge(contestBridge.id);
+                  setContest(null);
+                }}
+              />
+            )}
             {tray.length === 0 && !loading && !emptyResult && !insufficient && (
               <div className="rounded-xl border border-dashed border-line bg-paper-sunken/40 p-6 text-center text-sm text-ink-faint">
                 {t("connect.trayEmpty")}

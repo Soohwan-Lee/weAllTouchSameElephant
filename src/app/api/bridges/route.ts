@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
-import { bridgePrompt, type BridgeContext } from "@/lib/prompts";
+import { blindTypePrompt, bridgePrompt, type BridgeContext } from "@/lib/prompts";
 import type { BridgeProposal, Fragment, RelationType } from "@/lib/types";
 import { RELATION_TYPES } from "@/lib/types";
 import { seatOf } from "@/lib/clusters";
 import { filterToVerifiedEvidence } from "@/lib/evidence";
+import { contestFromBlindReading, pickContestTarget, surfaceContests } from "@/lib/contest";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -140,6 +141,10 @@ export async function POST(req: NextRequest) {
         rejectedPairs: Array.isArray(body.context.rejectedPairs)
           ? body.context.rejectedPairs.slice(0, 40)
           : [],
+        contested: Array.isArray(body.context.contested)
+          ? body.context.contested.slice(0, 40)
+          : [],
+        round: Math.max(0, Math.floor(Number(body.context.round) || 0)),
       }
     : undefined;
 
@@ -153,18 +158,60 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ bridges: [], mode: "sample" });
   }
 
+  // WHICH link, if any, gets a second look this round — decided here, before any model is
+  // asked anything. Letting the model volunteer a target produced zero contests across live
+  // runs, including on tables with deliberately mistyped links.
+  const contestLink = pickContestTarget(context?.confirmed ?? [], context?.contested, context?.round);
+  const fragOf = (id: string) => fragments.find((f) => f.id === id);
+  const targetA = contestLink && fragOf(contestLink.aId);
+  const targetB = contestLink && fragOf(contestLink.bId);
+
   try {
     const client = new OpenAI({ apiKey });
-    const completion = await client.chat.completions.create({
-      model: MODEL,
-      // Ask for more than we show. A selection rule can only choose among what it is given,
-      // and at max=3 the model often returns 3 links that all sit inside one person's pieces —
-      // leaving nothing cross-seat to select. The overshoot is what gives the rule a choice;
-      // the extras are discarded, never shown.
-      messages: [{ role: "user", content: bridgePrompt(fragments, lang, Math.min(8, max + 3), context, decision) }],
-      response_format: { type: "json_object" },
-      temperature: 0.4,
-    });
+    // The blind read runs as its own call, alongside the bridge call rather than inside it,
+    // because it must NOT see the board: no recorded type, no confirmed-links history, no
+    // other cards. That isolation is the entire mechanism — a model that can see what the team
+    // decided agrees with it (measured: 0/9 detection), and one that cannot simply reads the
+    // cards. Both calls are issued together since neither depends on the other's answer.
+    const blindCall =
+      contestLink && targetA && targetB
+        ? client.chat.completions
+            .create({
+              model: MODEL,
+              messages: [
+                {
+                  role: "user",
+                  content: blindTypePrompt(
+                    targetA.title,
+                    targetA.body,
+                    targetB.title,
+                    targetB.body,
+                    lang
+                  ),
+                },
+              ],
+              response_format: { type: "json_object" },
+              temperature: 0.4,
+            })
+            // A failed second look must never cost the round its bridges.
+            .catch(() => null)
+        : Promise.resolve(null);
+
+    const [completion, blind] = await Promise.all([
+      client.chat.completions.create({
+        model: MODEL,
+        // Ask for more than we show. A selection rule can only choose among what it is given,
+        // and at max=3 the model often returns 3 links that all sit inside one person's pieces —
+        // leaving nothing cross-seat to select. The overshoot is what gives the rule a choice;
+        // the extras are discarded, never shown.
+        messages: [
+          { role: "user", content: bridgePrompt(fragments, lang, Math.min(8, max + 3), context, decision) },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.4,
+      }),
+      blindCall,
+    ]);
     const text = completion.choices[0]?.message?.content ?? "{}";
     const parsed = JSON.parse(text);
     // Telling the model not to re-propose settled pairs is a request; enforcing it here is
@@ -185,14 +232,53 @@ export async function POST(req: NextRequest) {
       console.log(`[bridges] dropped ${unquotable}/${proposed.length} proposals — evidence not a span of the cited card`);
     }
     const bridges = selectForSeatCoverage(candidates, fragments, context, max);
+    // How the blind pass read the same two cards, compared against what the team recorded.
+    // Kept entirely off the bridges path — a discrepancy that fails verification must never
+    // cost the round a proposal, and it does not count against `max`, because it is a
+    // different kind of thing than "here is another link to consider".
+    let blindReading: unknown;
+    if (blind) {
+      try {
+        blindReading = JSON.parse(blind.choices[0]?.message?.content ?? "{}");
+      } catch {
+        blindReading = undefined;
+      }
+    }
+    const wouldSurface = contestLink
+      ? contestFromBlindReading(blindReading, fragments, contestLink)
+      : undefined;
+    // THIS LOG IS THE RESEARCH INSTRUMENT, not a debug aid. Nothing about the second look
+    // reaches a screen today (see surfaceContests), so these lines are the only record of how
+    // often a cold reading of two cards matches the reading of the people who wrote them —
+    // the measurement that decides whether this feature ever surfaces. One line per judged
+    // round, whatever the outcome: counting only the disagreements would be counting the
+    // numerator alone.
+    if (contestLink) {
+      const read = (blindReading as { relationType?: string } | undefined)?.relationType ?? "none";
+      const agree = read === contestLink.relationType;
+      console.log(
+        `[bridges] blind ${contestLink.aId}↔${contestLink.bId} recorded=${contestLink.relationType} blind=${read} ` +
+          `${agree ? "agree" : "disagree"} would-surface=${wouldSurface ? "yes" : "no"} surfaced=${surfaceContests() ? "yes" : "no"}`
+      );
+    }
+    // Ship-dark: the pipeline runs, the log records, the team sees nothing. The client code
+    // that renders and answers a contest stays live and tested so this is one constant away
+    // from working rather than something to rebuild.
+    const contest = surfaceContests() ? wouldSurface : undefined;
     // The model spoke and nothing it said survived. That is a real state and its own answer:
     // "no strong connections found" reads as a judgment about the cards, so a team told that
     // after every proposal failed verification would go edit pieces that were never the
     // problem. Naming it lets the UI say what would actually help instead.
+    //
+    // The contest is dropped here on purpose. A round where every proposal failed span
+    // verification has demonstrably bad grounding on these cards, and trusting its judgment of
+    // an EXISTING link in the same breath would be incoherent — as would telling the team
+    // "there isn't enough material to connect anything" beside a confident question about a
+    // connection they already made.
     if (!bridges.length && proposed.length) {
       return NextResponse.json({ bridges: [], mode: "insufficient" });
     }
-    return NextResponse.json({ bridges, mode: "live" });
+    return NextResponse.json({ bridges, mode: "live", contest });
   } catch (err) {
     console.error("[bridges] LLM error", err);
     return NextResponse.json({ bridges: [], mode: "error" });

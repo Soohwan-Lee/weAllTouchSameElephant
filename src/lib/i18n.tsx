@@ -247,6 +247,29 @@ const dict = {
     ko: "{n}개의 짝을 치웠어요 — AI가 다시 제안하지 않아요.",
   },
   "bridge.undoAllRejections": { en: "Allow them again", ko: "다시 허용하기" },
+
+  // ---- contest: the AI asking about a link the team already confirmed ----
+  // The header is a question and the body voice stays tentative throughout, because this is
+  // the one place the AI points at the team's own work. It questions the LINK, never the
+  // person who drew it, and "Keep as is" is deliberately the easy, unpunished answer.
+  "contest.heading": { en: "Worth a second look?", ko: "이 연결, 다시 볼까요?" },
+  "contest.currentType": { en: "You recorded this as", ko: "지금 기록된 관계는" },
+  "contest.suggests": { en: "Might it be closer to", ko: "혹시 이쪽에 가까울까요" },
+  // The QUESTION the team reads, composed here rather than written by the model. A fresh pass
+  // over these two cards read them as {type}; the template turns that observation into an open
+  // question about the LINK, and {because} is the AI's own sentence on how the two relate —
+  // relation explanation, the same thing it writes for every bridge, never a claim about the
+  // team. Keeping the interrogative form in code is what guarantees it stays a question.
+  "contest.question": {
+    en: "Read fresh, these two came out as “{type}” — {because} Does that fit better than what's recorded, or does your reading hold?",
+    ko: "이 두 조각만 다시 읽으면 “{type}”으로 보여요 — {because} 기록된 관계보다 이쪽이 더 맞을까요, 아니면 원래 읽기가 맞을까요?",
+  },
+  "contest.keep": { en: "Keep as is", ko: "그대로 둔다" },
+  "contest.revisit": { en: "Look again", ko: "다시 본다" },
+  "contest.revisitHint": {
+    en: "Puts this link back among the suggestions so you can re-type or dismiss it.",
+    ko: "이 연결을 제안 목록으로 되돌려서 다시 정하거나 지울 수 있게 해요.",
+  },
   "bridge.addManual": { en: "Connect two yourself", ko: "직접 두 조각 잇기" },
   "manual.start": { en: "+ Draw your own connection", ko: "+ 내가 직접 연결 그리기" },
   "manual.pickFirst": { en: "Click the first piece on the table", ko: "테이블에서 첫 번째 조각을 클릭하세요" },

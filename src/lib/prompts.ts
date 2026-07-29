@@ -9,13 +9,60 @@ const RELATION_GUIDE = `Relation types — pick the ONE that is truest, in this 
 - "complement": one adds the MISSING context the other needs to make sense — different facets of one situation, neither causing the other.
 - "separate": these two look linkable but must be kept APART — merging them would collapse a distinction that matters (different timescales, different people affected, different kinds of claim). Propose this ONLY when a merge is genuinely tempting and genuinely wrong; it is the team's call to make far more often than yours.`;
 
+/**
+ * The same five types with the PRIORITY REMOVED — for reading a pair neutrally rather than
+ * proposing a link.
+ *
+ * RELATION_GUIDE ranks the types and tells the model to prefer "dependency" wherever any
+ * cause→effect direction exists. That is right when proposing new bridges, where surfacing
+ * direction is the most valuable thing a proposal can do. It is ruinous for classification:
+ * reusing it in the blind pass returned "dependency" for 18/18 readings, including a textbook
+ * tension (weekly ship promise vs a four-week ship freeze) and a plain restatement-overlap,
+ * each 0/3. A causal story can be told about almost any two pieces from one situation, so a
+ * tie-break toward causation is a landslide toward it.
+ *
+ * Here the job is to say what the pair IS, so the types are peers and the instruction is to
+ * pick the best fit rather than the highest-ranked plausible one.
+ */
+const RELATION_GUIDE_NEUTRAL = `Relation types — these are PEERS, in no priority order. Pick the ONE that best fits what the two texts actually say:
+- "dependency": one piece CAUSES, drives, blocks, or enables the other. Requires a real cause→effect direction stated or clearly implied by the texts — NOT merely that the two could be told as a story where one came first.
+- "tension": the two pull in genuinely CONFLICTING directions — satisfying one costs the other. A real trade-off.
+- "overlap": the two are the SAME underlying issue in two vocabularies — one could be rephrased into the other.
+- "complement": each adds context the other needs — different facets of one situation, neither causing the other.
+- "separate": these must be kept APART — merging them would collapse a distinction that matters (different timescales, different people affected, different kinds of claim).
+
+Do not reach for "dependency" by default. If the texts do not state or clearly imply that one drives the other, one of the other four fits better.`;
+
 /** What the team has already settled on this table, so a repeat "suggest more" round does not
  *  re-propose work they have already done — or already refused. */
 export interface BridgeContext {
-  /** links already confirmed, with the type the team settled on */
-  confirmed: Array<{ aId: string; bId: string; relationType: RelationType; retyped?: boolean; aiRelationType?: RelationType }>;
+  /** links already confirmed, with the type the team settled on.
+   *
+   *  `createdBy` and the evidence pair exist for the second-look pass, which must never
+   *  target a link the team DREW themselves (taking one back deletes it outright — see the
+   *  candidate filter in the bridges route) and must not recycle the snippets the link
+   *  already cites. Both are optional so an older caller still type-checks; absent
+   *  `createdBy` is treated as ineligible, because guessing wrong here destroys human work. */
+  confirmed: Array<{
+    aId: string;
+    bId: string;
+    relationType: RelationType;
+    retyped?: boolean;
+    aiRelationType?: RelationType;
+    createdBy?: "ai" | "human";
+    evidenceA?: string;
+    evidenceB?: string;
+  }>;
   /** pairs the team dismissed — never propose these again */
   rejectedPairs: Array<{ aId: string; bId: string }>;
+  /** pairs whose confirmed link has already been questioned once and the team answered.
+   *  A contest they dismissed must not come back next round: re-asking the same question
+   *  after someone said "keep it" is the tool arguing, not asking. */
+  contested?: Array<{ aId: string; bId: string }>;
+  /** how many "suggest" rounds this table has run. Drives both the rate limit (at most one
+   *  second look every other round) and which eligible link gets looked at, so the pass walks
+   *  the board instead of circling one link. */
+  round?: number;
 }
 
 export function bridgePrompt(
@@ -93,6 +140,66 @@ ${list}${historyBlock}
 Return ONLY valid JSON of this exact shape (no prose, no markdown). FIELD ORDER MATTERS — the evidence and the explanation come BEFORE the relation type, because you must work out what the relationship actually is before you name it, not pick a label and then justify it:
 {"bridges":[{"fragmentAId":"<cause/root id for dependency>","fragmentBId":"<effect/symptom id for dependency>","evidenceA":"<short snippet from A>","evidenceB":"<short snippet from B>","explanation":"<one concrete sentence in ${language} naming the specific relationship and, for dependency, the direction>","relationType":"dependency|tension|overlap|complement|separate"}]}
 If there are no strong bridges, return {"bridges":[]}.`;
+}
+
+/**
+ * BLIND TYPING — read two cards and say how they relate, with no idea what anyone decided.
+ *
+ * This is the second-look feature, and its whole design is a measurement result. Asking the
+ * model to JUDGE a link the team had recorded produced 0/9 detection on deliberately mistyped
+ * links (against 9/9 correct "sound" on well-typed ones), and stayed at 0–1/9 across three
+ * prompt structures: "sound is expected" framing, judge-then-compare ordering, and the whole
+ * judgment moved into its own call. What was never the problem is capability — asked to type
+ * the same two cards cold, the model picks the right relation 3/3. It defers to the recorded
+ * type whenever it can see one. That is sycophancy toward a human artifact, and no wording
+ * fixed it.
+ *
+ * So the artifact is removed from view. This prompt shows ONLY the two cards: not the recorded
+ * type, not the rest of the table, not the confirmed-links history. The model does the one
+ * thing it does well — read two pieces and name the relation — and the SERVER compares that
+ * answer to what the team recorded. The model never knows it is disagreeing with anyone, which
+ * is exactly why it can.
+ *
+ * The same shape as selectForSeatCoverage: the constraint that matters lives in code, where
+ * compliance is not optional, and the prompt is left to do the part it is actually good at.
+ *
+ * WHAT THIS ACTUALLY BUYS, MEASURED — blindness fixes the deference and exposes a second,
+ * harder problem underneath. Detection went 0/9 → 9/9 the moment the recorded type was hidden,
+ * so the sycophancy diagnosis was right. But the blind reading is not a reliable classifier:
+ *  - Reusing RELATION_GUIDE (which ranks "dependency" first) returned dependency 18/18,
+ *    including 0/3 on a textbook tension. Hence RELATION_GUIDE_NEUTRAL.
+ *  - With the neutral guide, discrimination on engineered pairs rose to 13/15 (gpt-5.4-mini)
+ *    and 12/15 (gpt-5.4), but agreement with human typing on REAL cards fell to 0–44%.
+ *  - It is not noise: the same pair gets the same type 100%/100%/67% across repeated runs. The
+ *    blind read is stable and simply differs from how a person typed the same two cards.
+ *  - It does not improve with model strength: gpt-5.4 scored WORSE (44% agreement, 11%
+ *    detection) than gpt-5.4-mini (67%/100% under the original guide).
+ * The honest reading is that "which of five relations holds between two cards" has no single
+ * right answer that a blind pass and a human reliably converge on — the human has the meeting,
+ * the history, and the reason they drew it. So a raw disagreement is NOT evidence the team is
+ * wrong, and the load-bearing filter in contest.ts is doing most of the real work of keeping
+ * this from becoming noise. Do not ship this as "the AI caught your mistake"; it is at most
+ * "read cold, these came out differently."
+ */
+export function blindTypePrompt(
+  aTitle: string,
+  aBody: string,
+  bTitle: string,
+  bBody: string,
+  lang: "en" | "ko"
+) {
+  const language = lang === "ko" ? "Korean" : "English";
+  return `Two people each wrote one piece about the same situation. Read both and say how they relate.
+
+Piece 1: "${aTitle}" — ${aBody}
+Piece 2: "${bTitle}" — ${bBody}
+
+${RELATION_GUIDE_NEUTRAL}
+
+Quote a short REAL snippet from EACH piece as evidence — verbatim from that piece, not a paraphrase — and give one concrete sentence on how they relate. If you pick "dependency", that sentence must say which piece drives which.
+
+Return ONLY valid JSON of this exact shape (no prose, no markdown). The evidence comes BEFORE the type, because you must work out what the relationship is before you name it:
+{"evidenceA":"<short snippet from Piece 1>","evidenceB":"<short snippet from Piece 2>","because":"<one concrete sentence in ${language} on how these two relate>","relationType":"dependency|tension|overlap|complement|separate"}`;
 }
 
 export interface NameInput {

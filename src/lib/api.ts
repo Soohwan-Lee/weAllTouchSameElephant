@@ -1,4 +1,11 @@
-import type { BridgeProposal, Fragment, NameResult, RelationType, RevealMode } from "./types";
+import type {
+  BridgeProposal,
+  ContestProposal,
+  Fragment,
+  NameResult,
+  RelationType,
+  RevealMode,
+} from "./types";
 import type { BridgeContext, CardCandidate, NameInput, SeedSuggestion } from "./prompts";
 
 /** `insufficient` is distinct from `empty`: the model answered, but nothing it proposed could
@@ -58,16 +65,21 @@ export async function fetchSeeds(
   }
 }
 
-/** `context` carries what the team has already confirmed or dismissed, so a repeat round
- *  proposes something new rather than re-offering settled work. Optional: without it the
- *  route behaves exactly as before. */
+/** `context` carries what the team has already confirmed, dismissed, or answered a second
+ *  look on, so a repeat round proposes something new rather than re-offering settled work.
+ *  Optional: without it the route behaves exactly as before.
+ *
+ *  `contest` is a discrepancy the SERVER observed: a blind pass typed one confirmed pair's two
+ *  cards without seeing the recorded type, and read it differently. Absent today in every
+ *  case — the pipeline runs and logs, but surfacing is gated off (see surfaceContests). The
+ *  field stays on the type so the client path remains live and tested rather than bit-rotted. */
 export async function fetchBridges(
   fragments: Fragment[],
   lang: "en" | "ko",
   max = 3,
   context?: BridgeContext,
   decision = ""
-): Promise<{ bridges: BridgeProposal[]; mode: BridgeMode }> {
+): Promise<{ bridges: BridgeProposal[]; mode: BridgeMode; contest?: ContestProposal }> {
   try {
     const res = await fetch("/api/bridges", {
       method: "POST",

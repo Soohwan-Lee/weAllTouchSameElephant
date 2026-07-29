@@ -63,6 +63,41 @@ export function scenarioRevealToResult(
   return { ...base, verdict: reveal.verdict[lang] };
 }
 
+/**
+ * One answered second look — the AI questioned a confirmed link and the team responded.
+ *
+ * `outcome` is the whole point of recording these. A team that KEEPS their link over the AI's
+ * question has overridden it, and accept-vs-override on a challenge to their OWN work is a
+ * signal nothing else in the session produces: every other logged decision is about what the
+ * AI proposed, not about what they had already settled. Kept as a plain append-only list
+ * rather than session events because it is a small, closed set of outcomes.
+ */
+export interface ContestRecord {
+  aId: string;
+  bId: string;
+  /** the type the link carried when it was questioned */
+  confirmedType: RelationType;
+  /** the type the AI floated, when it offered one */
+  suggestedType?: RelationType;
+  outcome: "kept" | "revisited";
+  /**
+   * What the team settled on AFTER agreeing to look again — filled in when that pair is next
+   * confirmed, so it stays `undefined` while the link sits in the tray awaiting their decision.
+   *
+   * Without it "revisited" is not yet an answer. A team that reopens a link and then re-confirms
+   * the SAME type has considered the AI's question and rejected it, which is the opposite
+   * conclusion from one that adopts the suggested type — and both were recorded identically.
+   * Comparing this against `confirmedType` and `suggestedType` is what turns the outcome into
+   * the accept-vs-override signal the feature exists to produce.
+   *
+   * `"dropped"` is the third answer: they reopened the link and then dismissed it rather than
+   * re-confirming anything, so the connection is gone entirely. That is a real conclusion and
+   * must not look like a session that ended mid-decision — which is exactly what an
+   * `undefined` left behind by a dismissal would look like.
+   */
+  resolvedType?: RelationType | "dropped";
+}
+
 export type Step = "start" | "gather" | "connect" | "mirror";
 
 /** An event to log, without the meta the store stamps (id/seq/t/actorId).
@@ -89,6 +124,8 @@ export interface SessionExport {
   fragments: Fragment[];
   bridges: Bridge[];
   rejectedPairKeys: string[];
+  /** how the team answered each second look the AI raised on their own confirmed links */
+  contests: ContestRecord[];
   clusterNames: Record<string, string>;
   clusterQuestions: Record<string, string>;
   clusterDecisions: Record<string, string>;
@@ -173,6 +210,9 @@ interface SessionState {
   /** confirmed/edited bridges on the board */
   bridges: Bridge[];
   rejectedPairKeys: Set<string>;
+  /** answered second looks — append-only, and the source of the contested pairs the next
+   *  round is told not to ask about again. */
+  contests: ContestRecord[];
   loadingBridges: boolean;
   /** team-accepted name for the assembled elephant (per cluster id) */
   clusterNames: Record<string, string>;
@@ -220,6 +260,8 @@ interface SessionState {
   unconfirmBridge: (id: string) => void;
   /** un-block a pair the team dismissed, so the AI may propose it again */
   undoRejection: (pairKey: string) => void;
+  /** record how the team answered a second look on one of their confirmed links */
+  recordContest: (c: ContestRecord) => void;
   addManualBridge: (
     aId: string,
     bId: string,
@@ -232,6 +274,27 @@ interface SessionState {
 
 function pairKey(a: string, b: string) {
   return [a, b].sort().join("::");
+}
+
+/**
+ * Close out an open second look on `key` with what the team decided.
+ *
+ * Only the NEWEST unresolved record for the pair is touched, so an older contest that already
+ * has its answer keeps it. Returns the same array when there is nothing open, so callers that
+ * spread the result never write a pointless new reference.
+ */
+function resolveContest(
+  contests: ContestRecord[],
+  key: string,
+  resolvedType: RelationType | "dropped"
+): ContestRecord[] {
+  for (let i = contests.length - 1; i >= 0; i--) {
+    const r = contests[i];
+    if (r.outcome === "revisited" && !r.resolvedType && pairKey(r.aId, r.bId) === key) {
+      return contests.map((c, j) => (j === i ? { ...c, resolvedType } : c));
+    }
+  }
+  return contests;
 }
 
 export const useSession = create<SessionState>((set, get) => ({
@@ -247,6 +310,7 @@ export const useSession = create<SessionState>((set, get) => ({
   tray: [],
   bridges: [],
   rejectedPairKeys: new Set(),
+  contests: [],
   loadingBridges: false,
   clusterNames: {},
   clusterQuestions: {},
@@ -301,6 +365,7 @@ export const useSession = create<SessionState>((set, get) => ({
       fragments: s.fragments,
       bridges: s.bridges,
       rejectedPairKeys: [...s.rejectedPairKeys],
+      contests: s.contests,
       clusterNames: s.clusterNames,
       clusterQuestions: s.clusterQuestions,
       clusterDecisions: s.clusterDecisions,
@@ -349,6 +414,7 @@ export const useSession = create<SessionState>((set, get) => ({
       tray: [],
       bridges: [],
       rejectedPairKeys: new Set(),
+      contests: [],
       clusterNames: {},
       clusterQuestions: {},
       clusterDecisions: {},
@@ -447,6 +513,7 @@ export const useSession = create<SessionState>((set, get) => ({
       tray: [],
       bridges: [],
       rejectedPairKeys: new Set(),
+      contests: [],
       clusterNames: {},
       clusterQuestions: {},
       clusterDecisions: {},
@@ -578,10 +645,16 @@ export const useSession = create<SessionState>((set, get) => ({
         edited: b.explanation !== confirmed.explanation || b.relationType !== confirmed.relationType,
         retypedRelation: b.relationType !== confirmed.relationType,
       };
+      // The team agreed to look again, and this confirm is what they decided.
       return {
         tray: s.tray.filter((x) => x.id !== id),
         bridges: [...s.bridges, confirmed],
         events: [...s.events, evt],
+        contests: resolveContest(
+          s.contests,
+          pairKey(b.fragmentAId, b.fragmentBId),
+          confirmed.relationType
+        ),
       };
     }),
 
@@ -602,10 +675,14 @@ export const useSession = create<SessionState>((set, get) => ({
         explanation: b.explanation,
         createdBy: b.createdBy,
       };
+      // Reopening a link and then throwing it away IS an answer to the second look — the
+      // team's conclusion was that the connection should not be there at all. Left unresolved
+      // it would be indistinguishable from a session that ended mid-decision.
       return {
         tray: s.tray.filter((x) => x.id !== id),
         rejectedPairKeys: next,
         events: [...s.events, evt],
+        contests: resolveContest(s.contests, pairKey(b.fragmentAId, b.fragmentBId), "dropped"),
       };
     }),
 
@@ -643,6 +720,8 @@ export const useSession = create<SessionState>((set, get) => ({
         ],
       };
     }),
+
+  recordContest: (c) => set((s) => ({ contests: [...s.contests, c] })),
 
   addManualBridge: (aId, bId, relationType, explanation, wasRedundant = false) => {
     if (aId === bId) return false;

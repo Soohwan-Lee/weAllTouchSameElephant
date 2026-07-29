@@ -205,6 +205,39 @@ export interface BridgeProposal {
   evidenceB: string;
 }
 
+/**
+ * A discrepancy the SERVER observed between how the team typed a link and how the AI typed the
+ * same two cards when shown nothing else — the only place this app pushes back on human work.
+ *
+ * Nothing here was authored as a challenge. A blind pass reads the two cards with no knowledge
+ * of the recorded type, the rest of the table, or that any decision exists; the server then
+ * compares its answer to the record and builds this only when they differ. The AI never knows
+ * it is disagreeing, which is precisely what makes the disagreement possible: asked to judge a
+ * type it could SEE the team had chosen, it deferred and detected nothing (0/9 on deliberately
+ * mistyped links, across three prompt structures).
+ *
+ * The form still follows Chiang et al. (IUI 2024, DOI 10.1145/3640543.3645199): an LLM
+ * challenging a group's majority OPINION changed nothing, while the same challenge aimed at a
+ * machine-produced ARTIFACT raised accuracy (p=.047), and open questions beat declarations. So
+ * what reaches the team is aimed at the LINK, and the question they read is composed on the
+ * client from a fixed template plus `because` — the AI supplies only its reading of how two
+ * pieces relate, which is the same thing it already writes for every bridge explanation.
+ */
+export interface ContestProposal {
+  /** the confirmed pair, named by the server from its own records — never by the model */
+  aId: string;
+  bId: string;
+  /** the relation the blind pass read off the two cards. Always present and always different
+   *  from the recorded type: agreement produces no ContestProposal at all. */
+  suggestedType: RelationType;
+  /** the blind pass's one sentence on how these two relate — relation explanation, the same
+   *  territory as a bridge's `explanation`, and never a claim about the team or their choice */
+  because: string;
+  /** short verbatim snippets from each card, span-verified like bridge evidence */
+  evidenceA: string;
+  evidenceB: string;
+}
+
 /** Result of /api/name — a named elephant + the mode-specific "reading." */
 export interface NameResult {
   name: string;
