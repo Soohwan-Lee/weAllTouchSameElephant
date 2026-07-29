@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { useSession, scenarioRevealToResult, bridgeEditsFrom } from "@/lib/store";
 import { getScenario } from "@/lib/scenarios";
 import { fetchName } from "@/lib/api";
-import { findClusters } from "@/lib/clusters";
+import { findClusters, seatCitation } from "@/lib/clusters";
 import { computeSynthesis } from "@/lib/synthesis";
 import type { FacetSummary } from "@/lib/prompts";
 import type { NameResult, RelationType, RevealMode } from "@/lib/types";
@@ -89,6 +89,63 @@ export function MirrorScreen() {
   // them would invent a link the team never drew. The fix is to stop it being silent.
   const outside = fragments.filter((f) => !main?.fragmentIds.includes(f.id));
   const otherGroups = clusters.slice(1);
+
+  // The pieces the model is actually shown for a reading: the cluster, plus the far end of any
+  // `separate` boundary that crosses the cluster edge. A `separate` boundary can point at a
+  // piece outside the cluster (that is exactly what `separate` does — it refuses to pull the
+  // two together), and the far end has to travel as a citable piece or the grounding layer
+  // drops the boundary for having a dangling end and we are back to losing it.
+  //
+  // One definition, used by the request, the log, and the panel — this set decides which
+  // citations can resolve at all, so a second copy of it would let the measurement and the
+  // screen disagree about what the model was even allowed to cite.
+  const fragmentsShownToModel = (cluster: { fragmentIds: string[] }) => {
+    const shown = cluster.fragmentIds.map(byId).filter(Boolean) as typeof fragments;
+    const farEnds = bridges
+      .filter((b) => b.relationType === "separate")
+      .flatMap((b) => [b.fragmentAId, b.fragmentBId])
+      .filter((id) => !cluster.fragmentIds.includes(id));
+    for (const id of new Set(farEnds)) {
+      const f = byId(id);
+      if (f && bridges.some((b) =>
+        b.relationType === "separate" &&
+        ((b.fragmentAId === id && cluster.fragmentIds.includes(b.fragmentBId)) ||
+         (b.fragmentBId === id && cluster.fragmentIds.includes(b.fragmentAId)))
+      )) shown.push(f);
+    }
+    return shown;
+  };
+
+  // WHOSE PIECES THE READING PASSED OVER.
+  //
+  // Two different scopes, and the difference is the whole correctness of this panel.
+  // `cited` is measured over every piece the MODEL SAW (the cluster plus the far ends of
+  // boundary links, which travel along for citability) — otherwise a far-end seat the model
+  // really did cite drops out and the logged seat-rate reads low whenever a boundary crosses
+  // the cluster edge. `uncited` is then restricted to seats holding a piece IN the cluster:
+  // an uncited far-end seat belongs to the "Not in this picture" panel above, and reporting
+  // one absence under both headings would collapse two different problems — your piece never
+  // joined the shape (go link it) versus your piece IS in it and the reading skipped it.
+  //
+  // A cited CONNECTING link reaches both seats it joins, since a reading resting on the link
+  // INTO someone's piece has drawn on that piece. `separate` is excluded by `seatCitation`:
+  // citing a keep-apart boundary says nothing about what either seat contributed.
+  const citedBridgesOf = (bridgeIds: string[]) =>
+    bridgeIds.map((id) => bridges.find((b) => b.id === id)).filter(Boolean) as typeof bridges;
+
+  const uncitedSeats = useMemo(() => {
+    // Sample-mode reveals carry no grounding trace (nothing was verified against a real
+    // table), so this panel stays silent in the demo path by design — honest degradation
+    // rather than a fabricated seat list.
+    if (!main || !result?.grounding) return [];
+    return seatCitation(
+      fragmentsShownToModel(main),
+      result.grounding.fragmentIds,
+      citedBridgesOf(result.grounding.bridgeIds),
+      new Set(main.fragmentIds)
+    ).uncited;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [main?.id, fragments, bridges, result]);
 
   const named = main ? clusterNames[main.id] : undefined;
   const question = main ? clusterQuestions[main.id] : undefined;
@@ -193,23 +250,7 @@ export function MirrorScreen() {
       // drift (the local tensions lost the `why`/`retyped` the memo carries).
       const { cruxTitle, facets, tensions, spine, wholeness } = shape;
 
-      const clusterFrags = main.fragmentIds.map(byId).filter(Boolean) as typeof fragments;
-      // A `separate` boundary can point at a piece outside the cluster (that is exactly what
-      // `separate` does — it refuses to pull the two together). Carry that far end along as a
-      // citable piece, or the grounding layer drops the boundary for having a dangling end and
-      // we are back to losing it.
-      const farEnds = bridges
-        .filter((b) => b.relationType === "separate")
-        .flatMap((b) => [b.fragmentAId, b.fragmentBId])
-        .filter((id) => !main.fragmentIds.includes(id));
-      for (const id of new Set(farEnds)) {
-        const f = byId(id);
-        if (f && bridges.some((b) =>
-          b.relationType === "separate" &&
-          ((b.fragmentAId === id && main.fragmentIds.includes(b.fragmentBId)) ||
-           (b.fragmentBId === id && main.fragmentIds.includes(b.fragmentAId)))
-        )) clusterFrags.push(f);
-      }
+      const clusterFrags = fragmentsShownToModel(main);
       // Both ends inside the cluster — EXCEPT for `separate`, which by definition never joins
       // its two pieces into a cluster, so a boundary drawn across the cluster edge would
       // otherwise always be dropped. That is the one link this tool must never lose: it is the
@@ -284,6 +325,21 @@ export function MirrorScreen() {
       }
       setResult(res);
       cachedByMode.current[chosen] = res;
+      // How many of the seats ON THE TABLE the reading actually cited. Logged per real
+      // session because the 3.0-of-5 figure it exists to track is a property of live model
+      // behaviour, and a number only ever produced by tests is a number about the tests.
+      //
+      // Measured over `clusterFrags` — every piece the model was shown — so a far-end seat it
+      // really did cite is counted. `uncited` is separately narrowed to the cluster, matching
+      // the panel exactly; see `uncitedSeats` for why the two halves are scoped differently.
+      const seats = res.grounding
+        ? seatCitation(
+            clusterFrags,
+            res.grounding.fragmentIds,
+            citedBridgesOf(res.grounding.bridgeIds),
+            new Set(main.fragmentIds)
+          )
+        : undefined;
       // Record the shape AND the reading, unconditionally — not only if someone later
       // presses "Use this name". This is what the team was looking at when they argued.
       logEvent({
@@ -304,6 +360,8 @@ export function MirrorScreen() {
         aiVerdict: res.verdict,
         sample: fromSampleReveal.current,
         grounding: res.grounding,
+        citedSeats: seats?.cited,
+        uncitedSeats: seats?.uncited.map((u) => u.seat),
       });
       // capture the AI's originals so we can later detect if the team overrode them
       if (res.name) aiName.current = res.name;
@@ -478,6 +536,26 @@ export function MirrorScreen() {
                       >
                         {t("outside.fix")} →
                       </button>
+                    </div>
+                  )}
+                  {/* Seats that ARE in the picture and the reading passed over anyway. Same
+                      quiet dashed voice as the panel above — this is an observation to check,
+                      not a fault to fix, and an alarming treatment would push teams to argue
+                      with the reading before they have read it. */}
+                  {!loading && uncitedSeats.length > 0 && (
+                    <div className="mt-3 rounded-lg border border-dashed border-line bg-paper-sunken/40 px-3 py-2.5 text-[11px] leading-snug">
+                      <div className="font-semibold uppercase tracking-wide text-ink-faint">
+                        {t("uncited.heading")}
+                      </div>
+                      <ul className="mt-1.5 space-y-1 text-ink-soft">
+                        {uncitedSeats.map((u) => (
+                          <li key={u.seat}>
+                            ◇ <span className="font-medium text-ink">{u.seat}</span>{" "}
+                            <span className="text-ink-faint">({u.titles.join(" · ")})</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-2 text-ink-faint">{t("uncited.why")}</p>
                     </div>
                   )}
                 </section>

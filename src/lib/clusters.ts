@@ -6,7 +6,7 @@ import type { Bridge, Fragment } from "./types";
  * count toward the "one connected group of ≥3" gate. Everything that walks the graph as
  * connection filters through this.
  */
-export const isConnecting = (b: Bridge) => b.relationType !== "separate";
+export const isConnecting = (b: Pick<Bridge, "relationType">) => b.relationType !== "separate";
 
 /**
  * One union-find, used by everything in this file that asks "what is joined to what".
@@ -234,6 +234,115 @@ export function seatCoverage(fragments: Fragment[], bridges: Bridge[]): SeatCove
     connected: bestRoot ? seatsByRoot.get(bestRoot)!.size : 0,
     isolated,
   };
+}
+
+/** One seat the reading never cited, with the pieces of theirs it passed over. */
+export interface UncitedSeat {
+  /** the seat label, as `seatOf` defines it — never a synthetic `__anon_` id */
+  seat: string;
+  /** titles of that seat's pieces on the assembled table */
+  titles: string[];
+}
+
+export interface SeatCitation {
+  /** seats the reading reached, via one of their pieces or via a link touching one */
+  cited: string[];
+  /** seats in the picture the reading reached in neither way */
+  uncited: UncitedSeat[];
+}
+
+/**
+ * WHICH SEATS THE READING ACTUALLY CITED — measured against the seats it could have.
+ *
+ * `seatCoverage` answers whether the SHAPE reaches people. This answers whether the READING
+ * does, and the two come apart: on a table where all five seats are wired into one elephant,
+ * the reveal's verdict cites pieces from 3.0 of them on average. The model sees every seat's
+ * pieces and cites three. Two prompt revisions moved that number not at all — the same shape
+ * as the cross-seat bridge result above, and for the same reason (HiddenBench: collective-
+ * reasoning failures persist across prompting strategies). So this is not a retry; it is the
+ * gap made visible.
+ *
+ * Why surface rather than suppress: Parisi & Thain (FAccT 2026) name appearing-included-while-
+ * not-being-heard as the worst state a system like this can put someone in — worse than a
+ * visible exclusion, because it forecloses the objection. A reading that silently rests on
+ * three of five voices produces exactly that. Naming the other two costs the reading nothing
+ * and hands the table something to argue with.
+ *
+ * BOUNDARY — the two halves of the result are scoped DIFFERENTLY, on purpose.
+ *
+ * `fragments` should be every piece the model could actually cite: the cluster, plus the far
+ * ends of boundary links that get carried along for citability. That makes `cited` truthful.
+ * Scoping it to the cluster alone dropped a far-end seat the model really had cited, so the
+ * logged seat-rate read low exactly when a boundary crossed the cluster edge (measured).
+ *
+ * `uncited` is then narrowed by `inPicture` to seats holding a piece IN the assembled cluster.
+ * An uncited far-end seat belongs to the "Not in this picture" panel, and the one thing this
+ * pair of panels must not do is report the same absence twice under two headings that mean
+ * different things: your piece never joined the shape (the fix is upstream — go link it)
+ * versus your piece IS in the shape and the reading skipped it (the fix is to interrogate the
+ * reading). Collapsing them sends someone to argue with a reading that was never the problem.
+ *
+ * Omit `inPicture` and every named seat in `fragments` is eligible to be reported — right for
+ * a caller that passes exactly the cluster and nothing more.
+ *
+ * Anonymous seats are excluded on both sides. `seatOf` gives an unattributed piece its own
+ * synthetic seat so it never merges with another, which is right for counting and wrong here:
+ * blank means unknown, and an unknown must not be reported to the room as an unheard person.
+ *
+ * A cited CONNECTING link counts for both the seats it joins, which is why `citedBridges` is a
+ * parameter and not an oversight. Verified against a live run (gpt-4.1): a verdict citing
+ * F1, F3, B2, B3 rests on three seats, but analytics is reachable only through B3 — its piece
+ * is never cited directly. Counting pieces alone would have printed "analytics: not yet cited"
+ * under a reading built on the very link into their piece. That is the false accusation this
+ * panel can least afford, since it invites a team to re-argue a voice the reading already used.
+ *
+ * `separate` is filtered out for the reason it always is here: it is a boundary, not a link.
+ * Citing "these two must NOT be merged" says nothing about what either seat contributed, so
+ * crediting both ends would silence the panel on exactly the tables it exists for. Measured:
+ * one cited piece plus one cited boundary reported nothing uncited while two seats had gone
+ * undrawn-on. The filter is `isConnecting`, shared with every other walk in this file, which
+ * is why the parameter carries `relationType` rather than just the two endpoints.
+ */
+export function seatCitation(
+  fragments: Fragment[],
+  citedFragmentIds: string[],
+  citedBridges: Array<Pick<Bridge, "fragmentAId" | "fragmentBId" | "relationType">> = [],
+  /** ids of the pieces in the assembled cluster; limits which seats `uncited` may name */
+  inPicture?: Set<string>
+): SeatCitation {
+  const named = fragments.filter((f) => !seatOf(f).startsWith("__anon_"));
+  if (!named.length) return { cited: [], uncited: [] };
+
+  const citedIds = new Set(citedFragmentIds);
+  // A link's far end can sit outside the cluster; adding its id here is harmless, since only
+  // pieces on this table are ever indexed below.
+  for (const b of citedBridges) {
+    if (!isConnecting(b)) continue;
+    citedIds.add(b.fragmentAId);
+    citedIds.add(b.fragmentBId);
+  }
+  const cited = new Set<string>();
+  // Keyed only by seats with a piece in the picture — so its keys ARE the reportable seats,
+  // and Map insertion order is table order, leaving both lists below in board order.
+  const piecesBySeat = new Map<string, string[]>();
+  for (const f of named) {
+    const s = seatOf(f);
+    // Only pieces IN the picture are listed under a seat's name: a far-end piece is not part
+    // of what this reading passed over, so naming it here would point at the wrong thing.
+    if (!inPicture || inPicture.has(f.id)) {
+      if (!piecesBySeat.has(s)) piecesBySeat.set(s, []);
+      piecesBySeat.get(s)!.push(f.title);
+    }
+    // A cited id that matches no piece here (a stale id, or one from outside what the model
+    // saw) simply never marks a seat — it cannot, since only these pieces are indexed.
+    if (citedIds.has(f.id)) cited.add(s);
+  }
+
+  const uncited: UncitedSeat[] = [];
+  for (const [seat, titles] of piecesBySeat) {
+    if (!cited.has(seat)) uncited.push({ seat, titles });
+  }
+  return { cited: [...cited], uncited };
 }
 
 /**

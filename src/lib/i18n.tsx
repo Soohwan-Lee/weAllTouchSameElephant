@@ -100,6 +100,14 @@ const dict = {
     ko: "{n}개 조각이 아직 아무것과도 안 이어졌어요.",
   },
   "outside.fix": { en: "Go back and link them", ko: "돌아가서 이어주기" },
+  // Whose pieces the reading passed over. Distinct from `outside.*`: those seats are not in
+  // the picture at all, these ARE in it and the reading did not draw on them. Measured, not
+  // hypothetical — the reveal cites pieces from 3.0 of 5 connected seats on average.
+  "uncited.heading": { en: "Not yet cited in this reading", ko: "이 해석에 아직 인용되지 않은 자리" },
+  "uncited.why": {
+    en: "The reading above doesn't draw on these seats' pieces. Worth checking whether it would change.",
+    ko: "위 해석은 이 자리의 조각을 인용하지 않았어요. 반영하면 달라질지 살펴볼 가치가 있어요.",
+  },
 
   "scaffold.lensLabel": { en: "Answer from your seat", ko: "당신의 자리에서 답하기" },
   // Shown when the lens was picked from the role someone typed, so the questions changing

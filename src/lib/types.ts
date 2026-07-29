@@ -193,6 +193,15 @@ export type SessionEvent =
        * parts of the table it ignored.
        */
       grounding?: GroundingTrace;
+      /**
+       * The same trace resolved to PEOPLE: seats on the assembled table whose pieces the
+       * reading cited, and seats it passed over. `grounding.fragmentIds` already implies
+       * this, but only against a snapshot of the table that the log does not keep, so the
+       * seats-cited rate could not be recovered from a session after the fact — it existed
+       * only in tests. Both are seat labels, scoped to the cluster being read.
+       */
+      citedSeats?: string[];
+      uncitedSeats?: string[];
     };
 
 /** What the AI returns from /api/bridges (before we assign ids/status). */
