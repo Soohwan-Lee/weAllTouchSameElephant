@@ -46,7 +46,7 @@ export function discoveryProgress(
   if (participants.length > 1 && contributed < participants.length) next = "collect";
   else if (participants.length > 1 && crossSeatLinks === 0) next = "cross";
   else if (bridges.length > 0 && causalLinks === 0) next = "cause";
-  else if (bridges.length > 1 && challengeLinks === 0) next = "challenge";
+  else if (bridges.length > 0 && challengeLinks === 0) next = "challenge";
 
   return {
     contributed,

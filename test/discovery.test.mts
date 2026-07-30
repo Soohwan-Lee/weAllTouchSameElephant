@@ -81,6 +81,16 @@ check("asks for a challenge before converging on an untested causal picture", ()
   assert.equal(progress.next, "challenge");
 });
 
+check("does not claim a challenge exists after only one causal link", () => {
+  const progress = discoveryProgress(
+    fragments,
+    [bridge("b1", "f1", "f2", "dependency")],
+    participants
+  );
+  assert.equal(progress.challengeLinks, 0);
+  assert.equal(progress.next, "challenge");
+});
+
 check("recognizes a picture that has voices, direction, and dissent", () => {
   const progress = discoveryProgress(
     fragments,
