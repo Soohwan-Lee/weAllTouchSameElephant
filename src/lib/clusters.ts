@@ -165,6 +165,28 @@ export function isReachable(
 export const seatOf = (f: Fragment) => f.authorName || f.authorRole || `__anon_${f.id}`;
 
 /**
+ * The two seats a bridge JOINS ACROSS, or null if it joins none — a boundary, a link with an
+ * end that isn't on this table, or a link between two pieces of the same seat.
+ *
+ * The one place this file decides "does this link carry someone else's perspective across?".
+ * Named and separated because it is the rule most likely to get a second, laxer copy: any future
+ * measure of how well a seat is wired in has to agree with the one that decides who counts as
+ * isolated, or the screen ends up reporting two different answers about the same person.
+ */
+function crossSeatEnds(
+  b: Pick<Bridge, "fragmentAId" | "fragmentBId" | "relationType">,
+  byId: Map<string, Fragment>
+): [string, string] | null {
+  if (!isConnecting(b)) return null;
+  const a = byId.get(b.fragmentAId);
+  const c = byId.get(b.fragmentBId);
+  if (!a || !c) return null;
+  const sa = seatOf(a);
+  const sc = seatOf(c);
+  return sa === sc ? null : [sa, sc];
+}
+
+/**
  * SEAT COVERAGE — how many PEOPLE the assembled shape actually reaches.
  *
  * The gate that guards the reveal counts PIECES (`largestClusterSize >= 3`). That is not the
@@ -215,16 +237,10 @@ export function seatCoverage(fragments: Fragment[], bridges: Bridge[]): SeatCove
   const crossed = new Set<string>();
   const byId = new Map(fragments.map((f) => [f.id, f]));
   for (const b of bridges) {
-    if (!isConnecting(b)) continue;
-    const a = byId.get(b.fragmentAId);
-    const c = byId.get(b.fragmentBId);
-    if (!a || !c) continue;
-    const sa = seatOf(a);
-    const sc = seatOf(c);
-    if (sa !== sc) {
-      crossed.add(sa);
-      crossed.add(sc);
-    }
+    const ends = crossSeatEnds(b, byId);
+    if (!ends) continue;
+    crossed.add(ends[0]);
+    crossed.add(ends[1]);
   }
   const allSeats = new Set(fragments.map(seatOf));
   const isolated = [...allSeats].filter((s) => !crossed.has(s) && !s.startsWith("__anon_"));
@@ -236,7 +252,34 @@ export function seatCoverage(fragments: Fragment[], bridges: Bridge[]): SeatCove
   };
 }
 
-/** One seat the reading never cited, with the pieces of theirs it passed over. */
+/**
+ * One seat the reading never cited, with the pieces of theirs it passed over.
+ *
+ * WHY THIS CARRIES NO MEASURE OF HOW WELL-LINKED THE SEAT IS — i.e. why the panel does not split
+ * "barely linked" from "linked but passed over". It is the obvious next feature, and it was
+ * built, measured, and removed. A seat reached by one link and a seat reached by three get the
+ * same line, which is a real limitation: the first team should go back and link, the second
+ * should interrogate the reading. What is NOT available is an honest way to tell them apart, and
+ * a wrong split is worse than none — it would tell a team to go link more when their graph is
+ * already fine.
+ *
+ * Raw link count fails. Degree over connecting bridges is a different graph from the one the
+ * reading walks, and on a star (one hub links everyone in) it calls every spoke barely-linked
+ * while `seatCoverage` calls nobody isolated — two measures on one screen contradicting each
+ * other. It also flags the leaves of a minimum spanning tree, pushing teams toward exactly the
+ * over-linking `countRedundantEdges` exists to discourage.
+ *
+ * Spine membership fails harder, in the opposite direction. `computeSynthesis` fuses facets over
+ * `overlap` alone and walks the spine over `dependency` alone, so a table linked entirely by
+ * complement, tension, or overlap has an EMPTY spine — measured: a star of complements and a
+ * four-piece tension chain both produce zero chains. Every seat would read as barely-linked on
+ * tables the tool otherwise considers well assembled. And on the case that motivated the split,
+ * a dependency chain with a degree-1 leaf, all five pieces sit on the spine, so it flags nobody.
+ *
+ * The two candidate signals are wrong on opposite tables and neither measures what the panel
+ * claims. Until synthesis can say what the reading could actually reach, one list and one
+ * remedy is the honest surface.
+ */
 export interface UncitedSeat {
   /** the seat label, as `seatOf` defines it — never a synthetic `__anon_` id */
   seat: string;
@@ -302,6 +345,10 @@ export interface SeatCitation {
  * one cited piece plus one cited boundary reported nothing uncited while two seats had gone
  * undrawn-on. The filter is `isConnecting`, shared with every other walk in this file, which
  * is why the parameter carries `relationType` rather than just the two endpoints.
+ *
+ * Every uncited seat is reported the same way, however much or little reaches it. That is a
+ * known limitation with no honest fix available — see the note on `UncitedSeat` for the two
+ * discriminators that were measured and rejected.
  */
 export function seatCitation(
   fragments: Fragment[],
