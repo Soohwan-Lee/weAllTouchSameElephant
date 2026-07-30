@@ -36,6 +36,9 @@ Do not reach for "dependency" by default. If the texts do not state or clearly i
 /** What the team has already settled on this table, so a repeat "suggest more" round does not
  *  re-propose work they have already done — or already refused. */
 export interface BridgeContext {
+  /** every confirmed, rejected, or still-pending pair as a compact canonical key.
+   *  Detailed records below may be prompt-capped; this full set powers server filtering. */
+  settledPairKeys?: string[];
   /** links already confirmed, with the type the team settled on.
    *
    *  `createdBy` and the evidence pair exist for the second-look pass, which must never

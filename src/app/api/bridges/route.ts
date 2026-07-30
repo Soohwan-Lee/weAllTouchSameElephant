@@ -6,6 +6,7 @@ import { RELATION_TYPES } from "@/lib/types";
 import { seatOf } from "@/lib/clusters";
 import { filterToVerifiedEvidence } from "@/lib/evidence";
 import { contestFromBlindReading, pickContestTarget, surfaceContests } from "@/lib/contest";
+import { settledPairKey, settledPairSet } from "@/lib/settledPairs";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -136,7 +137,10 @@ export async function POST(req: NextRequest) {
   // What the team has already confirmed or dismissed — so a later round proposes something
   // new instead of re-offering work they have already done or refused.
   const context: BridgeContext | undefined = body.context
-    ? {
+      ? {
+        settledPairKeys: Array.isArray(body.context.settledPairKeys)
+          ? body.context.settledPairKeys.map(String).slice(0, 4000)
+          : [],
         confirmed: Array.isArray(body.context.confirmed) ? body.context.confirmed.slice(0, 40) : [],
         rejectedPairs: Array.isArray(body.context.rejectedPairs)
           ? body.context.rejectedPairs.slice(0, 40)
@@ -218,11 +222,9 @@ export async function POST(req: NextRequest) {
     // not. A pair the team already connected or explicitly dismissed must never come back,
     // however the model behaves — re-offering refused work is the most visible way this tool
     // could tell a team their decisions did not count.
-    const settled = new Set<string>();
-    for (const c of context?.confirmed ?? []) settled.add([c.aId, c.bId].sort().join("|"));
-    for (const r of context?.rejectedPairs ?? []) settled.add([r.aId, r.bId].sort().join("|"));
+    const settled = settledPairSet(context);
     const proposed = sanitize(parsed, fragments)
-      .filter((b) => !settled.has([b.fragmentAId, b.fragmentBId].sort().join("|")));
+      .filter((b) => !settled.has(settledPairKey(b.fragmentAId, b.fragmentBId)));
     // Every snippet the team will read has to be quotable off the card it is attached to.
     // Dropping happens BEFORE selection so seat coverage chooses among links that can survive
     // being checked, rather than spending a seat on one that gets pulled afterwards.

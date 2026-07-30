@@ -17,6 +17,7 @@ import { Hint } from "./Hint";
 import { ManualConnect } from "./ManualConnect";
 import type { ContestProposal } from "@/lib/types";
 import { createRequestGate } from "@/lib/requestGate";
+import { settledPairKey } from "@/lib/settledPairs";
 
 export function ConnectScreen() {
   const { t, lang } = useI18n();
@@ -85,6 +86,15 @@ export function ConnectScreen() {
       // relation was wrong, and it should carry that lesson into the next round.
       const edits = bridgeEditsFrom(useSession.getState().events);
       const context = {
+        settledPairKeys: [
+          ...bridges.map((bridge) =>
+            settledPairKey(bridge.fragmentAId, bridge.fragmentBId)
+          ),
+          ...tray.map((bridge) =>
+            settledPairKey(bridge.fragmentAId, bridge.fragmentBId)
+          ),
+          ...rejectedPairKeys,
+        ],
         confirmed: bridges.map((b) => {
           const h = edits.get(b.id);
           const aiType = h?.aiRelationType;
