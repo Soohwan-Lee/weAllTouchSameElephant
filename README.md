@@ -82,9 +82,31 @@ Each bridge is **typed** — and the type is the point. `dependency` (one drives
 The **discovery compass** exposes the next process question rather than scoring the team:
 is a seat still absent, have two different seats actually met, has anyone claimed a causal
 direction, and has the emerging picture survived a tension or boundary? An AI bridge also
-takes two deliberate steps to accept. The team first checks its evidence, relation type,
-direction, and possible missing third cause; only then can that reading become part of the
-confirmed graph.
+takes two deliberate steps to accept: the team reviews the reading first, and only then can
+it become part of the confirmed graph.
+
+**The review asks about *this* link, not links in general.** That checklist used to be three
+fixed sentences printed under every card, which a team reading eight proposals stops reading
+around the third — the failure mode the step exists to prevent. The questions are now selected
+per bridge in deterministic code (`src/lib/reviewChecks.ts`) from facts the session already
+holds, and each relation type gets the question aimed at how *that* type goes wrong:
+
+| Signal | What changes |
+|---|---|
+| **Relation type** | `overlap` is the only relation that *fuses* two people's cards into one facet, so it asks whether they are really saying the same thing or only sharing words. `dependency` asks about direction and **names both cards** — the abstract version is what made the old line skippable. `tension` asks whether the trade-off is real, which is what the trade-off panel downstream depends on. |
+| **Evidence** | Asking *"do the quoted parts support this?"* when nothing is quoted is a question about something not on the screen. A link with no evidence says so plainly: only the AI's sentence holds it together. |
+| **Whose cards it crosses** | Cross-seat is where the contestable claim lives; same-seat is where a team mistakes one person's internal consistency for the table agreeing. |
+
+The **confounder** question — *could both be effects of a third thing nobody has tabled?* — is
+reserved for `dependency` and `overlap`, the two types where a hidden common cause is a live
+alternative reading. It is the only check that points at a **gap** rather than validating a link
+the AI already drew, which is the job the design line reserves for the AI.
+
+No model authors any of this: every string is a fixed human-authored template, and the only
+interpolated text is the team's own card titles and seat names. Selection is deterministic — two
+independent id-derived bits, so the order does not reshuffle under a team mid-argument, and a
+card with an endpoint missing falls back to abstract phrasing rather than quoting a title that
+isn't there.
 
 <div align="center">
 <img src="docs/screenshots/03-connect.png" alt="Connect — AI-proposed typed bridges and the connected-group gate" width="820">
@@ -107,6 +129,28 @@ That second clause is the useful half. A synthesis leaning on one of six voices 
 </div>
 
 And once you've written the decision, the tool mirrors the **cost** it commits to — read straight off the tensions the team themselves kept — then lets the team **contest** it. That contest (accept it, relocate the cost, or reject the framing) is the negotiation the whole tool exists to support.
+
+That cost is only worth contesting if it is recognisably *this* team's. The step used to see two
+3-word titles per tension and nothing else — worst of all for a tension the team **drew
+themselves**, which carries no AI-extracted evidence quotes at all, so the model saw two
+headlines and one line of explanation. Sending the pieces changed the output measurably (8 runs
+per arm, `gpt-5.4-mini`): the model went from citing a kept tension in **0/8** runs to **4/8**.
+Without them it named costs that would fit any team — *"existing accounts get less specialist
+attention."* This is a single small A/B on one fixture, not a study; it was run to decide whether
+the change was worth making at all, since three earlier prompt-only changes here measured null.
+
+Offline, the deterministic fallback names the cost by word-overlap, and two of its outputs were
+wrong in ways only probing found. One shared generic word was enough to claim a lean, so a
+decision to *"improve the onboarding flow"* matched a tension about *"improve the audit trail"* on
+the word **improve** alone. And a tie was broken toward whichever side came first, so *"document
+the process"* against *"process takes too long" ⟷ "documentation is missing"* reported the team
+favouring the opposite of what they wrote. Generic words can no longer carry a match on their
+own, and a tie now falls through to the honest opportunity cost. That last rule has a cost of its
+own — a decision naming **both** sides ("X before Y", "품질보다 속도를 택한다") ties and drops,
+1 of 6 such decisions still firing — which is accepted because an inverted lean tells the team
+something untrue about their own decision while a false negative only withholds a reading. It is
+written down at the call site and pinned in `test/tradeoff.test.mts` rather than left to be
+rediscovered.
 
 <div align="center">
 <img src="docs/screenshots/08-tradeoff-contest.png" alt="Trade-off — the cost named off the team's own kept tensions, and contestable" width="820">
@@ -153,7 +197,7 @@ The rule the whole pipeline is now audited against: **if a team authored it, the
 | **Blind spot** — name a missing seat | isolated cards. Asked to spot "one side of a trade-off only" while shown no trade-offs | the links, the kept tensions, and which pieces are still loose |
 | **Reveal** — read the shape | a typed graph of titles | the original session question as scope; fragment bodies, author seats, each link's **explanation and evidence**, hand-drawn links, and every AI-override |
 | **Directions** — starting moves | a crux title and title-pairs | the pieces in their own words, the causal spine, and why each tension is one |
-| **Trade-off** — the cost | title matching | a citable handle per kept tension, resolved back to the real link |
+| **Trade-off** — the cost | title matching. It was the endpoint this audit missed: the pieces were computed for the reveal one screen above and dropped before this call | the pieces in the team's own words, plus a citable handle per kept tension, resolved back to the real link |
 
 And the reverse discipline, because more context is not free — [Context Rot](https://www.trychroma.com/research/context-rot) (Chroma, 2025) and [Anthropic's context-engineering guidance](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) both find that irrelevant context costs *accuracy*, not just tokens, and that same-domain distractors are the worst kind. A re-rendered fragment title is exactly that. So each prompt carries what only the engine knows and drops what the links already say: the reveal no longer re-lists kept tensions as bare title-pairs when the links block shows them with the team's own explanation. A card title now appears 2–3× per prompt instead of 4–5×.
 
@@ -280,6 +324,12 @@ npm run dev          # → http://localhost:3000
 
 Open the app and pick a ready-made scenario — it runs end-to-end with **no API key** (deterministic sample mode).
 
+A session **survives a reload**. It is held in `localStorage`, so a closed tab or a refreshed
+page returns to the table with its pieces, links and full event log intact, and the start screen
+offers the way back rather than silently resuming. This matters more here than in most tools: the
+event log *is* the research payload, so losing a session to a stray refresh would lose the data
+the study is for. Storage is skipped on the server so the first client render matches.
+
 ### Live AI mode
 
 To have the model propose bridges and readings on your own content, add an OpenAI key:
@@ -313,21 +363,33 @@ src/
 │   ├── synthesis.ts  the graph engine (facets · causal DAG · root · tensions)
 │   ├── clusters.ts   connected-group detection; `separate` excluded from every walk
 │   ├── grounding.ts  citable handles + server-side verification of what the AI cited
+│   ├── evidence.ts   every quote checked to be a real span of the card it cites
+│   ├── reviewChecks.ts  which review questions this bridge gets, and why
+│   ├── tradeoff.ts   the deterministic cost matcher (a route may not export it)
 │   ├── store.ts      session state + the append-only boundary-work event log + export
 │   ├── prompts.ts    every prompt — each one forbids authoring perspective content
 │   └── scenarios.ts  six bilingual, hand-authored scenarios
 └── components/       StartScreen · GatherScreen · ConnectScreen · MirrorScreen · …
 
-test/
+test/                    16 suites; a few worth naming
 ├── grounding.test.mts   handle minting, citation verification, override rendering
 ├── synthesis.test.mts   wholeness, keystone-by-causal-position, `separate` as a boundary
+├── reviewchecks.test.mts  asserts the RENDERED question in both languages, not just its
+│                        variables — a placeholder once reached the screen past vars-only tests
+├── tradeoff.test.mts    incl. the tie rule's known false negative, pinned deliberately
 └── pipeline.trace.mts   end-to-end: does a card's text actually reach each prompt?
 ```
 
 ```bash
 npm test                          # unit tests
+npm run build                     # also a real check — see below
 npx tsx test/pipeline.trace.mts   # trace one session through every prompt
 ```
+
+`npm run build` earns its place in that list. A route file may only export the HTTP handlers and
+Next's config fields, so exporting a helper from one — to let a test import it — type-checks
+cleanly and passes the entire suite while failing the production build. Deterministic logic
+therefore lives in `src/lib` and the routes import it.
 
 The trace is the answer to *"does the team's work actually reach the AI, or does it just look like it does?"* — it puts a distinctive token in every card and link, runs a real session through the real modules, and checks those tokens survive into each prompt. It also prints each prompt's size and how often a card title repeats, which is how the duplication above was found.
 
@@ -336,7 +398,8 @@ The trace is the answer to *"does the team's work actually reach the AI, or does
 ## Roadmap
 
 - [ ] Per-device sessions — each participant connects from their own screen (the participant model is already the seam)
-- [ ] Fragment editing + post-assembly re-synthesis, with an AI "did I understand you right?" check-back
+- [x] Fragment editing — a piece can be rewritten after it is down, logged with its before/after so a correction is visible in the research record rather than overwriting history
+- [ ] Post-assembly re-synthesis, with an AI "did I understand you right?" check-back
 - [ ] An analysis notebook over the exported JSON (per-participant timelines, type-flip and contest rates)
 - [ ] A pilot study with intact teams on a decision they actually own
 
