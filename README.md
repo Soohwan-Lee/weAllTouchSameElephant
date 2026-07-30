@@ -56,6 +56,12 @@ A session moves through three steps. Try it with no setup — six hand-written s
 
 Stuck on a blank card is the hardest moment, so the entry adapts to how sure you are: **write directly**, **pick an angle** the AI scatters, or **talk it through** — the AI asks a couple of open questions and turns *your own answer* into editable card drafts. It never writes the perspective for you.
 
+**Collect before explaining.** On a multi-person table, a first-round panel shows whose
+seat has not contributed yet and opens a concrete-observation card for that person. The
+starter set separates **something I observed** from **an assumption to question**, so a
+direct signal and the explanation placed on it do not arrive as one unquestioned fact.
+This is a nudge, never a gate.
+
 **Your seat aims the questions.** Saying what you're responsible for — "Sales — I own new-account onboarding" — picks the lens you're asked from, so two people are prompted differently and their cards diverge by seat instead of converging on the same generic complaint. Worth being precise about why: a live A/B of *no role* vs *one word* vs *a full sentence of context* measured **identically** on every output metric (3.0 of 5 seats, 4/4 cross-seat claims, 4/4 root, 12/12 grounded — `test/rolecontext.live.mts`). Richer role text does **not** improve the AI's reading. It earns its place by helping the *person* write a card only they could write, and that is the only claim made for it.
 
 <div align="center">
@@ -73,13 +79,20 @@ Once a couple of pieces are down, a quiet check sits under the table: *"What ang
 
 Each bridge is **typed** — and the type is the point. `dependency` (one drives another), `tension` (a real trade-off), `overlap` (the same thing said twice), `complement` (two halves of one situation), or `separate` (**keep these apart**). Confirm, edit, re-type, or draw your own. The gate to the next step isn't a bridge count — it's **one connected group of ≥ 3 pieces**, so three links across separate pairs won't fake an assembly.
 
+The **discovery compass** exposes the next process question rather than scoring the team:
+is a seat still absent, have two different seats actually met, has anyone claimed a causal
+direction, and has the emerging picture survived a tension or boundary? An AI bridge also
+takes two deliberate steps to accept. The team first checks its evidence, relation type,
+direction, and possible missing third cause; only then can that reading become part of the
+confirmed graph.
+
 <div align="center">
 <img src="docs/screenshots/03-connect.png" alt="Connect — AI-proposed typed bridges and the connected-group gate" width="820">
 </div>
 
 ### 3 · See the whole — a shape to argue with, not a verdict
 
-A synthesis engine reads structure over the confirmed graph — fusing genuinely-same pieces into *facets*, ordering them by what drives what, finding the causal root, and keeping real tensions as their own strand. The AI then reads that shape back in the mode you ask for: **hold it open** (a few competing readings) or **commit to one core** (the single sharpest claim). Then it hands the pen back: name the elephant, sharpen the real question, write *your own* decision.
+A synthesis engine reads structure over the confirmed graph — fusing genuinely-same pieces into *facets*, ordering them by what drives what, finding the causal root, and keeping real tensions as their own strand. Before the AI speaks, the team records its own current hypothesis and the evidence that would make it wrong; skipping is allowed but visible in the research log. The AI then reads that shape back in the mode you ask for: **hold it open** (competing readings), **point at a hypothesis** (one falsifiable bet), or **commit to one core** (the single sharpest claim). Then it hands the pen back: name the elephant, sharpen the real question, write *your own* decision.
 
 The final screen is one continuous argument — **reading → real question → your next move → its trade-off** — with a sticky rail down the side so the spine stays legible and the *decision* stays the centre of gravity. Each block says **who is speaking**: `◇ AI proposes` for a suggestion you may reject, `✍ your words` for the team's own. (The question's tag is computed against the AI's draft, not against emptiness — the draft is seeded into the field, so calling an untouched one "your words" would put words in the team's mouth.) The assembled map, story and stats sit below as inspectable **evidence**.
 
