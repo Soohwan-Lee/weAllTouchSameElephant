@@ -568,6 +568,7 @@ export function MirrorScreen() {
               {t(main?.kind === "boundary" ? "boundary.pick" : "reveal.pick")}
             </p>
             <PreRevealCheckpointCard
+              hasRevealTarget={Boolean(main)}
               checkpointComplete={checkpointComplete}
               checkpointEditing={checkpointEditing}
               hypothesisDraft={hypothesisDraft}

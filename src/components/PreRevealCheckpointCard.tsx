@@ -3,6 +3,18 @@
 import { useI18n } from "@/lib/i18n";
 
 interface PreRevealCheckpointCardProps {
+  /**
+   * Is there an elephant to read at all? The checkpoint asks the team to commit a hypothesis
+   * and a falsifier BEFORE the AI reads their shape — which is only a meaningful thing to ask
+   * once a shape exists. With no revealable cluster the screen is already showing the
+   * locked-group hint, and pairing that with "what do you think this says?" asks the team to
+   * predict something that isn't there.
+   *
+   * This guard lived at the call site as `&& main` before the card was extracted, and both
+   * branches sat inside one ternary, so a falsy `main` rendered NEITHER. Passing it in keeps
+   * the component's own render decision complete instead of leaving half the condition behind.
+   */
+  hasRevealTarget: boolean;
   checkpointComplete: boolean;
   checkpointEditing: boolean;
   hypothesisDraft: string;
@@ -15,6 +27,7 @@ interface PreRevealCheckpointCardProps {
 }
 
 export function PreRevealCheckpointCard({
+  hasRevealTarget,
   checkpointComplete,
   checkpointEditing,
   hypothesisDraft,
@@ -26,6 +39,8 @@ export function PreRevealCheckpointCard({
   savedPreReveal,
 }: PreRevealCheckpointCardProps) {
   const { t } = useI18n();
+
+  if (!hasRevealTarget) return null;
 
   if (!checkpointComplete || checkpointEditing) {
     return (
