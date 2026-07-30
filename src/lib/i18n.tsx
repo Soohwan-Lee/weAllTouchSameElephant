@@ -261,6 +261,40 @@ const dict = {
     ko: "모든 조각 쌍을 살펴봤어요. 좋아요 — 전체 그림으로 넘어가세요.",
   },
   "connect.tray": { en: "Suggested bridges", ko: "제안된 다리" },
+  "discovery.heading": {
+    en: "Discovery compass · what to test next",
+    ko: "발견 나침반 · 다음에 확인할 것",
+  },
+  "discovery.next.collect": {
+    en: "A seat is still missing. Collect its observation before the current explanation becomes the default.",
+    ko: "아직 비어 있는 자리가 있습니다. 지금 설명이 정답처럼 굳기 전에 그 자리의 관찰을 먼저 모으세요.",
+  },
+  "discovery.next.cross": {
+    en: "The pieces are present, but no two seats meet yet. Look for a link where each person holds only half of the meaning.",
+    ko: "조각은 모였지만 아직 서로 다른 자리가 만나지 않았습니다. 각자 절반씩만 아는 연결을 찾아보세요.",
+  },
+  "discovery.next.cause": {
+    en: "You have links, but no claimed direction. Ask whether one side drives another—or whether both are effects of something missing.",
+    ko: "연결은 있지만 방향이 없습니다. 한쪽이 다른 쪽을 만드는지, 아니면 둘 다 빠진 제3원인의 결과인지 물어보세요.",
+  },
+  "discovery.next.challenge": {
+    en: "The picture is converging. Before trusting it, look for one real tension or a distinction that must stay separate.",
+    ko: "그림이 하나로 모이고 있습니다. 믿기 전에, 실제 긴장 하나나 반드시 구분해야 할 경계를 찾아보세요.",
+  },
+  "discovery.next.reflect": {
+    en: "The picture has voices, direction, and a challenge. Revisit its weakest link, then write your own hypothesis before asking the AI.",
+    ko: "그림에 여러 목소리, 방향, 반대 신호가 있습니다. 가장 약한 연결을 다시 본 뒤 AI에게 묻기 전에 팀의 가설을 적으세요.",
+  },
+  "discovery.backToGather": { en: "Collect the missing seat", ko: "빠진 자리 모으기" },
+  "discovery.signals": { en: "Discovery process signals", ko: "발견 과정 신호" },
+  "discovery.signal.voices": { en: "Seats contributed", ko: "기여한 자리" },
+  "discovery.signal.cross": { en: "Cross-seat links", ko: "자리 간 연결" },
+  "discovery.signal.cause": { en: "Causal claims", ko: "인과 주장" },
+  "discovery.signal.challenge": { en: "Tensions / boundaries", ko: "긴장·경계" },
+  "discovery.notScore": {
+    en: "These are prompts, not a score. A true picture may have no causal link or tension; the point is to ask deliberately.",
+    ko: "점수가 아니라 질문거리입니다. 실제 그림에는 인과나 긴장이 없을 수도 있으며, 중요한 것은 의식적으로 확인하는 것입니다.",
+  },
   // Deliberately does NOT quote the button's label: the same button reads "Suggest
   // connections" on an empty board and "Suggest more" once links exist, so naming either one
   // would be wrong half the time.
@@ -269,6 +303,23 @@ const dict = {
     ko: "위 버튼을 누르면 AI가 두 조각을 어떻게 잇는지 볼 수 있어요.",
   },
   "bridge.confirm": { en: "Confirm", ko: "확인" },
+  "bridge.review": { en: "Check together", ko: "함께 검토" },
+  "bridge.confirmReading": { en: "This reading fits", ko: "이 읽기가 맞음" },
+  "bridge.changeReading": { en: "Change the reading", ko: "다르게 읽기" },
+  "bridge.aiReading": { en: "AI is reading this as:", ko: "AI는 이 관계를 이렇게 읽었습니다:" },
+  "bridge.reviewHeading": { en: "Before this becomes part of the picture", ko: "이 연결을 그림에 넣기 전에" },
+  "bridge.reviewEvidence": {
+    en: "Do the quoted parts of both cards actually support this?",
+    ko: "두 카드에서 인용된 부분이 실제로 이 연결을 뒷받침하나요?",
+  },
+  "bridge.reviewRelation": {
+    en: "Is the relation type—and direction, if causal—right?",
+    ko: "관계 종류와, 인과라면 그 방향이 맞나요?",
+  },
+  "bridge.reviewAlternative": {
+    en: "Could both cards instead be effects of a third thing that is still missing?",
+    ko: "두 카드가 아직 빠져 있는 제3원인의 결과일 가능성은 없나요?",
+  },
   "bridge.edit": { en: "Edit", ko: "수정" },
   "bridge.reject": { en: "Dismiss", ko: "지우기" },
   "bridge.save": { en: "Save", ko: "저장" },

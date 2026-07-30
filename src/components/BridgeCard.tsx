@@ -12,6 +12,7 @@ export function BridgeCard({ bridge, fragA, fragB }: { bridge: Bridge; fragA?: F
   const rejectBridge = useSession((s) => s.rejectBridge);
 
   const [editing, setEditing] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
   const [rel, setRel] = useState<RelationType>(bridge.relationType);
   const [explanation, setExplanation] = useState(bridge.explanation);
   const [aId, setAId] = useState(bridge.fragmentAId);
@@ -51,6 +52,10 @@ export function BridgeCard({ bridge, fragA, fragB }: { bridge: Bridge; fragA?: F
 
       {!editing ? (
         <>
+          <p className="mt-2 text-[11px] font-medium text-ink-faint">
+            {t("bridge.aiReading")}{" "}
+            <span className="text-ink-soft">{t(meta.labelKey)}</span>
+          </p>
           <p className="mt-3 text-sm leading-relaxed text-ink-soft">{bridge.explanation}</p>
           {/* "separate" is the one relation that DOESN'T glue — a first-timer reads the
               same confirm button and assumes it links. Say plainly it draws a boundary. */}
@@ -58,6 +63,16 @@ export function BridgeCard({ bridge, fragA, fragB }: { bridge: Bridge; fragA?: F
             <p className="mt-2 rounded-lg bg-paper-sunken/60 px-3 py-2 text-[11px] leading-snug text-ink-soft">
               ⊣ {t("rel.separate.hint")}
             </p>
+          )}
+          {reviewing && (
+            <div className="mt-3 rounded-lg border border-accent/20 bg-accent-soft/20 px-3 py-2.5">
+              <div className="text-[11px] font-semibold text-ink">{t("bridge.reviewHeading")}</div>
+              <ol className="mt-1.5 list-decimal space-y-1 pl-4 text-[11px] leading-snug text-ink-soft">
+                <li>{t("bridge.reviewEvidence")}</li>
+                <li>{t("bridge.reviewRelation")}</li>
+                <li>{t("bridge.reviewAlternative")}</li>
+              </ol>
+            </div>
           )}
         </>
       ) : (
@@ -110,21 +125,30 @@ export function BridgeCard({ bridge, fragA, fragB }: { bridge: Bridge; fragA?: F
       <div className="mt-4 flex items-center gap-2">
         {!editing ? (
           <>
-            <button
-              onClick={() => confirmBridge(bridge.id)}
-              className="rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold text-white transition hover:opacity-95"
-            >
-              ✓ {t("bridge.confirm")}
-            </button>
+            {reviewing ? (
+              <button
+                onClick={() => confirmBridge(bridge.id)}
+                className="min-h-11 rounded-full bg-accent px-3.5 py-2 text-xs font-semibold text-white transition hover:opacity-95"
+              >
+                ✓ {t("bridge.confirmReading")}
+              </button>
+            ) : (
+              <button
+                onClick={() => setReviewing(true)}
+                className="min-h-11 rounded-full bg-accent px-3.5 py-2 text-xs font-semibold text-white transition hover:opacity-95"
+              >
+                {t("bridge.review")}
+              </button>
+            )}
             <button
               onClick={() => setEditing(true)}
-              className="rounded-full border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-ink hover:text-ink"
+              className="min-h-11 rounded-full border border-line px-3 py-2 text-xs font-medium text-ink-soft transition hover:border-ink hover:text-ink"
             >
-              {t("bridge.edit")}
+              {t("bridge.changeReading")}
             </button>
             <button
               onClick={() => rejectBridge(bridge.id)}
-              className="ml-auto rounded-full px-3 py-1.5 text-xs font-medium text-ink-faint transition hover:text-tension"
+              className="ml-auto min-h-11 rounded-full px-3 py-2 text-xs font-medium text-ink-faint transition hover:text-tension"
             >
               {t("bridge.reject")}
             </button>

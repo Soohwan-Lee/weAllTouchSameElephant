@@ -15,6 +15,7 @@ import { BridgeCard } from "./BridgeCard";
 import { ContestCard } from "./ContestCard";
 import { Hint } from "./Hint";
 import { ManualConnect } from "./ManualConnect";
+import { DiscoveryGuide } from "./DiscoveryGuide";
 import type { ContestProposal } from "@/lib/types";
 import { createRequestGate } from "@/lib/requestGate";
 import { settledPairKey } from "@/lib/settledPairs";
@@ -207,6 +208,10 @@ export function ConnectScreen() {
           </Hint>
         </div>
       )}
+
+      <div className="mt-5 animate-fade-up">
+        <DiscoveryGuide />
+      </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         {/* board (with draw-your-own-connection mode) */}
