@@ -701,6 +701,7 @@ export type TKey = keyof typeof dict;
 
 type Ctx = {
   lang: Lang;
+  ready: boolean;
   setLang: (l: Lang) => void;
   t: (k: TKey) => string;
 };
@@ -709,13 +710,32 @@ const I18nContext = createContext<Ctx | null>(null);
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>("en");
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const saved = (typeof window !== "undefined" &&
-      window.localStorage.getItem("watse-lang")) as Lang | null;
-    if (saved === "en" || saved === "ko") setLangState(saved);
-    else if (typeof navigator !== "undefined" && navigator.language.startsWith("ko"))
-      setLangState("ko");
+    const hydrate = async () => {
+      await useSession.persist.rehydrate();
+      const session = useSession.getState();
+      const hasSession =
+        Boolean(session.sessionId) &&
+        (session.fragments.length > 0 || session.events.length > 0 || session.step !== "start");
+      const saved = (typeof window !== "undefined" &&
+        window.localStorage.getItem("watse-lang")) as Lang | null;
+      const preferred: Lang =
+        saved === "en" || saved === "ko"
+          ? saved
+          : typeof navigator !== "undefined" && navigator.language.startsWith("ko")
+          ? "ko"
+          : "en";
+      // A resumed session keeps its recorded language. A new table adopts the device preference
+      // without logging a fake mid-session language switch.
+      const initial = hasSession ? session.lang : preferred;
+      setLangState(initial);
+      if (!hasSession && session.lang !== initial) useSession.setState({ lang: initial });
+      if (typeof document !== "undefined") document.documentElement.lang = initial;
+      setReady(true);
+    };
+    void hydrate();
   }, []);
 
   const setLang = (l: Lang) => {
@@ -733,7 +753,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const t = (k: TKey) => dict[k]?.[lang] ?? k;
 
   return (
-    <I18nContext.Provider value={{ lang, setLang, t }}>{children}</I18nContext.Provider>
+    <I18nContext.Provider value={{ lang, ready, setLang, t }}>{children}</I18nContext.Provider>
   );
 }
 

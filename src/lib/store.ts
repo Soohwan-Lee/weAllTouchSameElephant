@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 import type {
   Bridge,
   BridgeEdit,
@@ -138,25 +139,6 @@ function uid(prefix: string): string {
 }
 let idCounter = 0;
 
-// Event clock: a monotonic seq + a wall-clock stamp captured lazily at first event
-// (never at module init, to stay SSR-safe). t is ms since epoch; seq guarantees order.
-let eventSeq = 0;
-function nextEventMeta(actorId: string | null): { id: string; seq: number; t: number; actorId?: string } {
-  const t = typeof Date !== "undefined" ? Date.now() : 0;
-  return { id: uid("evt"), seq: eventSeq++, t, actorId: actorId ?? undefined };
-}
-
-// Session identity, established lazily on first use (never at module init — that would
-// run during SSR and hand every visitor the server's id). `reset()` starts a new run.
-let sessionId = "";
-let startedAt = 0;
-function sessionMeta() {
-  if (!sessionId) {
-    sessionId = uid("sess");
-    startedAt = typeof Date !== "undefined" ? Date.now() : 0;
-  }
-  return { sessionId, startedAt };
-}
 /**
  * Recover, per bridge, what the AI originally proposed versus what the team settled on.
  *
@@ -181,12 +163,18 @@ export function bridgeEditsFrom(events: SessionEvent[]): Map<string, BridgeEdit>
 }
 
 export function newSessionIdentity() {
-  sessionId = "";
-  startedAt = 0;
-  eventSeq = 0;
+  return {
+    sessionId: uid("sess"),
+    startedAt: typeof Date !== "undefined" ? Date.now() : 0,
+    eventSeq: 0,
+  };
 }
 
 interface SessionState {
+  /** persisted run identity and event clock — part of the session, never module globals */
+  sessionId: string;
+  startedAt: number;
+  eventSeq: number;
   step: Step;
   scenarioId: string | null;
   /** the question the team is deciding together ("Should we redesign the park?").
@@ -277,6 +265,42 @@ interface SessionState {
   ) => boolean;
 }
 
+function eventMeta(
+  s: Pick<SessionState, "eventSeq" | "activeParticipantId">,
+  offset = 0
+): { id: string; seq: number; t: number; actorId?: string } {
+  return {
+    id: uid("evt"),
+    seq: s.eventSeq + offset,
+    t: typeof Date !== "undefined" ? Date.now() : 0,
+    actorId: s.activeParticipantId ?? undefined,
+  };
+}
+
+const noopStorage: StateStorage = {
+  getItem: () => null,
+  setItem: () => undefined,
+  removeItem: () => undefined,
+};
+
+const persistedStorage = createJSONStorage<SessionState>(
+  () => (typeof window === "undefined" ? noopStorage : window.localStorage),
+  {
+    replacer: (_key, value) =>
+      value instanceof Set ? { __watseType: "Set", values: [...value] } : value,
+    reviver: (_key, value) => {
+      if (
+        value &&
+        typeof value === "object" &&
+        (value as { __watseType?: string }).__watseType === "Set"
+      ) {
+        return new Set((value as { values?: unknown[] }).values ?? []);
+      }
+      return value;
+    },
+  }
+);
+
 function pairKey(a: string, b: string) {
   return [a, b].sort().join("::");
 }
@@ -302,7 +326,12 @@ function resolveContest(
   return contests;
 }
 
-export const useSession = create<SessionState>((set, get) => ({
+export const useSession = create<SessionState>()(
+  persist(
+    (set, get) => ({
+  sessionId: "",
+  startedAt: 0,
+  eventSeq: 0,
   step: "start",
   scenarioId: null,
   decisionPrompt: "",
@@ -351,16 +380,21 @@ export const useSession = create<SessionState>((set, get) => ({
 
   logEvent: (e) =>
     set((s) => ({
-      events: [...s.events, { ...(e as SessionEvent), ...nextEventMeta(s.activeParticipantId) }],
+      events: [...s.events, { ...(e as SessionEvent), ...eventMeta(s) }],
+      eventSeq: s.eventSeq + 1,
     })),
 
   exportSession: () => {
-    const s = get();
-    const meta = sessionMeta();
+    let s = get();
+    if (!s.sessionId) {
+      const identity = newSessionIdentity();
+      set(identity);
+      s = { ...s, ...identity };
+    }
     return {
       version: 2 as const,
-      sessionId: meta.sessionId,
-      startedAt: meta.startedAt,
+      sessionId: s.sessionId,
+      startedAt: s.startedAt,
       exportedAt: typeof Date !== "undefined" ? Date.now() : 0,
       tzOffsetMinutes: typeof Date !== "undefined" ? new Date().getTimezoneOffset() : 0,
       lang: s.lang,
@@ -387,6 +421,7 @@ export const useSession = create<SessionState>((set, get) => ({
   setRevealView: (revealView) => set({ revealView }),
 
   loadScenario: (sc, lang) => {
+    const identity = newSessionIdentity();
     // synthesize one participant per distinct author, so canned data reads as a
     // multi-person table and the fragments carry authorId.
     const participants: Participant[] = [];
@@ -410,8 +445,11 @@ export const useSession = create<SessionState>((set, get) => ({
       y: f.y,
     }));
     set({
+      ...identity,
       scenarioId: sc.id,
+      lang,
       decisionPrompt: sc.title[lang],
+      pendingAngle: null,
       participants,
       activeParticipantId: participants[0]?.id ?? null,
       events: [],
@@ -425,6 +463,7 @@ export const useSession = create<SessionState>((set, get) => ({
       clusterDecisions: {},
       assembled: false,
       revealView: "crux",
+      loadingBridges: false,
       step: "gather",
     });
   },
@@ -438,8 +477,9 @@ export const useSession = create<SessionState>((set, get) => ({
         lang,
         events: [
           ...s.events,
-          { ...nextEventMeta(s.activeParticipantId), type: "language_switched" as const, lang },
+          { ...eventMeta(s), type: "language_switched" as const, lang },
         ],
+        eventSeq: s.eventSeq + 1,
       };
     }),
 
@@ -505,8 +545,9 @@ export const useSession = create<SessionState>((set, get) => ({
   reset: () => {
     // a reset is a new run — give it its own id and clock so two teams on one machine
     // don't export sessions that look like the same one.
-    newSessionIdentity();
+    const identity = newSessionIdentity();
     set({
+      ...identity,
       step: "start",
       scenarioId: null,
       decisionPrompt: "",
@@ -544,7 +585,7 @@ export const useSession = create<SessionState>((set, get) => ({
       const authorRole = active ? active.role : f.authorRole;
       const fragId = uid("frag");
       const evt: SessionEvent = {
-        ...nextEventMeta(s.activeParticipantId),
+        ...eventMeta(s),
         type: "fragment_added",
         fragmentId: fragId,
         source,
@@ -563,6 +604,7 @@ export const useSession = create<SessionState>((set, get) => ({
           },
         ],
         events: [...s.events, evt],
+        eventSeq: s.eventSeq + 1,
       };
     });
   },
@@ -612,14 +654,15 @@ export const useSession = create<SessionState>((set, get) => ({
         events: [
           ...s.events,
           ...fresh.map(
-            (b): SessionEvent => ({
-              ...nextEventMeta(s.activeParticipantId),
+            (b, i): SessionEvent => ({
+              ...eventMeta(s, i),
               type: "bridge_proposed",
               pairKey: pairKey(b.fragmentAId, b.fragmentBId),
               relationType: b.relationType,
             })
           ),
         ],
+        eventSeq: s.eventSeq + fresh.length,
       }));
     return fresh.length;
   },
@@ -639,7 +682,7 @@ export const useSession = create<SessionState>((set, get) => ({
       // (overlap→tension = "that's not the same thing, it's a tradeoff") is the sharpest
       // boundary-work signal there is, so record the from-type, not just the to-type.
       const evt: SessionEvent = {
-        ...nextEventMeta(s.activeParticipantId),
+        ...eventMeta(s),
         bridgeId: b.id,
         type: "bridge_confirmed",
         pairKey: pairKey(b.fragmentAId, b.fragmentBId),
@@ -655,6 +698,7 @@ export const useSession = create<SessionState>((set, get) => ({
         tray: s.tray.filter((x) => x.id !== id),
         bridges: [...s.bridges, confirmed],
         events: [...s.events, evt],
+        eventSeq: s.eventSeq + 1,
         contests: resolveContest(
           s.contests,
           pairKey(b.fragmentAId, b.fragmentBId),
@@ -672,7 +716,7 @@ export const useSession = create<SessionState>((set, get) => ({
       // preserve the discarded proposal — this was destroyed before, and it's the
       // single most important boundary-work signal (what the team refused).
       const evt: SessionEvent = {
-        ...nextEventMeta(s.activeParticipantId),
+        ...eventMeta(s),
         bridgeId: b.id,
         type: "bridge_rejected",
         pairKey: pairKey(b.fragmentAId, b.fragmentBId),
@@ -687,6 +731,7 @@ export const useSession = create<SessionState>((set, get) => ({
         tray: s.tray.filter((x) => x.id !== id),
         rejectedPairKeys: next,
         events: [...s.events, evt],
+        eventSeq: s.eventSeq + 1,
         contests: resolveContest(s.contests, pairKey(b.fragmentAId, b.fragmentBId), "dropped"),
       };
     }),
@@ -700,7 +745,7 @@ export const useSession = create<SessionState>((set, get) => ({
       const b = s.bridges.find((x) => x.id === id);
       if (!b) return {};
       const evt: SessionEvent = {
-        ...nextEventMeta(s.activeParticipantId),
+        ...eventMeta(s),
         type: "bridge_unconfirmed",
         pairKey: pairKey(b.fragmentAId, b.fragmentBId),
         relationType: b.relationType,
@@ -709,6 +754,7 @@ export const useSession = create<SessionState>((set, get) => ({
         bridges: s.bridges.filter((x) => x.id !== id),
         tray: b.createdBy === "ai" ? [...s.tray, { ...b, status: "proposed" as const }] : s.tray,
         events: [...s.events, evt],
+        eventSeq: s.eventSeq + 1,
       };
     }),
 
@@ -721,8 +767,9 @@ export const useSession = create<SessionState>((set, get) => ({
         rejectedPairKeys: next,
         events: [
           ...s.events,
-          { ...nextEventMeta(s.activeParticipantId), type: "rejection_undone", pairKey: key },
+          { ...eventMeta(s), type: "rejection_undone", pairKey: key },
         ],
+        eventSeq: s.eventSeq + 1,
       };
     }),
 
@@ -751,7 +798,7 @@ export const useSession = create<SessionState>((set, get) => ({
       actorId: s.activeParticipantId ?? undefined,
     };
     const evt: SessionEvent = {
-      ...nextEventMeta(s.activeParticipantId),
+      ...eventMeta(s),
       bridgeId: manual.id,
       type: "manual_bridge_added",
       pairKey: key,
@@ -759,7 +806,32 @@ export const useSession = create<SessionState>((set, get) => ({
       explanation,
       wasRedundant,
     };
-    set({ bridges: [...s.bridges, manual], events: [...s.events, evt] });
+    set({
+      bridges: [...s.bridges, manual],
+      events: [...s.events, evt],
+      eventSeq: s.eventSeq + 1,
+    });
     return true;
   },
-}));
+    }),
+    {
+      name: "watse-session-v3",
+      version: 3,
+      storage: persistedStorage,
+      skipHydration: true,
+      merge: (persisted, current) => {
+        const saved = (persisted ?? {}) as Partial<SessionState>;
+        return {
+          ...current,
+          ...saved,
+          rejectedPairKeys:
+            saved.rejectedPairKeys instanceof Set
+              ? saved.rejectedPairKeys
+              : new Set(saved.rejectedPairKeys ?? []),
+          // A request cannot survive a page reload; never rehydrate a phantom spinner.
+          loadingBridges: false,
+        };
+      },
+    }
+  )
+);

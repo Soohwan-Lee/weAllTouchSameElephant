@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "npx --yes tsx test/grounding.test.mts && npx --yes tsx test/synthesis.test.mts && npx --yes tsx test/seats.test.mts && npx --yes tsx test/seatcite.test.mts && npx --yes tsx test/evidence.test.mts && npx --yes tsx test/contest.test.mts && npx --yes tsx test/contestresolve.test.mts && npx --yes tsx test/pipeline.trace.mts"
+    "test": "npx --yes tsx test/grounding.test.mts && npx --yes tsx test/synthesis.test.mts && npx --yes tsx test/seats.test.mts && npx --yes tsx test/seatcite.test.mts && npx --yes tsx test/evidence.test.mts && npx --yes tsx test/contest.test.mts && npx --yes tsx test/contestresolve.test.mts && npx --yes tsx test/session-lifecycle.test.mts && npx --yes tsx test/pipeline.trace.mts"
   },
   "dependencies": {
     "next": "15.5.20",
