@@ -618,7 +618,10 @@ export function tradeOffPrompt(
     evidenceA?: string;
     evidenceB?: string;
   }>,
-  lang: "en" | "ko"
+  lang: "en" | "ko",
+  /** the pieces themselves, so the named cost can rest on what people actually wrote rather
+   *  than on a handful of headline words — same block, same shape, as `directionsPrompt` */
+  pieces: Array<{ title: string; body: string; role?: string }> = []
 ) {
   const language = lang === "ko" ? "Korean" : "English";
   // Handles let the model POINT at the exact tension rather than paraphrase one, so the
@@ -653,7 +656,21 @@ export function tradeOffPrompt(
         .join("\n")
     : "(none)";
 
-  return `A team made this decision: "${decision}".
+  // The pieces were computed for the reveal and then dropped before this call — the same
+  // sweep commit 444af23 made for /api/directions, /api/blindspot and /api/bridges, which
+  // this endpoint was missed by. Measured A/B (8 runs per arm, gpt-5.4-mini): without them
+  // the model cited a kept tension in 0/8 runs and named a cost that fit any team
+  // ("existing accounts get less specialist attention"); with them it cited one in 4/8 and
+  // carried facts that exist only in a participant's prose in 3/8. A human-drawn tension is
+  // the worst case — store.ts writes empty evidence for it, so without bodies the model sees
+  // two short titles and one line of explanation and nothing anyone actually wrote.
+  const piecesBlock = pieces.length
+    ? `\n\nThe pieces on their table (their own words — ground the cost in these):\n${pieces
+        .map((p) => `- "${p.title}"${p.role && p.role !== "—" ? ` (${p.role})` : ""}: ${p.body}`)
+        .join("\n")}`
+    : "";
+
+  return `A team made this decision: "${decision}".${piecesBlock}
 
 Below are the TENSIONS they deliberately kept while assembling (pairs pulling in different directions) and the pairs they deliberately kept SEPARATE.
 

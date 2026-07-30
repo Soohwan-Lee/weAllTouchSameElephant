@@ -1392,12 +1392,22 @@ function TradeOffPanel({ decision, cluster, onRevise }: { decision: string; clus
       evidenceB: b.evidenceB,
     }));
 
+  // The pieces behind the titles. Two 3-word titles are not enough to name a cost that is
+  // recognisably THIS team's: a tension the team drew themselves reaches the model with empty
+  // evidence (store.ts writes `evidenceA`/`evidenceB` as "" for a manual bridge), so without
+  // this the whole prompt is titles plus one line of explanation. Same shape the directions
+  // path sends. A/B measured: the model went from citing a kept tension in 0/8 runs to 4/8.
+  const pieces = cluster.fragmentIds
+    .map((id) => fragments.find((f) => f.id === id))
+    .filter((f): f is NonNullable<typeof f> => Boolean(f))
+    .map((f) => ({ title: f.title, body: f.body, role: f.authorRole }));
+
   const reveal = async () => {
     setOpened(true);
     setLoading(true);
     try {
       const { fetchTradeOff } = await import("@/lib/api");
-      const r = await fetchTradeOff(decision, tensions, separations, lang);
+      const r = await fetchTradeOff(decision, tensions, separations, lang, pieces);
       setRes(r);
       if (r.tension || r.cost) {
         logEvent({ type: "tradeoff_shown", tension: r.tension, favors: r.favors, cost: r.cost, groundedBridgeId: r.groundedBridgeId });

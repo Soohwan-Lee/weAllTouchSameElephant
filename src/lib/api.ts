@@ -156,7 +156,10 @@ export async function fetchTradeOff(
     evidenceA?: string;
     evidenceB?: string;
   }>,
-  lang: "en" | "ko"
+  lang: "en" | "ko",
+  /** the team's own prose behind each title, so the named cost can rest on what people
+   *  actually wrote. Optional — omitting it reproduces the previous behavior. */
+  pieces: Array<{ title: string; body: string; role?: string }> = []
 ): Promise<{
   tension: string;
   favors: string;
@@ -170,7 +173,7 @@ export async function fetchTradeOff(
     const res = await fetch("/api/tradeoff", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ decision, tensions, separations, lang }),
+      body: JSON.stringify({ decision, tensions, separations, lang, pieces }),
     });
     if (!res.ok) return { tension: "", favors: "", cost: "", mode: "error" };
     return await res.json();
