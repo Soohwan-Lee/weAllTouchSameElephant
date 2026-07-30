@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useSession, scenarioBridgesToProposals, bridgeEditsFrom } from "@/lib/store";
 import { getScenario } from "@/lib/scenarios";
@@ -16,6 +16,7 @@ import { ContestCard } from "./ContestCard";
 import { Hint } from "./Hint";
 import { ManualConnect } from "./ManualConnect";
 import type { ContestProposal } from "@/lib/types";
+import { createRequestGate } from "@/lib/requestGate";
 
 export function ConnectScreen() {
   const { t, lang } = useI18n();
@@ -49,6 +50,8 @@ export function ConnectScreen() {
   // Which "suggest" round this is. The server uses it to space second looks out (at most one
   // every other round) and to rotate which link gets looked at.
   const [round, setRound] = useState(0);
+  const requestGate = useRef(createRequestGate());
+  useEffect(() => () => requestGate.current.cancel(), []);
 
   const byId = (id: string) => fragments.find((f) => f.id === id);
   // gate on the biggest connected GROUP, not the raw bridge count (see largestClusterSize).
@@ -64,6 +67,10 @@ export function ConnectScreen() {
   const seats = seatCoverage(fragments, bridges);
 
   async function suggest() {
+    // `loading` is a rendered snapshot and two clicks can arrive before it flips true.
+    // Close a synchronous gate first so one gesture can create at most one server round.
+    const requestToken = requestGate.current.begin();
+    if (requestToken === null) return;
     setLoading(true);
     setEmptyResult(false);
     setInsufficient(false);
@@ -104,18 +111,19 @@ export function ConnectScreen() {
         contested: contests.map((c) => ({ aId: c.aId, bId: c.bId })),
         round,
       };
-      setRound((r) => r + 1);
       const {
         bridges: proposals,
         mode: apiMode,
         contest: raised,
       } = await fetchBridges(fragments, lang, max, context, decisionPrompt);
+      if (!requestGate.current.isCurrent(requestToken)) return;
       // a failed call on a blank table used to render as "no strong connections found",
       // sending people off to edit perfectly good pieces to fix a network error.
       if (apiMode === "error" && !getScenario(scenarioId)) {
         setFailed(true);
         return;
       }
+      setRound((value) => value + 1);
       // Set before the branches below: a round can find no new bridges and still have a fair
       // question about an existing link, and that question is the round's only useful output
       // when it happens. Only ever replaced by a fresh one, never stacked.
@@ -153,7 +161,7 @@ export function ConnectScreen() {
       }
       if (added === 0) setEmptyResult(true);
     } finally {
-      setLoading(false);
+      if (requestGate.current.finish(requestToken)) setLoading(false);
     }
   }
 
@@ -346,6 +354,7 @@ export function ConnectScreen() {
                 <span aria-hidden>⚠︎</span> {t("common.aiFailed")}
                 <button
                   onClick={suggest}
+                  disabled={loading}
                   className="mt-2 block w-full rounded-full border border-line py-1.5 text-[12px] font-medium text-ink-soft transition hover:text-ink"
                 >
                   <span aria-hidden>↻</span> {t("common.retry")}
