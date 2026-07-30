@@ -158,10 +158,20 @@ check("selected cluster annotations migrate coherently and preserve displaced va
   useSession.getState().setClusterName("cluster_b", "Team B");
   useSession.getState().setClusterQuestion("cluster_b", "Question B?");
   useSession.getState().setClusterDecision("cluster_b", "Decision B");
+  useSession.getState().savePreRevealReflection("cluster_b", {
+    hypothesis: "Team B hypothesis",
+    disconfirmingEvidence: "A contrary observation",
+    shapeSignature: "shape-b",
+    skipped: false,
+  });
   useSession.getState().migrateClusterAnnotations("cluster_b", "cluster_a");
   assert.equal(useSession.getState().clusterNames.cluster_a, "Team B");
   assert.equal(useSession.getState().clusterQuestions.cluster_a, "Question B?");
   assert.equal(useSession.getState().clusterDecisions.cluster_a, "Decision B");
+  assert.equal(
+    useSession.getState().preRevealReflections.cluster_a.hypothesis,
+    "Team B hypothesis"
+  );
 
   useSession.getState().setClusterName("cluster_c", "Existing C");
   useSession.getState().migrateClusterAnnotations("cluster_b", "cluster_c");
@@ -171,6 +181,27 @@ check("selected cluster annotations migrate coherently and preserve displaced va
   if (event?.type !== "cluster_annotations_migrated") throw new Error("missing migration event");
   assert.equal(event.displaced.name, "Existing C");
   assert.equal(event.annotations.name, "Team B");
+  assert.equal(event.annotations.preRevealReflection?.shapeSignature, "shape-b");
+});
+
+check("pre-reveal reflection is persisted, exported, and logged before AI framing", () => {
+  useSession.getState().reset();
+  useSession.getState().savePreRevealReflection("cluster_a", {
+    hypothesis: "  The handoff is the bottleneck  ",
+    disconfirmingEvidence: "  Handoffs complete on time  ",
+    shapeSignature: "shape-1",
+    skipped: false,
+  });
+  const out = useSession.getState().exportSession();
+  assert.equal(
+    out.preRevealReflections.cluster_a.hypothesis,
+    "The handoff is the bottleneck"
+  );
+  const event = out.events.at(-1);
+  assert.equal(event?.type, "pre_reveal_reflection");
+  if (event?.type !== "pre_reveal_reflection") throw new Error("missing reflection event");
+  assert.equal(event.disconfirmingEvidence, "Handoffs complete on time");
+  assert.equal(event.skipped, false);
 });
 
 console.log(`\n${passed} store-integrity assertions passed\n`);

@@ -482,6 +482,31 @@ const dict = {
     en: "Your pieces are connected. How would you like to look at the whole?",
     ko: "조각이 모두 이어졌어요. 전체를 어떻게 보시겠어요?",
   },
+  "checkpoint.eyebrow": { en: "Before the AI speaks", ko: "AI가 말하기 전에" },
+  "checkpoint.heading": { en: "Write your current best guess", ko: "팀의 현재 가설을 먼저 적으세요" },
+  "checkpoint.hint": {
+    en: "This protects your own reading from being replaced by the first plausible AI answer. Name what you think is happening and how it could be wrong.",
+    ko: "그럴듯한 첫 AI 답변이 팀의 생각을 대신하지 않게 합니다. 지금 무엇이 일어난다고 보는지, 어떻게 틀릴 수 있는지 적으세요.",
+  },
+  "checkpoint.hypothesis": { en: "What may be the underlying problem?", ko: "밑에 있는 문제는 무엇이라고 보나요?" },
+  "checkpoint.hypothesisPlaceholder": {
+    en: "We currently think…",
+    ko: "현재 우리 생각은…",
+  },
+  "checkpoint.falsifier": {
+    en: "What evidence would make this explanation wrong?",
+    ko: "어떤 증거가 나오면 이 설명이 틀렸다고 할 수 있나요?",
+  },
+  "checkpoint.falsifierPlaceholder": {
+    en: "We would change our mind if…",
+    ko: "만약 ___라면 생각을 바꿀 것입니다…",
+  },
+  "checkpoint.save": { en: "Save our view, then ask the AI", ko: "팀의 관점을 저장하고 AI에게 묻기" },
+  "checkpoint.skip": { en: "Skip for now", ko: "지금은 건너뛰기" },
+  "checkpoint.saved": { en: "Your view is saved before the AI reading", ko: "AI 해석 전 팀의 관점을 저장했습니다" },
+  "checkpoint.skipped": { en: "The team skipped the pre-reading checkpoint", ko: "팀이 사전 가설 작성을 건너뛰었습니다" },
+  "checkpoint.edit": { en: "Edit", ko: "수정" },
+  "checkpoint.falsifierShort": { en: "We would reconsider if", ko: "다시 생각할 조건" },
   "reveal.explore": { en: "Hold it open", ko: "열어두고 보기" },
   "reveal.explore.sub": {
     en: "A few competing ways to read the picture — don't commit yet",

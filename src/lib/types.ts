@@ -100,6 +100,16 @@ export interface Fragment {
   y: number;
 }
 
+/** The team's own reading, captured before an AI reveal can anchor the discussion. */
+export interface PreRevealReflection {
+  hypothesis: string;
+  disconfirmingEvidence: string;
+  /** binds the reflection to the exact cards and links it was written against */
+  shapeSignature: string;
+  /** skipping is allowed, but stays distinguishable from a checkpoint that never appeared */
+  skipped: boolean;
+}
+
 /** What the team did to one AI-proposed link on its way to being confirmed.
  *  Recovered from the event log by `bridgeEditsFrom`; `bridges` only holds the final state. */
 export interface BridgeEdit {
@@ -144,7 +154,7 @@ export type SessionEvent =
   | { id: string; seq: number; t: number; actorId?: string; type: "fragment_removed"; fragment: Fragment; removedBridgeIds: string[]; removedTrayIds: string[]; removedRejectedPairKeys: string[] }
   | { id: string; seq: number; t: number; actorId?: string; type: "bridge_proposed"; bridge: Bridge; pairKey: string; relationType: RelationType }
   | { id: string; seq: number; t: number; actorId?: string; type: "cluster_selected"; clusterId: string | null }
-  | { id: string; seq: number; t: number; actorId?: string; type: "cluster_annotations_migrated"; fromClusterId: string; toClusterId: string; annotations: { name?: string; question?: string; decision?: string }; displaced: { name?: string; question?: string; decision?: string } }
+  | { id: string; seq: number; t: number; actorId?: string; type: "cluster_annotations_migrated"; fromClusterId: string; toClusterId: string; annotations: { name?: string; question?: string; decision?: string; preRevealReflection?: PreRevealReflection }; displaced: { name?: string; question?: string; decision?: string; preRevealReflection?: PreRevealReflection } }
   // Keeping a connection but REWRITING what it means is the finest-grained boundary work
   // there is, so the AI's original text and type are preserved beside the human's final
   // version — `edited` alone couldn't tell a substantive rewrite from a no-op re-save.
@@ -157,6 +167,7 @@ export type SessionEvent =
   // has negotiated something. Logged as its own event rather than erasing the original.
   | { id: string; seq: number; t: number; actorId?: string; bridgeId: string; type: "bridge_unconfirmed"; pairKey: string; relationType: RelationType }
   | { id: string; seq: number; t: number; actorId?: string; type: "rejection_undone"; pairKey: string }
+  | { id: string; seq: number; t: number; actorId?: string; type: "pre_reveal_reflection"; clusterId: string; hypothesis: string; disconfirmingEvidence: string; shapeSignature: string; skipped: boolean }
   | { id: string; seq: number; t: number; actorId?: string; type: "reveal_mode_chosen"; mode: RevealMode }
   | { id: string; seq: number; t: number; actorId?: string; type: "name_accepted"; aiOriginal: string; humanFinal: string; changed: boolean }
   | { id: string; seq: number; t: number; actorId?: string; type: "question_accepted"; aiOriginal: string; humanFinal: string; changed: boolean }

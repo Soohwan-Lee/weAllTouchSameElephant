@@ -9,6 +9,7 @@ import type {
   Fragment,
   NameResult,
   Participant,
+  PreRevealReflection,
   RelationType,
   RevealMode,
   Scenario,
@@ -133,6 +134,7 @@ export interface SessionExport {
   clusterNames: Record<string, string>;
   clusterQuestions: Record<string, string>;
   clusterDecisions: Record<string, string>;
+  preRevealReflections: Record<string, PreRevealReflection>;
   events: SessionEvent[];
   step: Step;
   activeParticipantId: string | null;
@@ -220,6 +222,8 @@ interface SessionState {
   clusterQuestions: Record<string, string>;
   /** team's own next step / decision that answers the real question (per cluster id) */
   clusterDecisions: Record<string, string>;
+  /** team's own pre-AI hypothesis and falsifier, keyed to the shape they inspected */
+  preRevealReflections: Record<string, PreRevealReflection>;
   /** whether the reveal ("assemble the elephant") is active */
   assembled: boolean;
   /** which reveal view: "crux" = the synthesis shape, "assembly" = the loose ring */
@@ -254,6 +258,7 @@ interface SessionState {
   setClusterName: (clusterId: string, name: string) => void;
   setClusterQuestion: (clusterId: string, q: string) => void;
   setClusterDecision: (clusterId: string, d: string) => void;
+  savePreRevealReflection: (clusterId: string, reflection: PreRevealReflection) => void;
   setAssembled: (v: boolean) => void;
   setRevealView: (v: "assembly" | "crux") => void;
   addProposals: (proposals: BridgeProposal[]) => number; // returns # added
@@ -366,6 +371,7 @@ export const useSession = create<SessionState>()(
   clusterNames: {},
   clusterQuestions: {},
   clusterDecisions: {},
+  preRevealReflections: {},
   assembled: false,
   revealView: "crux",
 
@@ -428,11 +434,14 @@ export const useSession = create<SessionState>()(
       const name = s.clusterNames[fromId];
       const question = s.clusterQuestions[fromId];
       const decision = s.clusterDecisions[fromId];
-      if (name === undefined && question === undefined && decision === undefined) return {};
-      const migrate = (
-        record: Record<string, string>,
-        value: string | undefined
-      ): Record<string, string> => {
+      const preRevealReflection = s.preRevealReflections[fromId];
+      if (
+        name === undefined &&
+        question === undefined &&
+        decision === undefined &&
+        preRevealReflection === undefined
+      ) return {};
+      const migrate = <T,>(record: Record<string, T>, value: T | undefined): Record<string, T> => {
         const next = { ...record };
         if (value === undefined) delete next[toId];
         else next[toId] = value;
@@ -445,6 +454,7 @@ export const useSession = create<SessionState>()(
         clusterNames: migrate(s.clusterNames, name),
         clusterQuestions: migrate(s.clusterQuestions, question),
         clusterDecisions: migrate(s.clusterDecisions, decision),
+        preRevealReflections: migrate(s.preRevealReflections, preRevealReflection),
         events: [
           ...s.events,
           {
@@ -452,11 +462,12 @@ export const useSession = create<SessionState>()(
             type: "cluster_annotations_migrated" as const,
             fromClusterId: fromId,
             toClusterId: toId,
-            annotations: { name, question, decision },
+            annotations: { name, question, decision, preRevealReflection },
             displaced: {
               name: s.clusterNames[toId],
               question: s.clusterQuestions[toId],
               decision: s.clusterDecisions[toId],
+              preRevealReflection: s.preRevealReflections[toId],
             },
           },
         ],
@@ -496,6 +507,7 @@ export const useSession = create<SessionState>()(
       clusterNames: s.clusterNames,
       clusterQuestions: s.clusterQuestions,
       clusterDecisions: s.clusterDecisions,
+      preRevealReflections: s.preRevealReflections,
       events: s.events,
       step: s.step,
       activeParticipantId: s.activeParticipantId,
@@ -510,6 +522,35 @@ export const useSession = create<SessionState>()(
     set((s) => ({ clusterQuestions: { ...s.clusterQuestions, [clusterId]: q } })),
   setClusterDecision: (clusterId, d) =>
     set((s) => ({ clusterDecisions: { ...s.clusterDecisions, [clusterId]: d } })),
+  savePreRevealReflection: (clusterId, reflection) =>
+    set((s) => {
+      const cleaned: PreRevealReflection = {
+        hypothesis: reflection.hypothesis.trim(),
+        disconfirmingEvidence: reflection.disconfirmingEvidence.trim(),
+        shapeSignature: reflection.shapeSignature,
+        skipped: reflection.skipped,
+      };
+      if (
+        !cleaned.skipped &&
+        (!cleaned.hypothesis || !cleaned.disconfirmingEvidence || !cleaned.shapeSignature)
+      ) return {};
+      return {
+        preRevealReflections: {
+          ...s.preRevealReflections,
+          [clusterId]: cleaned,
+        },
+        events: [
+          ...s.events,
+          {
+            ...eventMeta(s),
+            type: "pre_reveal_reflection" as const,
+            clusterId,
+            ...cleaned,
+          },
+        ],
+        eventSeq: s.eventSeq + 1,
+      };
+    }),
   setAssembled: (assembled) => set({ assembled }),
   setRevealView: (revealView) => set({ revealView }),
 
@@ -557,6 +598,7 @@ export const useSession = create<SessionState>()(
       clusterNames: {},
       clusterQuestions: {},
       clusterDecisions: {},
+      preRevealReflections: {},
       assembled: false,
       revealView: "crux",
       loadingBridges: false,
@@ -661,6 +703,7 @@ export const useSession = create<SessionState>()(
       clusterNames: {},
       clusterQuestions: {},
       clusterDecisions: {},
+      preRevealReflections: {},
       assembled: false,
       revealView: "crux",
       loadingBridges: false,
@@ -977,6 +1020,7 @@ export const useSession = create<SessionState>()(
           // therefore need an empty value instead of rehydrating `undefined`.
           removedParticipants: saved.removedParticipants ?? [],
           activeClusterId: saved.activeClusterId ?? null,
+          preRevealReflections: saved.preRevealReflections ?? {},
           rejectedPairKeys:
             saved.rejectedPairKeys instanceof Set
               ? saved.rejectedPairKeys

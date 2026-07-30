@@ -44,6 +44,8 @@ export function MirrorScreen() {
   const setClusterQuestion = useSession((s) => s.setClusterQuestion);
   const clusterDecisions = useSession((s) => s.clusterDecisions);
   const setClusterDecision = useSession((s) => s.setClusterDecision);
+  const preRevealReflections = useSession((s) => s.preRevealReflections);
+  const savePreRevealReflection = useSession((s) => s.savePreRevealReflection);
   const activeClusterId = useSession((s) => s.activeClusterId);
   const setActiveCluster = useSession((s) => s.setActiveCluster);
   const migrateClusterAnnotations = useSession((s) => s.migrateClusterAnnotations);
@@ -78,6 +80,53 @@ export function MirrorScreen() {
   const clusters = findRevealClusters(fragments, bridges, 3);
   const main = selectedRevealCluster(clusters, activeClusterId);
   const byId = (id: string) => fragments.find((f) => f.id === id);
+  const mainIds = new Set(main?.fragmentIds ?? []);
+  const signatureBridges = bridges.filter(
+    (bridge) =>
+      (mainIds.has(bridge.fragmentAId) && mainIds.has(bridge.fragmentBId)) ||
+      (bridge.relationType === "separate" &&
+        (mainIds.has(bridge.fragmentAId) || mainIds.has(bridge.fragmentBId)))
+  );
+  const signatureFragmentIds = new Set(mainIds);
+  for (const bridge of signatureBridges) {
+    signatureFragmentIds.add(bridge.fragmentAId);
+    signatureFragmentIds.add(bridge.fragmentBId);
+  }
+  const shapeSignature = JSON.stringify({
+    fragments: fragments
+      .filter((fragment) => signatureFragmentIds.has(fragment.id))
+      .map((fragment) => [fragment.id, fragment.title, fragment.body]),
+    bridges: signatureBridges.map((bridge) => [
+      bridge.id,
+      bridge.fragmentAId,
+      bridge.fragmentBId,
+      bridge.relationType,
+      bridge.explanation,
+    ]),
+  });
+  const savedPreReveal = main ? preRevealReflections[main.id] : undefined;
+  const checkpointComplete =
+    Boolean(savedPreReveal) && savedPreReveal?.shapeSignature === shapeSignature;
+  const [hypothesisDraft, setHypothesisDraft] = useState("");
+  const [falsifierDraft, setFalsifierDraft] = useState("");
+  const [checkpointEditing, setCheckpointEditing] = useState(false);
+
+  useEffect(() => {
+    setHypothesisDraft(savedPreReveal?.hypothesis ?? "");
+    setFalsifierDraft(savedPreReveal?.disconfirmingEvidence ?? "");
+    setCheckpointEditing(false);
+  }, [main?.id, savedPreReveal?.hypothesis, savedPreReveal?.disconfirmingEvidence]);
+
+  const saveCheckpoint = (skipped: boolean) => {
+    if (!main) return;
+    savePreRevealReflection(main.id, {
+      hypothesis: skipped ? "" : hypothesisDraft,
+      disconfirmingEvidence: skipped ? "" : falsifierDraft,
+      shapeSignature,
+      skipped,
+    });
+    setCheckpointEditing(false);
+  };
 
   // Keep the team's chosen target stable. Size changes may reorder the candidates, but must
   // never silently swap the subject of a name, question, decision, or generated reading.
@@ -517,16 +566,94 @@ export function MirrorScreen() {
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-ink-faint">
               {t(main?.kind === "boundary" ? "boundary.pick" : "reveal.pick")}
             </p>
-            <div className="mt-4 w-full max-w-xs space-y-2">
-              {REVEAL_MODES.map((m) => (
-                <ModeButton
-                  key={m}
-                  mode={m}
-                  disabled={!main || loading}
-                  onClick={() => reveal(m)}
-                />
-              ))}
-            </div>
+            {(!checkpointComplete || checkpointEditing) && main ? (
+              <div className="mt-4 w-full max-w-sm rounded-xl border border-accent/25 bg-paper-card p-4 text-left">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-accent">
+                  {t("checkpoint.eyebrow")}
+                </div>
+                <h3 className="mt-1 text-sm font-semibold text-ink">{t("checkpoint.heading")}</h3>
+                <p className="mt-1 text-[11px] leading-relaxed text-ink-faint">
+                  {t("checkpoint.hint")}
+                </p>
+                <label className="mt-3 block text-[11px] font-medium text-ink-soft">
+                  {t("checkpoint.hypothesis")}
+                  <textarea
+                    value={hypothesisDraft}
+                    onChange={(event) => setHypothesisDraft(event.target.value)}
+                    rows={2}
+                    maxLength={400}
+                    placeholder={t("checkpoint.hypothesisPlaceholder")}
+                    className="mt-1 w-full resize-y rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink outline-none transition placeholder:text-line focus:border-accent"
+                  />
+                </label>
+                <label className="mt-3 block text-[11px] font-medium text-ink-soft">
+                  {t("checkpoint.falsifier")}
+                  <textarea
+                    value={falsifierDraft}
+                    onChange={(event) => setFalsifierDraft(event.target.value)}
+                    rows={2}
+                    maxLength={300}
+                    placeholder={t("checkpoint.falsifierPlaceholder")}
+                    className="mt-1 w-full resize-y rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink outline-none transition placeholder:text-line focus:border-accent"
+                  />
+                </label>
+                <button
+                  type="button"
+                  disabled={!hypothesisDraft.trim() || !falsifierDraft.trim()}
+                  onClick={() => saveCheckpoint(false)}
+                  className="mt-3 min-h-11 w-full rounded-full bg-accent px-4 py-2 text-xs font-semibold text-white transition enabled:hover:opacity-95 disabled:cursor-not-allowed disabled:bg-line disabled:text-ink-faint"
+                >
+                  {t("checkpoint.save")} →
+                </button>
+                <button
+                  type="button"
+                  onClick={() => saveCheckpoint(true)}
+                  className="mt-1 min-h-11 w-full rounded-full px-4 py-2 text-[11px] font-medium text-ink-faint transition hover:text-ink"
+                >
+                  {t("checkpoint.skip")}
+                </button>
+              </div>
+            ) : checkpointComplete ? (
+              <div className="mt-4 w-full max-w-sm space-y-3">
+                <div className="rounded-xl border border-line bg-paper-card p-3 text-left">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-semibold text-ink">
+                      {savedPreReveal?.skipped
+                        ? t("checkpoint.skipped")
+                        : t("checkpoint.saved")}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCheckpointEditing(true)}
+                      className="min-h-11 rounded-full px-2.5 py-2 text-[10px] font-medium text-accent hover:underline"
+                    >
+                      {t("checkpoint.edit")}
+                    </button>
+                  </div>
+                  {!savedPreReveal?.skipped && (
+                    <>
+                      <p className="mt-1 text-[11px] leading-snug text-ink-soft">
+                        {savedPreReveal?.hypothesis}
+                      </p>
+                      <p className="mt-1 text-[10px] leading-snug text-ink-faint">
+                        {t("checkpoint.falsifierShort")}:{" "}
+                        {savedPreReveal?.disconfirmingEvidence}
+                      </p>
+                    </>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {REVEAL_MODES.map((m) => (
+                    <ModeButton
+                      key={m}
+                      mode={m}
+                      disabled={!main || loading}
+                      onClick={() => reveal(m)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
             {revealFailed && (
               <div className="mt-4 w-full max-w-xs rounded-lg border border-tension/40 bg-tension/5 px-3 py-2 text-[12px] leading-snug text-ink">
                 ⚠︎ {t("common.aiFailed")}
