@@ -319,31 +319,66 @@ export function ConnectScreen() {
                 }}
               />
             )}
+            {/* The four resting/outcome states used to be one identical grey dashed box, so
+                "nothing happened yet", "we need something from you" and "you're done" were
+                indistinguishable. Each now carries a glyph, and the two that are not neutral
+                carry a border tone: the ask reads heavier (solid), the success reads like the
+                success it is — the same accent treatment as the group-ready panel above. */}
             {tray.length === 0 && !loading && !emptyResult && !insufficient && (
               <div className="rounded-xl border border-dashed border-line bg-paper-sunken/40 p-6 text-center text-sm text-ink-faint">
-                {t("connect.trayEmpty")}
+                <span aria-hidden>✨</span> {t("connect.trayEmpty")}
               </div>
             )}
             {failed && (
               <div className="rounded-xl border border-tension/40 bg-tension/5 p-4 text-center text-[13px] leading-snug text-ink">
-                ⚠︎ {t("common.aiFailed")}
+                <span aria-hidden>⚠︎</span> {t("common.aiFailed")}
                 <button
                   onClick={suggest}
                   className="mt-2 block w-full rounded-full border border-line py-1.5 text-[12px] font-medium text-ink-soft transition hover:text-ink"
                 >
-                  ↻ {t("common.retry")}
+                  <span aria-hidden>↻</span> {t("common.retry")}
                 </button>
               </div>
             )}
-            {insufficient && tray.length === 0 && (
-              <div className="rounded-xl border border-dashed border-line bg-paper-sunken/40 p-6 text-center text-sm leading-snug text-ink-faint">
-                {t("connect.insufficient")}
+            {/* Not gated on an empty tray: a round can come back "insufficient" while leftovers
+                from an earlier round still sit below, and gating it there made that round a
+                silent no-op — the user pressed the button and nothing on screen moved. */}
+            {insufficient && (
+              <div className="rounded-xl border border-line bg-paper-sunken/60 p-6 text-center text-sm leading-snug text-ink-soft">
+                <span aria-hidden>✎</span> {t("connect.insufficient")}
+                <button
+                  onClick={() => setStep("gather")}
+                  className="mt-2 block w-full rounded-full border border-line py-1.5 text-[12px] font-medium text-ink-soft transition hover:text-ink"
+                >
+                  {t("connect.insufficientCta")} →
+                </button>
               </div>
             )}
-            {emptyResult && tray.length === 0 && (
-              <div className="rounded-xl border border-dashed border-line bg-paper-sunken/40 p-6 text-center text-sm text-ink-faint">
-                {moreAvailable ? t("connect.none") : t("connect.allDone")}
-              </div>
+            {/* Same reason as the insufficient notice above: a round that adds no NEW proposals
+                while leftovers still sit in the tray was silent — pressed the button, nothing
+                moved. Both strings are scoped to the round, so they stay true above a tray
+                that still holds cards. */}
+            {emptyResult && (
+              moreAvailable ? (
+                <div className="rounded-xl border border-dashed border-line bg-paper-sunken/40 p-6 text-center text-sm text-ink-faint">
+                  <span aria-hidden>○</span> {t("connect.none")}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-accent/30 bg-accent-soft/40 p-6 text-center text-sm leading-snug text-ink-soft">
+                  <span aria-hidden>✓</span> {t("connect.allDone")}
+                  {/* only when the shape actually qualifies — the proceed button below is
+                      gated the same way, and a button that lands on a locked screen is worse
+                      than none. */}
+                  {canMirror && (
+                    <button
+                      onClick={() => setStep("mirror")}
+                      className="mt-2 block w-full rounded-full border border-accent/40 py-1.5 text-[12px] font-medium text-accent transition hover:bg-accent hover:text-white"
+                    >
+                      {t("mirror.reveal")} →
+                    </button>
+                  )}
+                </div>
+              )
             )}
             {tray.map((b) => (
               <BridgeCard key={b.id} bridge={b} fragA={byId(b.fragmentAId)} fragB={byId(b.fragmentBId)} />

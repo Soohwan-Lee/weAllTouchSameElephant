@@ -90,7 +90,7 @@ const dict = {
   // What the reading is NOT about. A table can assemble into two separate groups, and only
   // the biggest one is read — so say what was left out, by name, instead of implying the
   // picture covers everyone.
-  "outside.heading": { en: "Not in this picture", ko: "이 그림에 없는 것" },
+  "outside.heading": { en: "Left out of the shape", ko: "그림에 들어오지 못한 조각" },
   "outside.group": {
     en: "{n} pieces formed a second group of their own — this reading doesn't cover them.",
     ko: "{n}개 조각이 따로 두 번째 묶음을 이뤘어요 — 이 해석에는 안 들어갑니다.",
@@ -100,13 +100,23 @@ const dict = {
     ko: "{n}개 조각이 아직 아무것과도 안 이어졌어요.",
   },
   "outside.fix": { en: "Go back and link them", ko: "돌아가서 이어주기" },
-  // Whose pieces the reading passed over. Distinct from `outside.*`: those seats are not in
-  // the picture at all, these ARE in it and the reading did not draw on them. Measured, not
+  // Whose pieces the reading passed over. Distinct from `outside.*`: those pieces are not in
+  // the shape at all, these ARE in it and the reading did not lean on them. Measured, not
   // hypothetical — the reveal cites pieces from 3.0 of 5 connected seats on average.
-  "uncited.heading": { en: "Not yet cited in this reading", ko: "이 해석에 아직 인용되지 않은 자리" },
+  // Both headings are carried by "shape" and "pieces", the two words the flow already teaches;
+  // "cited"/"reading" were nouns a first-time reader had not met yet.
+  "uncited.heading": { en: "In the shape, but not used above", ko: "그림엔 있지만 위 해석이 안 쓴 조각" },
   "uncited.why": {
-    en: "The reading above doesn't draw on these seats' pieces. Worth checking whether it would change.",
-    ko: "위 해석은 이 자리의 조각을 인용하지 않았어요. 반영하면 달라질지 살펴볼 가치가 있어요.",
+    en: "These pieces are connected, but the reading above didn't lean on them. Worth seeing if it changes.",
+    ko: "이 조각들은 이어져 있는데, 위 해석은 여기에 기대지 않았어요. 넣으면 달라지는지 볼 만해요.",
+  },
+  // Re-runs the reveal at the model's own sampling temperature. Deliberately does NOT promise
+  // these pieces get included: nothing in the request can steer the model onto named pieces,
+  // and the reveal prompt explicitly forbids manufacturing seat coverage.
+  "uncited.retry": { en: "Read it again", ko: "다시 읽기" },
+  "uncited.retryHint": {
+    en: "A fresh read may land on different pieces — it can't be aimed at these ones.",
+    ko: "다시 읽으면 다른 조각에 기댈 수도 있어요 — 이 조각들을 콕 집어 넣을 수는 없어요.",
   },
 
   "scaffold.lensLabel": { en: "Answer from your seat", ko: "당신의 자리에서 답하기" },
@@ -216,24 +226,31 @@ const dict = {
   "connect.find": { en: "Suggest connections", ko: "연결 제안받기" },
   "connect.findMore": { en: "Suggest more", ko: "더 제안받기" },
   "connect.thinking": { en: "Looking for connections…", ko: "연결을 찾는 중…" },
+  // Both of these can now render ABOVE a tray that still holds proposals from an earlier
+  // round, so each is scoped to THIS round — "nothing new came back", never "there is nothing
+  // here", which the cards sitting right below would contradict.
   "connect.none": {
-    en: "No strong connections found right now. Try adding or editing a piece.",
-    ko: "지금은 뚜렷한 연결을 찾지 못했어요. 조각을 추가하거나 수정해 보세요.",
+    en: "This round didn't turn up anything new. Try adding or editing a piece.",
+    ko: "이번엔 새로 나온 게 없어요. 조각을 추가하거나 수정해 보세요.",
   },
   // Says what would help, and blames nobody. The team did not do anything wrong; there is
-  // simply not enough concrete material on the cards for a link to be quotable off them.
+  // simply not enough concrete material on the pieces for a link to be quotable off them.
   "connect.insufficient": {
-    en: "Not enough material to propose a connection yet — add concrete facts, numbers, or examples to the cards.",
-    ko: "아직 관계를 제안할 만한 재료가 부족해요 — 카드에 구체적인 사실·수치·사례를 더 담아보세요.",
+    en: "Nothing new this round — the pieces are still too general to link. Add a concrete fact, number, or example to one of them.",
+    ko: "이번 라운드에선 새로 이을 곳을 못 찾았어요 — 아직 조각들이 두루뭉술해서요. 구체적인 사실이나 수치, 사례를 하나만 더해보세요.",
   },
+  "connect.insufficientCta": { en: "Go add detail to a piece", ko: "조각에 내용 더하기" },
   "connect.allDone": {
     en: "You've looked at every pair. Nice — head to the whole picture.",
     ko: "모든 조각 쌍을 살펴봤어요. 좋아요 — 전체 그림으로 넘어가세요.",
   },
   "connect.tray": { en: "Suggested bridges", ko: "제안된 다리" },
+  // Deliberately does NOT quote the button's label: the same button reads "Suggest
+  // connections" on an empty board and "Suggest more" once links exist, so naming either one
+  // would be wrong half the time.
   "connect.trayEmpty": {
-    en: "Press “Suggest connections” to see how the AI might bridge two pieces.",
-    ko: "“연결 제안받기”를 누르면 AI가 두 조각을 어떻게 잇는지 볼 수 있어요.",
+    en: "Use the button above to see how the AI might bridge two pieces.",
+    ko: "위 버튼을 누르면 AI가 두 조각을 어떻게 잇는지 볼 수 있어요.",
   },
   "bridge.confirm": { en: "Confirm", ko: "확인" },
   "bridge.edit": { en: "Edit", ko: "수정" },
@@ -612,9 +629,9 @@ const dict = {
   // ---- trade-off (after the decision): what it commits to giving up ----
   "trade.label": { en: "What this decision gives up", ko: "이 결정이 포기하는 것" },
   "trade.checking": { en: "Reading the cost…", ko: "대가를 읽는 중…" },
-  /** whose pieces a reading was actually read off — and whose it wasn't */
+  /** whose pieces a reading was actually read off. Presence only — the two Mirror panels
+   *  below the reading are the single place absence is reported. */
   "whose.readFrom": { en: "Read from", ko: "이 읽기가 들은 자리:" },
-  "whose.notFrom": { en: "· not from", ko: "· 안 들린 자리:" },
   /** provenance tags — which blocks are the AI's proposals vs the team's own words */
   "voice.ai": { en: "AI proposes", ko: "AI 제안" },
   "voice.team": { en: "Your words", ko: "우리가 쓴 것" },

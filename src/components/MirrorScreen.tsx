@@ -508,7 +508,8 @@ export function MirrorScreen() {
                       <ul className="mt-1.5 space-y-1 text-ink-soft">
                         {otherGroups.map((g) => (
                           <li key={g.id}>
-                            ◇ {t("outside.group").replace("{n}", String(g.fragmentIds.length))}{" "}
+                            <span aria-hidden>◇</span>{" "}
+                            {t("outside.group").replace("{n}", String(g.fragmentIds.length))}{" "}
                             <span className="text-ink-faint">
                               ({g.fragmentIds.map((id) => byId(id)?.title).filter(Boolean).join(" · ")})
                             </span>
@@ -522,7 +523,8 @@ export function MirrorScreen() {
                           );
                           return loose.length ? (
                             <li>
-                              ◇ {t("outside.loose").replace("{n}", String(loose.length))}{" "}
+                              <span aria-hidden>◇</span>{" "}
+                              {t("outside.loose").replace("{n}", String(loose.length))}{" "}
                               <span className="text-ink-faint">
                                 ({loose.map((f) => f.title).join(" · ")})
                               </span>
@@ -550,12 +552,26 @@ export function MirrorScreen() {
                       <ul className="mt-1.5 space-y-1 text-ink-soft">
                         {uncitedSeats.map((u) => (
                           <li key={u.seat}>
-                            ◇ <span className="font-medium text-ink">{u.seat}</span>{" "}
+                            <span aria-hidden>◇</span>{" "}
+                            <span className="font-medium text-ink">{u.seat}</span>{" "}
                             <span className="text-ink-faint">({u.titles.join(" · ")})</span>
                           </li>
                         ))}
                       </ul>
                       <p className="mt-2 text-ink-faint">{t("uncited.why")}</p>
+                      {/* Re-reads at the model's own sampling temperature — the same forced
+                          path as "Re-reflect". It cannot be aimed at the pieces listed above:
+                          the request carries no per-piece steering, and the reveal prompt
+                          forbids manufacturing seat coverage precisely so this panel stays
+                          honest. The hint says so rather than letting the button imply it. */}
+                      <button
+                        onClick={() => reveal(mode, true)}
+                        disabled={loading}
+                        className="mt-2 font-medium text-accent underline-offset-2 hover:underline disabled:opacity-60"
+                      >
+                        <span aria-hidden>↻</span> {t("uncited.retry")}
+                      </button>
+                      <p className="mt-1 text-ink-faint">{t("uncited.retryHint")}</p>
                     </div>
                   )}
                 </section>

@@ -14,9 +14,12 @@ import { seatOf } from "@/lib/clusters";
  * their contribution survived the synthesis, and — more usefully — tells everyone NOT listed
  * that the AI's reading did not rest on theirs.
  *
- * That second half is the point. A synthesis that quietly leans on two of six voices looks
- * identical to one that integrates all six, unless the interface says which. Naming the
- * sources makes an unbalanced reading contestable instead of invisible.
+ * This row reports PRESENCE only. It used to also name the seats the reading missed, which
+ * put absence on screen three times over — here, in "Left out of the shape", and in "In the
+ * shape, but not used above" — each computed over a different scope, so the three could
+ * contradict each other within one scroll. Absence now belongs to those panels alone: they
+ * scope it correctly, name the pieces, and offer somewhere to go. Keeping the positive half
+ * here still does the social work of telling people their contribution survived.
  *
  * The ids come from the server-verified grounding trace, so a fabricated citation can never
  * put a name here — the handle has to have resolved to a real piece on this table.
@@ -48,20 +51,6 @@ export function WhoseWords({ fragmentIds }: { fragmentIds: string[] }) {
     seats.get(key)!.titles.push(f.title);
   }
 
-  // Name the seats that went UNHEARD, not just how many pieces went uncited. "5 pieces not
-  // used" is a statistic; "sales and support aren't in this" is something a team can act on —
-  // and the person in that seat can see, in one glance, that the reading did not include them.
-  const heard = new Set(
-    cited.map(label)
-  );
-  const unheard = [
-    ...new Set(
-      fragments
-        .map(label)
-        .filter((s) => s !== "—" && !heard.has(s))
-    ),
-  ];
-
   return (
     <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px]">
       <span className="text-ink-faint">{t("whose.readFrom")}</span>
@@ -74,21 +63,6 @@ export function WhoseWords({ fragmentIds }: { fragmentIds: string[] }) {
           {s.label}
         </span>
       ))}
-      {unheard.length > 0 && (
-        // The half that makes the reading contestable: an unbalanced synthesis is invisible
-        // unless the interface names who is missing from it.
-        <>
-          <span className="text-ink-faint">{t("whose.notFrom")}</span>
-          {unheard.map((s) => (
-            <span
-              key={s}
-              className="rounded-full border border-dashed border-line px-2 py-0.5 text-ink-faint"
-            >
-              {s}
-            </span>
-          ))}
-        </>
-      )}
     </div>
   );
 }
