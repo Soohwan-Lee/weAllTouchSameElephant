@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+import { parseApiRequest } from "@/lib/apiRequest";
 import { directionsPrompt, type DecisionDirection } from "@/lib/prompts";
 
 export const runtime = "nodejs";
@@ -41,7 +42,7 @@ function sampleDirections(cruxTitle: string | undefined, tensions: Pair[], lang:
 }
 
 export async function POST(req: NextRequest) {
-  let body: {
+  type Body = {
     decision?: string;
     realQuestion?: string;
     cruxTitle?: string;
@@ -50,20 +51,18 @@ export async function POST(req: NextRequest) {
     pieces?: Array<{ title: string; body: string; role?: string }>;
     spine?: string[][];
   };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad request" }, { status: 400 });
-  }
+  const parsedRequest = await parseApiRequest<Body>(req, "directions");
+  if ("response" in parsedRequest) return parsedRequest.response;
+  const body = parsedRequest.body;
   const lang = body.lang === "ko" ? "ko" : "en";
   const decision = String(body.decision ?? "").slice(0, 400);
   const realQuestion = String(body.realQuestion ?? "").slice(0, 400);
   const cruxTitle = body.cruxTitle ? String(body.cruxTitle).slice(0, 120) : undefined;
-  const tensions = Array.isArray(body.tensions) ? body.tensions.slice(0, 12) : [];
+  const tensions = Array.isArray(body.tensions) ? body.tensions.slice(0, 60) : [];
   // The pieces and the causal spine were already computed for the reveal on this same screen
   // and then dropped before this call, leaving directions to reason from headline titles.
-  const pieces = Array.isArray(body.pieces) ? body.pieces.slice(0, 20) : [];
-  const spine = Array.isArray(body.spine) ? body.spine.slice(0, 6) : [];
+  const pieces = Array.isArray(body.pieces) ? body.pieces.slice(0, 60) : [];
+  const spine = Array.isArray(body.spine) ? body.spine.slice(0, 60) : [];
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {

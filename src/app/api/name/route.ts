@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { namePrompt, type NameInput } from "@/lib/prompts";
 import type { NameResult, RevealMode } from "@/lib/types";
-import { REVEAL_MODES, stripQuestionLeadIn } from "@/lib/types";
+import { RELATION_TYPES, REVEAL_MODES, stripQuestionLeadIn } from "@/lib/types";
 import {
   buildGroundingTable,
   traceNameResult,
   type GroundingTable,
 } from "@/lib/grounding";
 import type { Bridge, Fragment } from "@/lib/types";
+import { parseApiRequest } from "@/lib/apiRequest";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -152,17 +153,65 @@ function tableFor(input: NameInput): GroundingTable | null {
 }
 
 export async function POST(req: NextRequest) {
-  let body: { input?: NameInput; lang?: "en" | "ko"; mode?: unknown };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad request" }, { status: 400 });
-  }
-  const input = body.input;
+  type Body = { input?: NameInput; lang?: "en" | "ko"; mode?: unknown };
+  const parsedRequest = await parseApiRequest<Body>(req, "name");
+  if ("response" in parsedRequest) return parsedRequest.response;
+  const body = parsedRequest.body;
+  const rawInput = body.input;
   const lang = body.lang === "ko" ? "ko" : "en";
   const mode = pickMode(body.mode);
-  if (!input || !input.fragments?.length) {
+  if (!rawInput || !Array.isArray(rawInput.fragments) || !rawInput.fragments.length) {
     return NextResponse.json({ error: "no input" }, { status: 400 });
+  }
+  const input: NameInput = {
+    decision: String(rawInput.decision ?? "").slice(0, 400),
+    fragments: rawInput.fragments.slice(0, 60).flatMap((fragment) => {
+      if (!fragment || typeof fragment !== "object") return [];
+      const title = String(fragment.title ?? "").slice(0, 120);
+      const bodyText = String(fragment.body ?? "").slice(0, 1200);
+      if (!title || !bodyText) return [];
+      return [{
+        id: fragment.id ? String(fragment.id).slice(0, 120) : undefined,
+        title,
+        body: bodyText,
+        authorRole: fragment.authorRole
+          ? String(fragment.authorRole).slice(0, 120)
+          : undefined,
+      }];
+    }),
+    bridges: (Array.isArray(rawInput.bridges) ? rawInput.bridges : [])
+      .slice(0, 120)
+      .flatMap((bridge) => {
+        if (
+          !bridge ||
+          typeof bridge !== "object" ||
+          !RELATION_TYPES.includes(bridge.relationType)
+        ) return [];
+        return [{
+          ...bridge,
+          id: bridge.id ? String(bridge.id).slice(0, 120) : undefined,
+          aId: bridge.aId ? String(bridge.aId).slice(0, 120) : undefined,
+          bId: bridge.bId ? String(bridge.bId).slice(0, 120) : undefined,
+          aTitle: String(bridge.aTitle ?? "").slice(0, 120),
+          bTitle: String(bridge.bTitle ?? "").slice(0, 120),
+          explanation: String(bridge.explanation ?? "").slice(0, 600),
+          evidenceA: String(bridge.evidenceA ?? "").slice(0, 240),
+          evidenceB: String(bridge.evidenceB ?? "").slice(0, 240),
+        }];
+      }),
+    cruxTitle: rawInput.cruxTitle
+      ? String(rawInput.cruxTitle).slice(0, 120)
+      : undefined,
+    facets: (Array.isArray(rawInput.facets) ? rawInput.facets : []).slice(0, 60),
+    spine: (Array.isArray(rawInput.spine) ? rawInput.spine : [])
+      .slice(0, 60)
+      .map((chain) =>
+        (Array.isArray(chain) ? chain : []).slice(0, 60).map((value) => String(value).slice(0, 120))
+      ),
+    wholeness: Math.min(100, Math.max(0, Number(rawInput.wholeness) || 0)),
+  };
+  if (!input.fragments.length) {
+    return NextResponse.json({ error: "no valid input" }, { status: 400 });
   }
 
   const apiKey = process.env.OPENAI_API_KEY;

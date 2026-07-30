@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { seedsPrompt, type SeedSuggestion } from "@/lib/prompts";
+import { parseApiRequest } from "@/lib/apiRequest";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -45,13 +46,11 @@ function sanitize(raw: unknown, max: number): SeedSuggestion[] {
 }
 
 export async function POST(req: NextRequest) {
-  let body: { decision?: string; lang?: "en" | "ko"; max?: number };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad request" }, { status: 400 });
-  }
-  const decision = String(body.decision ?? "").trim();
+  type Body = { decision?: string; lang?: "en" | "ko"; max?: number };
+  const parsedRequest = await parseApiRequest<Body>(req, "seeds");
+  if ("response" in parsedRequest) return parsedRequest.response;
+  const body = parsedRequest.body;
+  const decision = String(body.decision ?? "").trim().slice(0, 400);
   const lang = body.lang === "ko" ? "ko" : "en";
   const max = Math.min(6, Math.max(3, body.max ?? 5));
 

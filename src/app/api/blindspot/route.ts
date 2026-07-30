@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+import { parseApiRequest } from "@/lib/apiRequest";
 import { blindSpotPrompt, type BlindSpot } from "@/lib/prompts";
 import type { RelationType } from "@/lib/types";
 
@@ -60,25 +61,23 @@ function sampleBlindSpot(pieces: Piece[], lang: "en" | "ko", exclude: string[] =
 }
 
 export async function POST(req: NextRequest) {
-  let body: {
+  type Body = {
     decision?: string;
     pieces?: Piece[];
     lang?: "en" | "ko";
     exclude?: string[];
     links?: Array<{ a: string; b: string; relationType: RelationType; why?: string }>;
   };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad request" }, { status: 400 });
-  }
+  const parsedRequest = await parseApiRequest<Body>(req, "blindspot");
+  if ("response" in parsedRequest) return parsedRequest.response;
+  const body = parsedRequest.body;
   const lang = body.lang === "ko" ? "ko" : "en";
-  const pieces = Array.isArray(body.pieces) ? body.pieces.slice(0, 30) : [];
+  const pieces = Array.isArray(body.pieces) ? body.pieces.slice(0, 60) : [];
   const decision = String(body.decision ?? "").slice(0, 300);
-  const exclude = Array.isArray(body.exclude) ? body.exclude.map((a) => String(a)).slice(0, 12) : [];
+  const exclude = Array.isArray(body.exclude) ? body.exclude.map((a) => String(a)).slice(0, 60) : [];
   // the shape they've built so far — empty on a first pass, populated once they return from
   // Connect, which is when "what's still missing?" has the most to work with.
-  const links = Array.isArray(body.links) ? body.links.slice(0, 24) : [];
+  const links = Array.isArray(body.links) ? body.links.slice(0, 120) : [];
   if (!pieces.length) return NextResponse.json({ error: "no pieces" }, { status: 400 });
 
   const apiKey = process.env.OPENAI_API_KEY;

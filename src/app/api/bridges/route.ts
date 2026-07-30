@@ -7,6 +7,7 @@ import { seatOf } from "@/lib/clusters";
 import { filterToVerifiedEvidence } from "@/lib/evidence";
 import { contestFromBlindReading, pickContestTarget, surfaceContests } from "@/lib/contest";
 import { settledPairKey, settledPairSet } from "@/lib/settledPairs";
+import { parseApiRequest } from "@/lib/apiRequest";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -118,19 +119,34 @@ function selectForSeatCoverage(
 }
 
 export async function POST(req: NextRequest) {
-  let body: {
+  type Body = {
     fragments?: Fragment[];
     lang?: "en" | "ko";
     max?: number;
     context?: BridgeContext;
     decision?: string;
   };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad request" }, { status: 400 });
-  }
-  const fragments = body.fragments ?? [];
+  const parsedRequest = await parseApiRequest<Body>(req, "bridges");
+  if ("response" in parsedRequest) return parsedRequest.response;
+  const body = parsedRequest.body;
+  const fragments: Fragment[] = Array.isArray(body.fragments)
+    ? body.fragments.slice(0, 60).flatMap((raw) => {
+        if (!raw || typeof raw !== "object") return [];
+        const fragment = raw as Fragment;
+        const id = String(fragment.id ?? "").slice(0, 120);
+        const title = String(fragment.title ?? "").slice(0, 120);
+        const bodyText = String(fragment.body ?? "").slice(0, 1200);
+        if (!id || !title || !bodyText) return [];
+        return [{
+          ...fragment,
+          id,
+          title,
+          body: bodyText,
+          authorName: String(fragment.authorName ?? "").slice(0, 120),
+          authorRole: String(fragment.authorRole ?? "").slice(0, 120),
+        }];
+      })
+    : [];
   const lang = body.lang === "ko" ? "ko" : "en";
   const max = Math.min(6, Math.max(1, body.max ?? 3));
   const decision = String(body.decision ?? "").slice(0, 400);

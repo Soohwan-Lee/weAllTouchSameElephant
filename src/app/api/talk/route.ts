@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { talkQuestionsPrompt, talkExtractPrompt, type CardCandidate } from "@/lib/prompts";
+import { parseApiRequest } from "@/lib/apiRequest";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -66,15 +67,13 @@ function sanitizeCards(raw: unknown): CardCandidate[] {
 }
 
 export async function POST(req: NextRequest) {
-  let body: { action?: "questions" | "extract"; decision?: string; answer?: string; lang?: "en" | "ko" };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad request" }, { status: 400 });
-  }
+  type Body = { action?: "questions" | "extract"; decision?: string; answer?: string; lang?: "en" | "ko" };
+  const parsedRequest = await parseApiRequest<Body>(req, "talk");
+  if ("response" in parsedRequest) return parsedRequest.response;
+  const body = parsedRequest.body;
   const action = body.action === "extract" ? "extract" : "questions";
-  const decision = String(body.decision ?? "").trim();
-  const answer = String(body.answer ?? "").trim();
+  const decision = String(body.decision ?? "").trim().slice(0, 400);
+  const answer = String(body.answer ?? "").trim().slice(0, 4000);
   const lang = body.lang === "ko" ? "ko" : "en";
   const apiKey = process.env.OPENAI_API_KEY;
 

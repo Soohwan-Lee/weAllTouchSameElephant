@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+import { parseApiRequest } from "@/lib/apiRequest";
 import { tradeOffPrompt, type TradeOff } from "@/lib/prompts";
 
 export const runtime = "nodejs";
@@ -155,21 +156,19 @@ function sampleTradeOff(
 }
 
 export async function POST(req: NextRequest) {
-  let body: {
+  type Body = {
     decision?: string;
     tensions?: Pair[];
     separations?: Pair[];
     lang?: "en" | "ko";
   };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad request" }, { status: 400 });
-  }
+  const parsedRequest = await parseApiRequest<Body>(req, "tradeoff");
+  if ("response" in parsedRequest) return parsedRequest.response;
+  const body = parsedRequest.body;
   const lang = body.lang === "ko" ? "ko" : "en";
   const decision = String(body.decision ?? "").slice(0, 400);
-  const tensions = Array.isArray(body.tensions) ? body.tensions.slice(0, 12) : [];
-  const separations = Array.isArray(body.separations) ? body.separations.slice(0, 12) : [];
+  const tensions = Array.isArray(body.tensions) ? body.tensions.slice(0, 60) : [];
+  const separations = Array.isArray(body.separations) ? body.separations.slice(0, 60) : [];
   if (!decision.trim()) return NextResponse.json({ error: "no decision" }, { status: 400 });
 
   const apiKey = process.env.OPENAI_API_KEY;
