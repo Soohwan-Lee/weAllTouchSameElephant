@@ -75,6 +75,8 @@ export interface Fragment {
   authorRole: string;
   title: string;
   body: string;
+  /** language of the authored card at creation; later edit events carry their own language */
+  createdLang?: "en" | "ko";
   /** canvas position (0..1 normalized so it scales with the board) */
   x: number;
   y: number;
@@ -117,8 +119,12 @@ export interface Bridge {
  * (name/question) or overrode it. None of this was recoverable before; rejections were deleted.
  */
 export type SessionEvent =
-  | { id: string; seq: number; t: number; actorId?: string; type: "fragment_added"; fragmentId: string; source: "write" | "seed" | "talk" }
-  | { id: string; seq: number; t: number; actorId?: string; type: "bridge_proposed"; pairKey: string; relationType: RelationType }
+  | { id: string; seq: number; t: number; actorId?: string; type: "participant_added"; participant: Participant }
+  | { id: string; seq: number; t: number; actorId?: string; type: "participant_removed"; participant: Participant }
+  | { id: string; seq: number; t: number; actorId?: string; type: "fragment_added"; fragmentId: string; fragment: Fragment; source: "write" | "seed" | "talk"; lang: "en" | "ko" }
+  | { id: string; seq: number; t: number; actorId?: string; type: "fragment_edited"; fragmentId: string; before: Pick<Fragment, "title" | "body">; after: Pick<Fragment, "title" | "body">; lang: "en" | "ko" }
+  | { id: string; seq: number; t: number; actorId?: string; type: "fragment_removed"; fragment: Fragment; removedBridgeIds: string[]; removedTrayIds: string[]; removedRejectedPairKeys: string[] }
+  | { id: string; seq: number; t: number; actorId?: string; type: "bridge_proposed"; bridge: Bridge; pairKey: string; relationType: RelationType }
   // Keeping a connection but REWRITING what it means is the finest-grained boundary work
   // there is, so the AI's original text and type are preserved beside the human's final
   // version — `edited` alone couldn't tell a substantive rewrite from a no-op re-save.
@@ -129,7 +135,7 @@ export type SessionEvent =
   | { id: string; seq: number; t: number; actorId?: string; bridgeId: string; type: "manual_bridge_added"; pairKey: string; relationType: RelationType; explanation: string; wasRedundant: boolean }
   // reversals are boundary work too — a team that confirms a link and then takes it back
   // has negotiated something. Logged as its own event rather than erasing the original.
-  | { id: string; seq: number; t: number; actorId?: string; type: "bridge_unconfirmed"; pairKey: string; relationType: RelationType }
+  | { id: string; seq: number; t: number; actorId?: string; bridgeId: string; type: "bridge_unconfirmed"; pairKey: string; relationType: RelationType }
   | { id: string; seq: number; t: number; actorId?: string; type: "rejection_undone"; pairKey: string }
   | { id: string; seq: number; t: number; actorId?: string; type: "reveal_mode_chosen"; mode: RevealMode }
   | { id: string; seq: number; t: number; actorId?: string; type: "name_accepted"; aiOriginal: string; humanFinal: string; changed: boolean }

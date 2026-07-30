@@ -68,6 +68,9 @@ const dict = {
     ko: "아직 조각이 없어요. 첫 조각을 추가하거나 위에서 샘플을 불러오세요.",
   },
   "gather.remove": { en: "Remove", ko: "삭제" },
+  "gather.edit": { en: "Edit", ko: "수정" },
+  "gather.save": { en: "Save", ko: "저장" },
+  "gather.cancel": { en: "Cancel", ko: "취소" },
   "gather.removeWarn": {
     en: "This piece has {n} confirmed connection(s). Removing it deletes them too. Continue?",
     ko: "이 조각에는 확정된 연결이 {n}개 있어요. 삭제하면 그 연결도 함께 사라집니다. 계속할까요?",

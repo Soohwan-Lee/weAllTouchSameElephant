@@ -1011,12 +1011,16 @@ function NextStep({
   // fired on blur — so someone who typed their next move and closed the tab left no trace
   // in the log. Commit on the way out too. (Idempotent: the log tolerates a repeat.)
   const committed = useRef("");
+  const latestValue = useRef(value);
+  const commitRef = useRef(onCommit);
+  latestValue.current = value;
+  commitRef.current = onCommit;
   useEffect(() => {
     const flush = () => {
-      const v = value.trim();
+      const v = latestValue.current.trim();
       if (v && v !== committed.current) {
         committed.current = v;
-        onCommit(v);
+        commitRef.current(v);
       }
     };
     window.addEventListener("pagehide", flush);
@@ -1024,7 +1028,7 @@ function NextStep({
       window.removeEventListener("pagehide", flush);
       flush();
     };
-  }, [value, onCommit]);
+  }, []);
 
   return (
     // The culminating action. Before a decision exists it's the ONE thing left to do, so it

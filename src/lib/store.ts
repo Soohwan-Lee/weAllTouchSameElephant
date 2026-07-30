@@ -108,7 +108,7 @@ export type EventPayload = DistributiveOmit<SessionEvent, "id" | "seq" | "t" | "
 
 /** A full session snapshot for research analysis / handoff. */
 export interface SessionExport {
-  version: 2;
+  version: 3;
   /** stable per-run id — without it, exports from different teams can't be told apart
    *  or joined, and two sessions on one scenario used to overwrite each other's file. */
   sessionId: string;
@@ -122,7 +122,10 @@ export interface SessionExport {
   scenarioId: string | null;
   decisionPrompt: string;
   participants: Participant[];
+  removedParticipants: Participant[];
   fragments: Fragment[];
+  /** AI proposals still awaiting a human answer when the export was made */
+  tray: Bridge[];
   bridges: Bridge[];
   rejectedPairKeys: string[];
   /** how the team answered each second look the AI raised on their own confirmed links */
@@ -131,6 +134,10 @@ export interface SessionExport {
   clusterQuestions: Record<string, string>;
   clusterDecisions: Record<string, string>;
   events: SessionEvent[];
+  step: Step;
+  activeParticipantId: string | null;
+  assembled: boolean;
+  revealView: "assembly" | "crux";
 }
 
 function uid(prefix: string): string {
@@ -183,6 +190,8 @@ interface SessionState {
   decisionPrompt: string;
   /** people at the table. Locally-modeled multi-person (no backend yet). */
   participants: Participant[];
+  /** people removed from the live roster, retained for referentially complete exports */
+  removedParticipants: Participant[];
   /** whose turn it is to add/act — stamps authorId/actorId on their actions. */
   activeParticipantId: string | null;
   /** append-only boundary-work event log (the research payload). */
@@ -232,6 +241,7 @@ interface SessionState {
   reset: () => void;
 
   addFragment: (f: Omit<Fragment, "id" | "x" | "y">, source?: "write" | "seed" | "talk") => void;
+  updateFragment: (id: string, patch: Pick<Fragment, "title" | "body">) => void;
   removeFragment: (id: string) => void;
   moveFragment: (id: string, x: number, y: number) => void;
 
@@ -336,6 +346,7 @@ export const useSession = create<SessionState>()(
   scenarioId: null,
   decisionPrompt: "",
   participants: [],
+  removedParticipants: [],
   activeParticipantId: null,
   events: [],
   lang: "en",
@@ -363,6 +374,11 @@ export const useSession = create<SessionState>()(
       const p: Participant = { id, name: name.trim() || "—", role: role.trim() || "—", color };
       return {
         participants: [...s.participants, p],
+        events: [
+          ...s.events,
+          { ...eventMeta(s), type: "participant_added" as const, participant: p },
+        ],
+        eventSeq: s.eventSeq + 1,
         // first person added becomes the active actor
         activeParticipantId: s.activeParticipantId ?? id,
       };
@@ -371,10 +387,21 @@ export const useSession = create<SessionState>()(
   },
   removeParticipant: (id) =>
     set((s) => {
+      const removed = s.participants.find((p) => p.id === id);
+      if (!removed) return {};
       const participants = s.participants.filter((p) => p.id !== id);
       const activeParticipantId =
         s.activeParticipantId === id ? participants[0]?.id ?? null : s.activeParticipantId;
-      return { participants, activeParticipantId };
+      return {
+        participants,
+        removedParticipants: [...s.removedParticipants, removed],
+        activeParticipantId,
+        events: [
+          ...s.events,
+          { ...eventMeta(s), type: "participant_removed" as const, participant: removed },
+        ],
+        eventSeq: s.eventSeq + 1,
+      };
     }),
   setActiveParticipant: (activeParticipantId) => set({ activeParticipantId }),
 
@@ -392,7 +419,7 @@ export const useSession = create<SessionState>()(
       s = { ...s, ...identity };
     }
     return {
-      version: 2 as const,
+      version: 3 as const,
       sessionId: s.sessionId,
       startedAt: s.startedAt,
       exportedAt: typeof Date !== "undefined" ? Date.now() : 0,
@@ -401,7 +428,9 @@ export const useSession = create<SessionState>()(
       scenarioId: s.scenarioId,
       decisionPrompt: s.decisionPrompt,
       participants: s.participants,
+      removedParticipants: s.removedParticipants,
       fragments: s.fragments,
+      tray: s.tray,
       bridges: s.bridges,
       rejectedPairKeys: [...s.rejectedPairKeys],
       contests: s.contests,
@@ -409,6 +438,10 @@ export const useSession = create<SessionState>()(
       clusterQuestions: s.clusterQuestions,
       clusterDecisions: s.clusterDecisions,
       events: s.events,
+      step: s.step,
+      activeParticipantId: s.activeParticipantId,
+      assembled: s.assembled,
+      revealView: s.revealView,
     };
   },
   setClusterName: (clusterId, name) =>
@@ -441,6 +474,7 @@ export const useSession = create<SessionState>()(
       authorRole: f.authorRole[lang],
       title: f.title[lang],
       body: f.body[lang],
+      createdLang: lang,
       x: f.x,
       y: f.y,
     }));
@@ -451,6 +485,7 @@ export const useSession = create<SessionState>()(
       decisionPrompt: sc.title[lang],
       pendingAngle: null,
       participants,
+      removedParticipants: [],
       activeParticipantId: participants[0]?.id ?? null,
       events: [],
       fragments,
@@ -553,6 +588,7 @@ export const useSession = create<SessionState>()(
       decisionPrompt: "",
       pendingAngle: null,
       participants: [],
+      removedParticipants: [],
       activeParticipantId: null,
       events: [],
       fragments: [],
@@ -584,37 +620,86 @@ export const useSession = create<SessionState>()(
       const authorName = active ? active.name : f.authorName;
       const authorRole = active ? active.role : f.authorRole;
       const fragId = uid("frag");
+      const fragment: Fragment = {
+        ...f,
+        authorId,
+        authorName,
+        authorRole,
+        createdLang: s.lang,
+        id: fragId,
+        x: Math.min(0.9, Math.max(0.1, x)),
+        y: Math.min(0.9, Math.max(0.12, y)),
+      };
       const evt: SessionEvent = {
         ...eventMeta(s),
         type: "fragment_added",
         fragmentId: fragId,
+        fragment,
         source,
+        lang: s.lang,
       };
       return {
-        fragments: [
-          ...s.fragments,
-          {
-            ...f,
-            authorId,
-            authorName,
-            authorRole,
-            id: fragId,
-            x: Math.min(0.9, Math.max(0.1, x)),
-            y: Math.min(0.9, Math.max(0.12, y)),
-          },
-        ],
+        fragments: [...s.fragments, fragment],
         events: [...s.events, evt],
         eventSeq: s.eventSeq + 1,
       };
     });
   },
 
+  updateFragment: (id, patch) =>
+    set((s) => {
+      const current = s.fragments.find((f) => f.id === id);
+      if (!current) return {};
+      const title = patch.title.trim();
+      const body = patch.body.trim();
+      if (!title || !body || (title === current.title && body === current.body)) return {};
+      const evt: SessionEvent = {
+        ...eventMeta(s),
+        type: "fragment_edited",
+        fragmentId: id,
+        before: { title: current.title, body: current.body },
+        after: { title, body },
+        lang: s.lang,
+      };
+      return {
+        fragments: s.fragments.map((f) => (f.id === id ? { ...f, title, body } : f)),
+        events: [...s.events, evt],
+        eventSeq: s.eventSeq + 1,
+      };
+    }),
+
   removeFragment: (id) =>
-    set((s) => ({
-      fragments: s.fragments.filter((f) => f.id !== id),
-      bridges: s.bridges.filter((b) => b.fragmentAId !== id && b.fragmentBId !== id),
-      tray: s.tray.filter((b) => b.fragmentAId !== id && b.fragmentBId !== id),
-    })),
+    set((s) => {
+      const fragment = s.fragments.find((f) => f.id === id);
+      if (!fragment) return {};
+      const removedBridges = s.bridges.filter(
+        (b) => b.fragmentAId === id || b.fragmentBId === id
+      );
+      const removedTray = s.tray.filter(
+        (b) => b.fragmentAId === id || b.fragmentBId === id
+      );
+      const removedRejectedPairKeys = [...s.rejectedPairKeys].filter((key) =>
+        key.split("::").includes(id)
+      );
+      const rejectedPairKeys = new Set(s.rejectedPairKeys);
+      removedRejectedPairKeys.forEach((key) => rejectedPairKeys.delete(key));
+      const evt: SessionEvent = {
+        ...eventMeta(s),
+        type: "fragment_removed",
+        fragment,
+        removedBridgeIds: removedBridges.map((b) => b.id),
+        removedTrayIds: removedTray.map((b) => b.id),
+        removedRejectedPairKeys,
+      };
+      return {
+        fragments: s.fragments.filter((f) => f.id !== id),
+        bridges: s.bridges.filter((b) => b.fragmentAId !== id && b.fragmentBId !== id),
+        tray: s.tray.filter((b) => b.fragmentAId !== id && b.fragmentBId !== id),
+        rejectedPairKeys,
+        events: [...s.events, evt],
+        eventSeq: s.eventSeq + 1,
+      };
+    }),
 
   moveFragment: (id, x, y) =>
     set((s) => ({
@@ -657,6 +742,7 @@ export const useSession = create<SessionState>()(
             (b, i): SessionEvent => ({
               ...eventMeta(s, i),
               type: "bridge_proposed",
+              bridge: b,
               pairKey: pairKey(b.fragmentAId, b.fragmentBId),
               relationType: b.relationType,
             })
@@ -746,6 +832,7 @@ export const useSession = create<SessionState>()(
       if (!b) return {};
       const evt: SessionEvent = {
         ...eventMeta(s),
+        bridgeId: b.id,
         type: "bridge_unconfirmed",
         pairKey: pairKey(b.fragmentAId, b.fragmentBId),
         relationType: b.relationType,
@@ -824,6 +911,9 @@ export const useSession = create<SessionState>()(
         return {
           ...current,
           ...saved,
+          // Export v3 added the archive after persistence v3 shipped. Old local snapshots
+          // therefore need an empty value instead of rehydrating `undefined`.
+          removedParticipants: saved.removedParticipants ?? [],
           rejectedPairKeys:
             saved.rejectedPairKeys instanceof Set
               ? saved.rejectedPairKeys
