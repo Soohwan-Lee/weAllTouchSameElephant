@@ -14,10 +14,18 @@
 //     person completes in their own words.
 
 import type { TKey } from "./i18n";
+import type { FragmentKind } from "./types";
 
-export type PieceType = "symptom" | "worry" | "dependency" | "outcome";
+export type PieceType = FragmentKind;
 
-export const PIECE_TYPES: PieceType[] = ["symptom", "worry", "dependency", "outcome"];
+export const PIECE_TYPES: PieceType[] = [
+  "evidence",
+  "symptom",
+  "worry",
+  "dependency",
+  "outcome",
+  "assumption",
+];
 
 export interface PieceTypeMeta {
   emoji: string;
@@ -31,6 +39,19 @@ export interface PieceTypeMeta {
 }
 
 export const PIECE_TYPE_META: Record<PieceType, PieceTypeMeta> = {
+  evidence: {
+    emoji: "◉",
+    labelKey: "ptype.evidence",
+    prompt: {
+      en: "What did you directly see, hear, count, or experience that others may not know?",
+      ko: "다른 사람은 모를 수 있지만, 당신이 직접 보거나 듣거나 세어본 것은 무엇인가요?",
+    },
+    frame: {
+      en: "In ___, I saw ___; the concrete sign was ___.",
+      ko: "___에서 ___를 직접 봤고, 구체적인 징후는 ___였어요.",
+    },
+    titleHint: { en: "e.g. Four renewals stalled this week", ko: "예: 이번 주 갱신 4건이 멈춤" },
+  },
   symptom: {
     emoji: "🩹",
     labelKey: "ptype.symptom",
@@ -82,6 +103,19 @@ export const PIECE_TYPE_META: Record<PieceType, PieceTypeMeta> = {
       ko: "___가 계속되면, ___가 따라올 거예요.",
     },
     titleHint: { en: "e.g. Churn is creeping up", ko: "예: 이탈이 늘고 있음" },
+  },
+  assumption: {
+    emoji: "?",
+    labelKey: "ptype.assumption",
+    prompt: {
+      en: "What is the team treating as true that your seat has reason to doubt?",
+      ko: "팀은 당연하다고 여기지만, 당신 자리에서는 의심할 이유가 있는 전제는 무엇인가요?",
+    },
+    frame: {
+      en: "We are acting as if ___, but ___ makes me unsure.",
+      ko: "우리는 ___라고 전제하지만, ___ 때문에 확신하기 어려워요.",
+    },
+    titleHint: { en: "e.g. Customers will wait for the fix", ko: "예: 고객은 수정될 때까지 기다릴 것" },
   },
 };
 

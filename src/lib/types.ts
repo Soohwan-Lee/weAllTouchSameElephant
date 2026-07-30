@@ -39,6 +39,22 @@ export const RELATION_TYPES: RelationType[] = [
   "separate",
 ];
 
+/**
+ * What epistemic job a card is doing before the team starts connecting it.
+ *
+ * `evidence` and `assumption` are deliberately distinct: hidden information is easiest to
+ * lose when a directly observed signal and the explanation someone placed on it arrive as
+ * one confident sentence. Keeping the tag on the fragment lets the UI prompt for both and
+ * lets a later study ask what kind of material actually reached the final picture.
+ */
+export type FragmentKind =
+  | "evidence"
+  | "symptom"
+  | "worry"
+  | "dependency"
+  | "outcome"
+  | "assumption";
+
 /** A person at the table. Locally-modeled multi-person now; the seam a future
  *  "each participant connects from their own device" build attaches to. */
 /** A "side of the elephant" handed to the naming prompt — the shape the team built. */
@@ -73,6 +89,8 @@ export interface Fragment {
   authorId?: string;
   authorName: string;
   authorRole: string;
+  /** optional for legacy/scenario cards; authored cards record the scaffold the person used */
+  kind?: FragmentKind;
   title: string;
   body: string;
   /** language of the authored card at creation; later edit events carry their own language */

@@ -47,8 +47,8 @@ const dict = {
   // ---- fragment gathering ----
   "gather.heading": { en: "Add the pieces you each see", ko: "각자 본 조각을 더하세요" },
   "gather.hint": {
-    en: "A piece is one short thought — a symptom, a concern, a dependency, or an expected consequence. One or two sentences. The more angles you add, the clearer the crux becomes.",
-    ko: "조각은 하나의 짧은 생각이에요 — 증상, 우려, 의존 관계, 예상되는 결과 등. 한두 문장이면 됩니다. 다양한 각도를 더할수록 핵심이 또렷해져요.",
+    en: "Start with what each seat knows before explaining it together. One card is one observation, concern, dependency, consequence, or assumption — in your own words.",
+    ko: "함께 설명하기 전에 각 자리만 아는 것부터 꺼내세요. 카드 하나에는 관찰, 우려, 의존 관계, 결과, 전제 중 하나를 자기 말로 적습니다.",
   },
   "gather.author": { en: "Your name", ko: "이름" },
   "gather.role": { en: "Your seat", ko: "당신의 자리" },
@@ -81,10 +81,23 @@ const dict = {
   },
 
   // ---- input scaffolding (kill the blank-card bottleneck) ----
+  "ptype.evidence": { en: "Something I observed", ko: "직접 본 근거" },
   "ptype.symptom": { en: "A symptom", ko: "증상" },
   "ptype.worry": { en: "A worry", ko: "우려" },
   "ptype.dependency": { en: "A dependency", ko: "의존 관계" },
   "ptype.outcome": { en: "An outcome", ko: "예상 결과" },
+  "ptype.assumption": { en: "An assumption to question", ko: "의심할 전제" },
+  "round.heading": { en: "First round · collect before you explain", ko: "첫 라운드 · 설명하기 전에 모으기" },
+  "round.hint": {
+    en: "Take one quiet turn each. Add one concrete thing only your seat may know; hold solutions and debate until every seat has a card.",
+    ko: "한 사람씩 조용히 돌아가며, 자기 자리만 알 수 있는 구체적인 사실을 하나씩 적으세요. 모두 한 장을 놓을 때까지 해결책과 토론은 잠시 미룹니다.",
+  },
+  "round.ready": {
+    en: "Every seat has put something on the table. Add more if it is genuinely different, then connect.",
+    ko: "모든 자리가 조각을 하나 이상 놓았습니다. 정말 다른 정보가 더 있다면 추가한 뒤 연결하세요.",
+  },
+  "round.missing": { en: "Still waiting for a first piece", ko: "아직 첫 조각이 없는 자리" },
+  "round.addEvidence": { en: "Add what this seat observed", ko: "이 자리에서 본 근거 적기" },
   "scaffold.typeHeading": { en: "What kind of piece is this?", ko: "이건 어떤 종류의 조각인가요?" },
   "scaffold.typeHint": {
     en: "Pick a kind and we'll hand you a starter to fill in — in your own words.",

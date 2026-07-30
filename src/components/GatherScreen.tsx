@@ -42,6 +42,7 @@ export function GatherScreen() {
   const setDecisionPrompt = useSession((s) => s.setDecisionPrompt);
   const scenarioId = useSession((s) => s.scenarioId);
   const participants = useSession((s) => s.participants);
+  const setActiveParticipant = useSession((s) => s.setActiveParticipant);
 
   // entry mode: write directly (know what to say) / seeds (pick angles) / talk (figure out)
   // Default to TALK on an empty table. The blank card is the hardest thing in the whole
@@ -161,6 +162,29 @@ export function GatherScreen() {
     if (!body.trim()) setBody(starterFrame(tp, lang));
   };
 
+  const contributionCount = new Map(
+    participants.map((participant) => [
+      participant.id,
+      fragments.filter((fragment) => fragment.authorId === participant.id).length,
+    ])
+  );
+  const missingContributors = participants.filter(
+    (participant) => (contributionCount.get(participant.id) ?? 0) === 0
+  );
+  const startEvidenceTurn = (participantId: string) => {
+    setActiveParticipant(participantId);
+    setEntryMode("write");
+    setHelpOpen(true);
+    setPieceType("evidence");
+    setBody(starterFrame("evidence", lang));
+    setSeededFromAngle(null);
+    requestAnimationFrame(() => {
+      document
+        .getElementById("watse-write-form")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  };
+
   // require the person to have actually filled the frame — an unedited "___" skeleton
   // is a template, not their perspective, and must not land on the board.
   const canAdd = title.trim().length > 0 && body.trim().length > 0 && !body.includes("___");
@@ -185,6 +209,7 @@ export function GatherScreen() {
       {
         authorName: authorName.trim() || "—",
         authorRole: authorRole.trim() || "—",
+        kind: pieceType ?? undefined,
         title: title.trim(),
         body: body.trim(),
       },
@@ -215,6 +240,67 @@ export function GatherScreen() {
       <div className="mt-5">
         <ParticipantBar />
       </div>
+
+      {/* Hidden-profile work fails upstream when shared, already-popular information gets
+          repeated before each seat's unique information is sampled. Make the first round a
+          quiet collection turn and show whose material is still absent. It stays a nudge,
+          not a gate: a participant may genuinely have nothing to add. */}
+      {participants.length > 1 && (
+        <section
+          className={[
+            "mt-4 rounded-xl2 border p-4",
+            missingContributors.length
+              ? "border-accent/25 bg-accent-soft/20"
+              : "border-line bg-paper-sunken/40",
+          ].join(" ")}
+          aria-labelledby="watse-first-round-heading"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h3 id="watse-first-round-heading" className="text-[12px] font-semibold text-ink">
+                {t("round.heading")}
+              </h3>
+              <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-ink-faint">
+                {t(missingContributors.length ? "round.hint" : "round.ready")}
+              </p>
+            </div>
+            {missingContributors.length > 0 && (
+              <span className="rounded-full border border-accent/25 bg-paper px-2.5 py-1 text-[10px] font-medium text-accent">
+                {missingContributors.length} · {t("round.missing")}
+              </span>
+            )}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {participants.map((participant) => {
+              const count = contributionCount.get(participant.id) ?? 0;
+              return (
+                <button
+                  key={participant.id}
+                  type="button"
+                  onClick={() => startEvidenceTurn(participant.id)}
+                  title={t("round.addEvidence")}
+                  className={[
+                    "flex min-h-11 items-center gap-2 rounded-full border px-3 py-2 text-left text-[11px] transition",
+                    count
+                      ? "border-line bg-paper text-ink-soft hover:border-accent/40"
+                      : "border-dashed border-accent/40 bg-paper-card text-ink hover:border-accent",
+                  ].join(" ")}
+                >
+                  <span
+                    className="h-2.5 w-2.5 rounded-full ring-1 ring-black/10"
+                    style={{ backgroundColor: participant.color }}
+                    aria-hidden
+                  />
+                  <span className="font-medium">{participant.name}</span>
+                  <span className={count ? "text-accent" : "text-ink-faint"}>
+                    {count ? `✓ ${count}` : "+"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ---- decision anchor: the one question the pieces are views on ---- */}
       <div className="mt-5 animate-fade-up rounded-xl2 border border-line bg-paper-sunken/40 p-4">
@@ -502,7 +588,12 @@ export function GatherScreen() {
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-ink">{f.title}</div>
                         <div className="mt-1 text-sm leading-relaxed text-ink-soft">{f.body}</div>
-                        <div className="mt-2 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-faint">
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-faint">
+                          {f.kind && (
+                            <span className="rounded-full border border-line bg-paper-sunken/50 px-2 py-0.5 normal-case tracking-normal text-ink-soft">
+                              {PIECE_TYPE_META[f.kind].emoji} {t(PIECE_TYPE_META[f.kind].labelKey)}
+                            </span>
+                          )}
                           {(() => {
                             const color = participants.find((p) => p.id === f.authorId)?.color;
                             return color ? (
