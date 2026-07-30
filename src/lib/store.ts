@@ -144,7 +144,9 @@ export interface SessionExport {
 }
 
 function uid(prefix: string): string {
-  // deterministic-ish unique id without external deps
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `${prefix}_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
+  }
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}${(idCounter++).toString(36)}`;
 }
 let idCounter = 0;
