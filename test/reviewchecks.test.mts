@@ -8,8 +8,26 @@
  * same questions out, every time, with no model and no randomness anywhere in the path.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { fillCheck, reviewChecksFor } from "../src/lib/reviewChecks.ts";
 import { RELATION_TYPES, type Bridge, type Fragment } from "../src/lib/types.ts";
+
+/**
+ * The real EN/KO strings, read out of the source.
+ *
+ * `dict` is deliberately not exported — it is an implementation detail of the provider, and
+ * widening its visibility just so a test can see it would be the test dictating production
+ * shape. i18n.tsx is also a "use client" React module, so importing it here would drag the
+ * provider into a plain node run. Parsing the literal keeps both sides honest: this asserts on
+ * the exact bytes that ship, and it fails loudly if the dict's shape ever changes.
+ */
+const dict: Record<string, { en: string; ko: string }> = (() => {
+  const src = readFileSync(new URL("../src/lib/i18n.tsx", import.meta.url), "utf8");
+  const open = src.indexOf("const dict = {");
+  const close = src.indexOf("} as const;", open);
+  assert.ok(open >= 0 && close > open, "could not locate the dict literal in i18n.tsx");
+  return eval(`(${src.slice(open + "const dict = ".length, close + 1)})`);
+})();
 
 const F = (id: string, seat: string, title = id): Fragment =>
   ({ id, title, body: id, authorName: seat, authorRole: seat, x: 0, y: 0 });
@@ -134,9 +152,42 @@ check("a missing endpoint never invents a seat and never quotes a card that isn'
       assert.ok(out.length >= 2 && out.length <= 3, `got ${out.length}`);
       assert.ok(!out.some((c) => c.key.startsWith("review.seat.")), "no seat named out of nothing");
       assert.ok(!out.some((c) => c.key === "review.alt.confound"), "confounder steps aside");
-      for (const c of out) {
-        for (const v of Object.values(c.vars ?? {})) {
-          assert.notEqual(v, "?", `${c.key} quoted a missing card`);
+    }
+  }
+});
+
+/**
+ * THE RENDERED STRING, in both languages — the assertion that would have caught this class of
+ * bug the first time.
+ *
+ * Every other test here inspects `vars`, and that is precisely how a placeholder reached the
+ * screen once already: the vars looked structurally fine (`{a: "queue backs up", b: "?"}`) while
+ * the sentence they produced quoted a card that does not exist. Korean was worse, since a
+ * particle attaches to the placeholder (`"?"와`). So this walks the REAL dictionary and asserts
+ * on the final text a person would read.
+ */
+check("no rendered check ever shows a bare ? or an unsubstituted placeholder", () => {
+  const missing: Array<[Fragment | undefined, Fragment | undefined]> = [
+    [a, undefined],
+    [undefined, b],
+    [undefined, undefined],
+    [F("a", "rae", "   "), b], // present object, blank title — same hazard, different route
+  ];
+  for (const relationType of RELATION_TYPES) {
+    for (const [x, y] of [...missing, [a, b] as const]) {
+      for (const id of ["b1", "b2", "b3", "b4"]) {
+        for (const lang of ["en", "ko"] as const) {
+          for (const c of reviewChecksFor(B({ id, relationType }), x, y)) {
+            const text = fillCheck(dict[c.key][lang], c.vars);
+            // a trailing "?" is what these sentences ARE; what must never appear is a "?" sitting
+            // where a card title belongs — i.e. one that is quoted, or has a particle attached
+            assert.ok(
+              !/[“"']\s*\?\s*[”"']/.test(text),
+              `${c.key}/${lang} quoted a missing card: ${text}`
+            );
+            assert.ok(!/\{\w+\}/.test(text), `${c.key}/${lang} left a placeholder: ${text}`);
+            assert.ok(!text.includes("undefined"), `${c.key}/${lang} leaked undefined: ${text}`);
+          }
         }
       }
     }
