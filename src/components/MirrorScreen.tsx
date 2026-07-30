@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { useSession, scenarioRevealToResult, bridgeEditsFrom } from "@/lib/store";
 import { getScenario } from "@/lib/scenarios";
 import { fetchName } from "@/lib/api";
-import { findClusters, seatCitation } from "@/lib/clusters";
+import { findRevealClusters, seatCitation, selectedRevealCluster } from "@/lib/clusters";
 import { computeSynthesis } from "@/lib/synthesis";
 import type { FacetSummary } from "@/lib/prompts";
 import type { NameResult, RelationType, RevealMode } from "@/lib/types";
@@ -44,6 +44,9 @@ export function MirrorScreen() {
   const setClusterQuestion = useSession((s) => s.setClusterQuestion);
   const clusterDecisions = useSession((s) => s.clusterDecisions);
   const setClusterDecision = useSession((s) => s.setClusterDecision);
+  const activeClusterId = useSession((s) => s.activeClusterId);
+  const setActiveCluster = useSession((s) => s.setActiveCluster);
+  const migrateClusterAnnotations = useSession((s) => s.migrateClusterAnnotations);
 
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<RevealMode>("explore");
@@ -72,23 +75,38 @@ export function MirrorScreen() {
   const setStep = useSession((s) => s.setStep);
   const events = useSession((s) => s.events);
   const bridgeHistory = useMemo(() => bridgeEditsFrom(events), [events]);
-  const clusters = findClusters(fragments, bridges, 3);
-  const main = clusters[0];
+  const clusters = findRevealClusters(fragments, bridges, 3);
+  const main = selectedRevealCluster(clusters, activeClusterId);
   const byId = (id: string) => fragments.find((f) => f.id === id);
 
-  // WHAT THIS READING IS NOT ABOUT.
-  //
-  // Everything below reads `clusters[0]`. A table can assemble into two genuine elephants —
-  // four pieces on cost, three on hiring, both fully wired — and only the larger one reaches
-  // the model, the spine, or the screen. Worse, wholeness is computed INSIDE that cluster,
-  // so the second group's people are invisible while the number reads 100%. Verified by
-  // execution: 3 pieces from 3 people dropped, "100%" displayed.
-  //
-  // Same failure as the spine keeping one branch, one level up. It is not fixed by feeding
-  // everything to the model — two unconnected groups are genuinely two pictures, and merging
-  // them would invent a link the team never drew. The fix is to stop it being silent.
+  // Keep the team's chosen target stable. Size changes may reorder the candidates, but must
+  // never silently swap the subject of a name, question, decision, or generated reading.
+  useEffect(() => {
+    const resolvedId = main?.id ?? null;
+    if (resolvedId !== activeClusterId) {
+      if (activeClusterId && resolvedId) {
+        migrateClusterAnnotations(activeClusterId, resolvedId);
+      }
+      setActiveCluster(resolvedId);
+    }
+  }, [activeClusterId, main?.id, migrateClusterAnnotations, setActiveCluster]);
+
   const outside = fragments.filter((f) => !main?.fragmentIds.includes(f.id));
-  const otherGroups = clusters.slice(1);
+  const otherGroups = clusters.filter(
+    (cluster) =>
+      cluster.id !== main?.id &&
+      !cluster.fragmentIds.some((id) => main?.fragmentIds.includes(id))
+  );
+
+  const chooseCluster = (id: string) => {
+    if (id === main?.id) return;
+    setActiveCluster(id);
+    setAssembled(false);
+    setResult(null);
+    setNameDraft("");
+    setRevealFailed(false);
+    cachedByMode.current = {};
+  };
 
   // The pieces the model is actually shown for a reading: the cluster, plus the far end of any
   // `separate` boundary that crosses the cluster edge. A `separate` boundary can point at a
@@ -401,7 +419,7 @@ export function MirrorScreen() {
   // (also on language change: a cached English reading must not be served in Korean)
   useEffect(() => {
     cachedByMode.current = {};
-  }, [fragments, bridges, lang]);
+  }, [fragments, bridges, lang, main?.id]);
 
   // when the user switches language mid-test, re-project a sample reveal into the new
   // language. Live-AI reveals can't be translated, so they're left as-is.
@@ -420,8 +438,12 @@ export function MirrorScreen() {
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="animate-fade-up flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight text-ink">{t("mirror.heading")}</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-faint">{t("mirror.hint")}</p>
+          <h2 className="text-2xl font-semibold tracking-tight text-ink">
+            {t(main?.kind === "boundary" ? "boundary.mainHeading" : "mirror.heading")}
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-faint">
+            {t(main?.kind === "boundary" ? "boundary.mainHint" : "mirror.hint")}
+          </p>
         </div>
         {assembled && (
           <div className="flex items-center gap-2">
@@ -449,12 +471,52 @@ export function MirrorScreen() {
         )}
       </div>
 
+      {clusters.length > 1 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2" aria-label={t("cluster.choose")}>
+          <span className="text-xs font-medium text-ink-faint">{t("cluster.choose")}</span>
+          {clusters.map((cluster, index) => {
+            const label =
+              clusterNames[cluster.id] ||
+              cluster.fragmentIds
+                .slice(0, 2)
+                .map((id) => byId(id)?.title)
+                .filter(Boolean)
+                .join(" · ");
+            return (
+              <button
+                key={cluster.id}
+                onClick={() => chooseCluster(cluster.id)}
+                aria-pressed={cluster.id === main?.id}
+                className={[
+                  "rounded-full border px-3 py-1.5 text-xs font-medium transition",
+                  cluster.id === main?.id
+                    ? "border-ink bg-ink text-paper"
+                    : "border-line bg-paper-card text-ink-soft hover:border-accent hover:text-accent",
+                ].join(" ")}
+              >
+                {cluster.kind === "boundary" ? "⫯" : "◇"}{" "}
+                {label || `${t("cluster.fallback")} ${index + 1}`} · {cluster.fragmentIds.length}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {main?.kind === "boundary" && (
+        <div className="mt-4 rounded-lg border border-dashed border-tension/40 bg-tension/5 px-4 py-3 text-sm leading-relaxed text-ink-soft">
+          <span className="font-semibold text-ink">{t("boundary.heading")}</span>{" "}
+          {t("boundary.hint")}
+        </div>
+      )}
+
       {!assembled ? (
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
           <PuzzleCanvas />
           <div className="flex h-full flex-col items-center justify-center rounded-xl2 border border-dashed border-line bg-paper-sunken/40 p-6 text-center">
             <div className="text-4xl">🐘</div>
-            <p className="mt-3 max-w-xs text-sm leading-relaxed text-ink-faint">{t("reveal.pick")}</p>
+            <p className="mt-3 max-w-xs text-sm leading-relaxed text-ink-faint">
+              {t(main?.kind === "boundary" ? "boundary.pick" : "reveal.pick")}
+            </p>
             <div className="mt-4 w-full max-w-xs space-y-2">
               {REVEAL_MODES.map((m) => (
                 <ModeButton

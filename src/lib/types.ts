@@ -125,6 +125,8 @@ export type SessionEvent =
   | { id: string; seq: number; t: number; actorId?: string; type: "fragment_edited"; fragmentId: string; before: Pick<Fragment, "title" | "body">; after: Pick<Fragment, "title" | "body">; lang: "en" | "ko" }
   | { id: string; seq: number; t: number; actorId?: string; type: "fragment_removed"; fragment: Fragment; removedBridgeIds: string[]; removedTrayIds: string[]; removedRejectedPairKeys: string[] }
   | { id: string; seq: number; t: number; actorId?: string; type: "bridge_proposed"; bridge: Bridge; pairKey: string; relationType: RelationType }
+  | { id: string; seq: number; t: number; actorId?: string; type: "cluster_selected"; clusterId: string | null }
+  | { id: string; seq: number; t: number; actorId?: string; type: "cluster_annotations_migrated"; fromClusterId: string; toClusterId: string; annotations: { name?: string; question?: string; decision?: string }; displaced: { name?: string; question?: string; decision?: string } }
   // Keeping a connection but REWRITING what it means is the finest-grained boundary work
   // there is, so the AI's original text and type are preserved beside the human's final
   // version — `edited` alone couldn't tell a substantive rewrite from a no-op re-save.

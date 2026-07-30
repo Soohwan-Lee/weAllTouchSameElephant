@@ -332,15 +332,15 @@ const dict = {
   },
 
   // ---- group-progress guide (fixes "3 links but no elephant") ----
-  "group.label": { en: "Biggest connected group", ko: "가장 큰 연결 묶음" },
+  "group.label": { en: "Biggest inspectable group", ko: "살펴볼 수 있는 가장 큰 묶음" },
   "group.piecesShort": { en: "pieces", ko: "조각" },
   "group.needMore": {
-    en: "Link {n} more piece(s) INTO this group to assemble the elephant — scattered links across separate pairs won't form one.",
-    ko: "코끼리를 맞추려면 이 묶음에 조각 {n}개를 더 이어야 해요 — 따로 떨어진 쌍끼리의 연결로는 하나가 안 돼요.",
+    en: "Relate {n} more piece(s) to this group — by connecting them or explicitly keeping them apart.",
+    ko: "이 묶음에 조각 {n}개를 더 연결하거나, 명시적으로 구분해 주세요.",
   },
   "group.ready": {
-    en: "This group is big enough to assemble. Add more to make it richer, or head to the whole picture.",
-    ko: "이 묶음은 조립하기에 충분해요. 더 이으면 풍부해지고, 아니면 전체 그림으로 넘어가세요.",
+    en: "This group is ready to inspect. Add more context, or head to the reveal.",
+    ko: "이 묶음을 살펴볼 준비가 됐어요. 맥락을 더하거나 결과로 넘어가세요.",
   },
   // ---- seat coverage: how many PEOPLE the shape reaches, not how many pieces ----
   // A shape can pass the piece gate while one person's notes hold all of it. The reveal
@@ -360,9 +360,13 @@ const dict = {
     en: "Everyone's pieces reach someone else's.",
     ko: "모든 사람의 조각이 다른 사람과 이어졌어요.",
   },
+  "seats.boundaryOnly": {
+    en: "This result is ready because the team mapped a keep-apart boundary. It does not count as connecting anyone's perspective.",
+    ko: "팀이 구분해야 할 경계를 그렸기 때문에 결과를 살펴볼 수 있습니다. 이 경계는 서로의 관점이 연결된 것으로 계산하지 않습니다.",
+  },
   "mirror.lockedGroup": {
-    en: "Link 3 pieces into ONE connected group to reveal the whole — not just 3 links.",
-    ko: "전체를 보려면 조각 3개를 하나의 묶음으로 이어야 해요 — 선 3개가 아니라.",
+    en: "Relate 3 pieces into one shape, or draw a 3-piece keep-apart boundary to inspect it.",
+    ko: "조각 3개를 하나의 모양으로 잇거나, 3개를 가르는 경계를 그리면 살펴볼 수 있어요.",
   },
 
   // relation types
@@ -584,12 +588,32 @@ const dict = {
     ko: "전체 그림을 보려면 최소 3개의 연결을 확인하세요.",
   },
   "mirror.reveal": { en: "Show the assembled shape", ko: "맞춰진 모양 보기" },
+  "mirror.revealBoundary": { en: "Inspect the boundary map", ko: "경계 지도 살펴보기" },
   "mirror.thinking": { en: "Reflecting the shape…", ko: "모양을 비추는 중…" },
   "mirror.connected": { en: "What came together", ko: "이어진 것" },
   "mirror.tensions": { en: "Open tensions", ko: "남은 긴장" },
   "mirror.separate": { en: "Still on their own", ko: "아직 따로인 것" },
   "mirror.draftLabel": { en: "Mirror draft — not a conclusion", ko: "미러 초안 — 결론이 아님" },
   "mirror.redo": { en: "Re-reflect", ko: "다시 비추기" },
+  "cluster.choose": { en: "Choose the picture to inspect:", ko: "살펴볼 그림 선택:" },
+  "cluster.fallback": { en: "Picture", ko: "그림" },
+  "boundary.heading": { en: "Boundary map.", ko: "경계 지도입니다." },
+  "boundary.mainHeading": {
+    en: "The distinctions your team chose to preserve",
+    ko: "팀이 지키기로 한 구분",
+  },
+  "boundary.mainHint": {
+    en: "These pieces do not assemble into one object. They form a map of distinctions the team says must survive the decision.",
+    ko: "이 조각들은 하나의 대상으로 합쳐지지 않습니다. 의사결정에서도 유지해야 한다고 팀이 말한 구분의 지도를 이룹니다.",
+  },
+  "boundary.pick": {
+    en: "Your keep-apart claims form a boundary map. How would you like the AI to reflect those distinctions?",
+    ko: "따로 두어야 한다는 판단이 경계 지도를 이룹니다. AI가 이 구분을 어떤 방식으로 비춰보면 좋을까요?",
+  },
+  "boundary.hint": {
+    en: "These pieces are related because the team said they must stay distinct. The reveal keeps wholeness and causal flow at zero rather than pretending the boundary assembled one object.",
+    ko: "팀이 서로 구분해야 한다고 말했기 때문에 함께 살펴보는 조각들입니다. 경계를 하나의 대상으로 합친 척하지 않도록 완결성과 인과 흐름은 0으로 유지합니다.",
+  },
 
   // ---- canvas / panel ----
   "panel.groups": { en: "Connected groups", ko: "연결된 묶음" },

@@ -142,4 +142,35 @@ check("export preserves pending work, removed people and a contiguous event cloc
   assert.equal(proposalEvent.bridge.id, out.tray[0].id);
 });
 
+check("cluster selection is persisted and auditable", () => {
+  useSession.getState().reset();
+  useSession.getState().setActiveCluster("boundary_a");
+  const out = useSession.getState().exportSession();
+  assert.equal(out.activeClusterId, "boundary_a");
+  const event = out.events.at(-1);
+  assert.equal(event?.type, "cluster_selected");
+  if (event?.type !== "cluster_selected") throw new Error("missing cluster selection event");
+  assert.equal(event.clusterId, "boundary_a");
+});
+
+check("selected cluster annotations migrate coherently and preserve displaced values in history", () => {
+  useSession.getState().reset();
+  useSession.getState().setClusterName("cluster_b", "Team B");
+  useSession.getState().setClusterQuestion("cluster_b", "Question B?");
+  useSession.getState().setClusterDecision("cluster_b", "Decision B");
+  useSession.getState().migrateClusterAnnotations("cluster_b", "cluster_a");
+  assert.equal(useSession.getState().clusterNames.cluster_a, "Team B");
+  assert.equal(useSession.getState().clusterQuestions.cluster_a, "Question B?");
+  assert.equal(useSession.getState().clusterDecisions.cluster_a, "Decision B");
+
+  useSession.getState().setClusterName("cluster_c", "Existing C");
+  useSession.getState().migrateClusterAnnotations("cluster_b", "cluster_c");
+  assert.equal(useSession.getState().clusterNames.cluster_c, "Team B");
+  const event = useSession.getState().events.at(-1);
+  assert.equal(event?.type, "cluster_annotations_migrated");
+  if (event?.type !== "cluster_annotations_migrated") throw new Error("missing migration event");
+  assert.equal(event.displaced.name, "Existing C");
+  assert.equal(event.annotations.name, "Team B");
+});
+
 console.log(`\n${passed} store-integrity assertions passed\n`);

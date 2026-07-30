@@ -4,7 +4,7 @@ import { useRef, useState, useCallback, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/store";
 import { RELATION_META } from "@/lib/relation";
-import { findClusters } from "@/lib/clusters";
+import { findRevealClusters, selectedRevealCluster } from "@/lib/clusters";
 import type { Fragment } from "@/lib/types";
 
 /**
@@ -28,13 +28,14 @@ export function PuzzleCanvas({
   const bridges = useSession((s) => s.bridges);
   const assembled = useSession((s) => s.assembled);
   const clusterNames = useSession((s) => s.clusterNames);
+  const activeClusterId = useSession((s) => s.activeClusterId);
   const moveFragment = useSession((s) => s.moveFragment);
 
   const boardRef = useRef<HTMLDivElement>(null);
   const [dragId, setDragId] = useState<string | null>(null);
 
-  const clusters = useMemo(() => findClusters(fragments, bridges, 3), [fragments, bridges]);
-  const mainCluster = clusters[0];
+  const clusters = useMemo(() => findRevealClusters(fragments, bridges, 3), [fragments, bridges]);
+  const mainCluster = selectedRevealCluster(clusters, activeClusterId);
 
   // When assembled, compute a ring layout for the main cluster's fragments.
   const ringPos = useMemo(() => {

@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/store";
 import { RELATION_META } from "@/lib/relation";
-import { findClusters } from "@/lib/clusters";
+import { findRevealClusters, selectedRevealCluster } from "@/lib/clusters";
 import { computeSynthesis, type Facet } from "@/lib/synthesis";
 import type { Fragment } from "@/lib/types";
 
@@ -36,9 +36,10 @@ export function SynthesisCanvas() {
   const { t } = useI18n();
   const fragments = useSession((s) => s.fragments);
   const bridges = useSession((s) => s.bridges);
+  const activeClusterId = useSession((s) => s.activeClusterId);
 
-  const clusters = useMemo(() => findClusters(fragments, bridges, 3), [fragments, bridges]);
-  const main = clusters[0];
+  const clusters = useMemo(() => findRevealClusters(fragments, bridges, 3), [fragments, bridges]);
+  const main = selectedRevealCluster(clusters, activeClusterId);
   const synth = useMemo(
     () => (main ? computeSynthesis(fragments, bridges, main) : null),
     [fragments, bridges, main]

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useSession, type Step } from "@/lib/store";
 import { downloadSession } from "@/lib/download";
-import { largestClusterSize } from "@/lib/clusters";
+import { largestRevealGroupSize } from "@/lib/clusters";
 
 const STEP_ORDER: Step[] = ["gather", "connect", "mirror"];
 
@@ -21,7 +21,7 @@ export function Header() {
   const canConnect = fragments.length >= 3;
   // an "elephant" needs one connected GROUP of >= 3 pieces, not merely 3 bridges —
   // three bridges scattered across separate pairs never form a group of 3.
-  const canMirror = largestClusterSize(fragments, bridges) >= 3;
+  const canMirror = largestRevealGroupSize(fragments, bridges) >= 3;
 
   const stepKey = (s: Step) =>
     s === "gather" ? "step.gather" : s === "connect" ? "step.connect" : "step.mirror";

@@ -136,6 +136,7 @@ export interface SessionExport {
   events: SessionEvent[];
   step: Step;
   activeParticipantId: string | null;
+  activeClusterId: string | null;
   assembled: boolean;
   revealView: "assembly" | "crux";
 }
@@ -194,6 +195,8 @@ interface SessionState {
   removedParticipants: Participant[];
   /** whose turn it is to add/act — stamps authorId/actorId on their actions. */
   activeParticipantId: string | null;
+  /** reveal target chosen by the team; prevents size changes from silently switching topics */
+  activeClusterId: string | null;
   /** append-only boundary-work event log (the research payload). */
   events: SessionEvent[];
   /** UI language, mirrored into the store so the export records it (i18n owns the toggle) */
@@ -229,6 +232,8 @@ interface SessionState {
   addParticipant: (name: string, role: string) => string;
   removeParticipant: (id: string) => void;
   setActiveParticipant: (id: string | null) => void;
+  setActiveCluster: (id: string | null) => void;
+  migrateClusterAnnotations: (fromId: string, toId: string) => void;
   /** append a boundary-work event (meta id/seq/t/actorId is stamped for you). */
   logEvent: (e: EventPayload) => void;
   /** serialize the whole session (participants, board, events, decisions) for a researcher. */
@@ -348,6 +353,7 @@ export const useSession = create<SessionState>()(
   participants: [],
   removedParticipants: [],
   activeParticipantId: null,
+  activeClusterId: null,
   events: [],
   lang: "en",
   pendingAngle: null,
@@ -404,6 +410,59 @@ export const useSession = create<SessionState>()(
       };
     }),
   setActiveParticipant: (activeParticipantId) => set({ activeParticipantId }),
+  setActiveCluster: (activeClusterId) =>
+    set((s) => {
+      if (s.activeClusterId === activeClusterId) return {};
+      return {
+        activeClusterId,
+        events: [
+          ...s.events,
+          { ...eventMeta(s), type: "cluster_selected" as const, clusterId: activeClusterId },
+        ],
+        eventSeq: s.eventSeq + 1,
+      };
+    }),
+  migrateClusterAnnotations: (fromId, toId) =>
+    set((s) => {
+      if (fromId === toId) return {};
+      const name = s.clusterNames[fromId];
+      const question = s.clusterQuestions[fromId];
+      const decision = s.clusterDecisions[fromId];
+      if (name === undefined && question === undefined && decision === undefined) return {};
+      const migrate = (
+        record: Record<string, string>,
+        value: string | undefined
+      ): Record<string, string> => {
+        const next = { ...record };
+        if (value === undefined) delete next[toId];
+        else next[toId] = value;
+        return next;
+      };
+      return {
+        // The explicitly selected lineage wins a merge. Any displaced target annotation is
+        // copied into the event below, so this remains auditable rather than silently mixing
+        // one cluster's name with the other cluster's question.
+        clusterNames: migrate(s.clusterNames, name),
+        clusterQuestions: migrate(s.clusterQuestions, question),
+        clusterDecisions: migrate(s.clusterDecisions, decision),
+        events: [
+          ...s.events,
+          {
+            ...eventMeta(s),
+            type: "cluster_annotations_migrated" as const,
+            fromClusterId: fromId,
+            toClusterId: toId,
+            annotations: { name, question, decision },
+            displaced: {
+              name: s.clusterNames[toId],
+              question: s.clusterQuestions[toId],
+              decision: s.clusterDecisions[toId],
+            },
+          },
+        ],
+        eventSeq: s.eventSeq + 1,
+      };
+    }),
 
   logEvent: (e) =>
     set((s) => ({
@@ -440,6 +499,7 @@ export const useSession = create<SessionState>()(
       events: s.events,
       step: s.step,
       activeParticipantId: s.activeParticipantId,
+      activeClusterId: s.activeClusterId,
       assembled: s.assembled,
       revealView: s.revealView,
     };
@@ -487,6 +547,7 @@ export const useSession = create<SessionState>()(
       participants,
       removedParticipants: [],
       activeParticipantId: participants[0]?.id ?? null,
+      activeClusterId: null,
       events: [],
       fragments,
       tray: [],
@@ -590,6 +651,7 @@ export const useSession = create<SessionState>()(
       participants: [],
       removedParticipants: [],
       activeParticipantId: null,
+      activeClusterId: null,
       events: [],
       fragments: [],
       tray: [],
@@ -914,6 +976,7 @@ export const useSession = create<SessionState>()(
           // Export v3 added the archive after persistence v3 shipped. Old local snapshots
           // therefore need an empty value instead of rehydrating `undefined`.
           removedParticipants: saved.removedParticipants ?? [],
+          activeClusterId: saved.activeClusterId ?? null,
           rejectedPairKeys:
             saved.rejectedPairKeys instanceof Set
               ? saved.rejectedPairKeys

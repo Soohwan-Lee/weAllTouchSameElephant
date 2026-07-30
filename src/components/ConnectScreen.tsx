@@ -4,7 +4,12 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useSession, scenarioBridgesToProposals, bridgeEditsFrom } from "@/lib/store";
 import { getScenario } from "@/lib/scenarios";
-import { countRedundantEdges, largestClusterSize, seatCoverage } from "@/lib/clusters";
+import {
+  countRedundantEdges,
+  largestClusterSize,
+  largestRevealGroupSize,
+  seatCoverage,
+} from "@/lib/clusters";
 import { fetchBridges } from "@/lib/api";
 import { BridgeCard } from "./BridgeCard";
 import { ContestCard } from "./ContestCard";
@@ -47,8 +52,10 @@ export function ConnectScreen() {
 
   const byId = (id: string) => fragments.find((f) => f.id === id);
   // gate on the biggest connected GROUP, not the raw bridge count (see largestClusterSize).
-  const biggestGroup = largestClusterSize(fragments, bridges);
+  const biggestGroup = largestRevealGroupSize(fragments, bridges);
   const canMirror = biggestGroup >= 3;
+  const boundaryOnlyReady = canMirror && largestClusterSize(fragments, bridges) < 3;
+  const revealLabel = boundaryOnlyReady ? t("mirror.revealBoundary") : t("mirror.reveal");
   const groupNeed = Math.max(0, 3 - biggestGroup);
   // How many PEOPLE the shape reaches. The gate above counts pieces, which is a different
   // question: three linked pieces can all belong to one person, and then the reveal reads
@@ -198,8 +205,8 @@ export function ConnectScreen() {
             </span>
           </div>
 
-          {/* group progress — the REAL gate: one connected group of >= 3 pieces.
-              This is what fixes the "3 links but nothing assembles" dead-end. */}
+          {/* reveal-target progress: either one connected shape or one explicit boundary
+              constellation. Both need 3 pieces; only the former counts as assembly. */}
           {/* shown from the start: the gate that blocks the proceed button must be legible
               BEFORE you've guessed your way past it, not only after the first confirm. */}
           {fragments.length > 0 && (
@@ -234,7 +241,7 @@ export function ConnectScreen() {
 
           {/* Whose pieces are in the shape. Only meaningful once more than one person has
               put something on the table — on a solo table it would be noise. */}
-          {seats.total > 1 && (
+          {seats.total > 1 && !boundaryOnlyReady && (
             <div className="mb-3 rounded-lg border border-line bg-paper-sunken/50 px-3 py-2">
               <div className="flex items-center justify-between text-[11px] font-medium">
                 <span className="text-ink-soft">{t("seats.label")}</span>
@@ -262,6 +269,11 @@ export function ConnectScreen() {
               ) : (
                 <p className="mt-1.5 text-[11px] leading-snug text-ink-faint">{t("seats.allIn")}</p>
               )}
+            </div>
+          )}
+          {boundaryOnlyReady && (
+            <div className="mb-3 rounded-lg border border-dashed border-tension/30 bg-tension/5 px-3 py-2 text-[11px] leading-snug text-ink-soft">
+              {t("seats.boundaryOnly")}
             </div>
           )}
 
@@ -374,7 +386,7 @@ export function ConnectScreen() {
                       onClick={() => setStep("mirror")}
                       className="mt-2 block w-full rounded-full border border-accent/40 py-1.5 text-[12px] font-medium text-accent transition hover:bg-accent hover:text-white"
                     >
-                      {t("mirror.reveal")} →
+                      {revealLabel} →
                     </button>
                   )}
                 </div>
@@ -442,7 +454,7 @@ export function ConnectScreen() {
           disabled={!canMirror}
           className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-lift transition enabled:hover:opacity-95 disabled:cursor-not-allowed disabled:bg-line disabled:text-ink-faint disabled:shadow-none"
         >
-          {canMirror ? `${t("mirror.reveal")} →` : t("mirror.lockedGroup")}
+          {canMirror ? `${revealLabel} →` : t("mirror.lockedGroup")}
         </button>
       </div>
     </div>

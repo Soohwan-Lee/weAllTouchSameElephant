@@ -56,6 +56,7 @@ function joinAll(fragments: Fragment[], bridges: Bridge[]) {
 
 export interface Cluster {
   id: string;
+  kind: "connected" | "boundary";
   fragmentIds: string[];
   bridgeIds: string[];
 }
@@ -95,11 +96,102 @@ export function findClusters(
     // clusters is a distinct semantic operation and is handled by explicit cluster selection
     // rather than pretending both sets of annotations can silently collapse into one.
     const anchorId = ids[0];
-    clusters.push({ id: `cluster_${anchorId}`, fragmentIds: ids, bridgeIds });
+    clusters.push({ id: `cluster_${anchorId}`, kind: "connected", fragmentIds: ids, bridgeIds });
   }
   // largest first
   clusters.sort((a, b) => b.fragmentIds.length - a.fragmentIds.length);
   return clusters;
+}
+
+/**
+ * Find groups held together only by explicit KEEP-APART claims.
+ *
+ * This is intentionally separate from `findClusters`: a boundary is never glue and must not
+ * inflate synthesis coverage, seat coverage, facets, or causal flow. It is nevertheless a
+ * coherent object the team can inspect when their finding is "these three things must remain
+ * distinct" rather than "these three things combine into one".
+ */
+export function findBoundaryClusters(
+  fragments: Fragment[],
+  bridges: Bridge[],
+  minSize = 3
+): Cluster[] {
+  const uf = unionFind(fragments.map((fragment) => fragment.id));
+  for (const bridge of bridges) {
+    if (bridge.relationType === "separate") {
+      uf.union(bridge.fragmentAId, bridge.fragmentBId);
+    }
+  }
+
+  const groups = new Map<string, string[]>();
+  for (const fragment of fragments) {
+    const root = uf.find(fragment.id);
+    if (!groups.has(root)) groups.set(root, []);
+    groups.get(root)!.push(fragment.id);
+  }
+
+  const clusters: Cluster[] = [];
+  for (const ids of groups.values()) {
+    if (ids.length < minSize) continue;
+    const idSet = new Set(ids);
+    const bridgeIds = bridges
+      .filter(
+        (bridge) =>
+          bridge.relationType === "separate" &&
+          idSet.has(bridge.fragmentAId) &&
+          idSet.has(bridge.fragmentBId)
+      )
+      .map((bridge) => bridge.id);
+    clusters.push({
+      id: `boundary_${ids[0]}`,
+      kind: "boundary",
+      fragmentIds: ids,
+      bridgeIds,
+    });
+  }
+  clusters.sort((a, b) => b.fragmentIds.length - a.fragmentIds.length);
+  return clusters;
+}
+
+/** Every honest reveal target: assembled connected shapes plus boundary-only constellations. */
+export function findRevealClusters(
+  fragments: Fragment[],
+  bridges: Bridge[],
+  minSize = 3
+): Cluster[] {
+  return [
+    ...findClusters(fragments, bridges, minSize),
+    ...findBoundaryClusters(fragments, bridges, minSize),
+  ];
+}
+
+export function selectedRevealCluster(
+  clusters: Cluster[],
+  activeClusterId: string | null
+): Cluster | undefined {
+  const exact = clusters.find((cluster) => cluster.id === activeClusterId);
+  if (exact || !activeClusterId) return exact ?? clusters[0];
+
+  // A merge can legitimately replace the canonical anchor with the older anchor of the
+  // other group. Follow the selected group's founding member into the merged component so
+  // the UI can migrate its annotations instead of jumping to an unrelated largest group.
+  const kind = activeClusterId.startsWith("boundary_") ? "boundary" : "connected";
+  const prefix = kind === "boundary" ? "boundary_" : "cluster_";
+  const anchorId = activeClusterId.startsWith(prefix)
+    ? activeClusterId.slice(prefix.length)
+    : "";
+  return (
+    clusters.find(
+      (cluster) => cluster.kind === kind && cluster.fragmentIds.includes(anchorId)
+    ) ?? clusters[0]
+  );
+}
+
+export function largestRevealGroupSize(fragments: Fragment[], bridges: Bridge[]): number {
+  return findRevealClusters(fragments, bridges, 1).reduce(
+    (largest, cluster) => Math.max(largest, cluster.fragmentIds.length),
+    0
+  );
 }
 
 /**
