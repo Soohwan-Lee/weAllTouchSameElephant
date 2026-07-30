@@ -57,6 +57,11 @@ export function ManualConnect() {
     }
   };
 
+  const swapDirection = () =>
+    setPicks((current) =>
+      current.length === 2 ? [current[1], current[0]] : current
+    );
+
   return (
     <div>
       <div className="relative">
@@ -114,6 +119,22 @@ export function ManualConnect() {
               </button>
             ))}
           </div>
+          {rel === "dependency" && (
+            <div className="mt-2 flex items-center justify-between rounded-lg bg-paper-sunken/60 px-3 py-2 text-[11px] text-ink-soft">
+              <span>
+                <strong>{byId(picks[0])?.title}</strong> → <strong>{byId(picks[1])?.title}</strong>
+                {" · "}
+                {t("rel.dependency.direction")}
+              </span>
+              <button
+                type="button"
+                onClick={swapDirection}
+                className="ml-2 shrink-0 font-medium text-accent hover:underline"
+              >
+                ⇄ {t("rel.dependency.swap")}
+              </button>
+            </div>
+          )}
           {/* "keep apart" is the one non-connecting choice — say what it does */}
           {rel === "separate" && (
             <p className="mt-2 rounded-lg bg-paper-sunken/60 px-3 py-2 text-[11px] leading-snug text-ink-soft">

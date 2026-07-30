@@ -92,6 +92,29 @@ export interface Synthesis {
   looseFragmentIds: string[];
 }
 
+export interface StoryLayout {
+  /** only paths backed by explicit dependency edges */
+  chains: Facet[][];
+  /** facets that are part of the picture but not of any causal chain */
+  unsequenced: Facet[];
+}
+
+/**
+ * Presentation-safe causal layout. Keeping this beside the engine prevents a UI from sorting
+ * facets and drawing arrows between adjacent items that have no dependency edge.
+ */
+export function buildStoryLayout(synthesis: Synthesis): StoryLayout {
+  const byId = new Map(synthesis.facets.map((facet) => [facet.id, facet]));
+  const chains = synthesis.spine
+    .map((chain) => chain.map((id) => byId.get(id)).filter(Boolean) as Facet[])
+    .filter((chain) => chain.length >= 2);
+  const sequenced = new Set(chains.flatMap((chain) => chain.map((facet) => facet.id)));
+  return {
+    chains,
+    unsequenced: synthesis.facets.filter((facet) => !sequenced.has(facet.id)),
+  };
+}
+
 /** Only "overlap" fuses two pieces into the SAME side. The others keep them distinct:
  *  complement/dependency become directional flow; tension stays its own strand. */
 const isFusing = (r: RelationType) => r === "overlap";
@@ -290,7 +313,10 @@ export function computeSynthesis(
     wired.add(b.fragmentAId);
     wired.add(b.fragmentBId);
   }
-  const wholeness = total ? wired.size / total : 0;
+  // The screen reads ONE primary picture but the denominator is the WHOLE table. Dividing by
+  // `ids.length` made this a tautology in production: `ids` is already a connected component,
+  // so every member is wired and every reveal said 100% while other groups sat outside.
+  const wholeness = fragments.length ? wired.size / fragments.length : 0;
 
   // loose fragments: in the cluster but with no confirmed bridge at all
   const touched = new Set<string>();

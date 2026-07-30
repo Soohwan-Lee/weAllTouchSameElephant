@@ -254,7 +254,12 @@ interface SessionState {
   setAssembled: (v: boolean) => void;
   setRevealView: (v: "assembly" | "crux") => void;
   addProposals: (proposals: BridgeProposal[]) => number; // returns # added
-  confirmBridge: (id: string, patch?: Partial<Pick<Bridge, "relationType" | "explanation">>) => void;
+  confirmBridge: (
+    id: string,
+    patch?: Partial<
+      Pick<Bridge, "fragmentAId" | "fragmentBId" | "relationType" | "explanation">
+    >
+  ) => void;
   rejectBridge: (id: string) => void;
   /** take a confirmed link back off the board — AI proposals return to the tray */
   unconfirmBridge: (id: string) => void;

@@ -366,6 +366,11 @@ const dict = {
   "rel.overlap": { en: "Same issue, different angle", ko: "같은 문제, 다른 각도" },
   "rel.tension": { en: "Pulling in different directions", ko: "서로 다른 방향" },
   "rel.dependency": { en: "One affects the other", ko: "하나가 다른 것에 영향" },
+  "rel.dependency.direction": {
+    en: "The left piece drives or enables the right piece.",
+    ko: "왼쪽 조각이 오른쪽 조각에 영향을 주거나 가능하게 합니다.",
+  },
+  "rel.dependency.swap": { en: "Reverse direction", ko: "방향 뒤집기" },
   "rel.complement": { en: "One completes the other", ko: "하나가 다른 것을 보완" },
   "rel.separate": { en: "Must stay separate", ko: "따로 두어야 함" },
   "rel.overlap.short": { en: "Overlap", ko: "겹침" },
@@ -436,6 +441,14 @@ const dict = {
   "story.sub": {
     en: "Read left to right: the root pressure on the left drives the symptoms on the right. Tap any side to see its pieces and why they connect.",
     ko: "왼쪽에서 오른쪽으로 읽으세요: 왼쪽의 근본 압력이 오른쪽의 증상들을 이끕니다. 어느 면이든 눌러 조각과 연결 이유를 보세요.",
+  },
+  "story.noFlowSub": {
+    en: "These sides are connected, but the team has not claimed a cause-and-effect order.",
+    ko: "이 면들은 이어져 있지만, 팀이 원인과 결과의 순서를 정한 것은 아닙니다.",
+  },
+  "story.noFlow": {
+    en: "No causal spine was drawn. The sides below are shown without invented arrows.",
+    ko: "그려진 인과 척추가 없습니다. 아래 면들은 임의의 화살표 없이 표시됩니다.",
   },
   "story.rootBadge": { en: "the root", ko: "뿌리" },
   "story.symptomBadge": { en: "symptom", ko: "증상" },

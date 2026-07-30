@@ -5,7 +5,12 @@ import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/store";
 import { RELATION_META } from "@/lib/relation";
 import { findClusters } from "@/lib/clusters";
-import { computeSynthesis, type Facet, type Synthesis } from "@/lib/synthesis";
+import {
+  buildStoryLayout,
+  computeSynthesis,
+  type Facet,
+  type Synthesis,
+} from "@/lib/synthesis";
 import type { Bridge, Fragment } from "@/lib/types";
 
 /**
@@ -40,46 +45,73 @@ export function StorySpine() {
   const byId = (id: string) => fragments.find((f) => f.id === id);
   const titleOf = (id: string) => byId(id)?.title ?? "?";
 
-  // order facets root→symptom by depth, then by how many they drive
-  const ordered = [...synth.facets].sort(
-    (a, b) => a.depth - b.depth || b.supports - a.supports
-  );
   const singleFacet = synth.facets.length <= 1;
+  const story = buildStoryLayout(synth);
 
   return (
     <div className="animate-fade-up rounded-xl2 border border-line bg-paper-card p-5 shadow-card">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="text-sm font-semibold text-ink">{t("story.heading")}</h3>
       </div>
-      <p className="mt-1 max-w-2xl text-[12px] leading-relaxed text-ink-faint">{t("story.sub")}</p>
+      <p className="mt-1 max-w-2xl text-[12px] leading-relaxed text-ink-faint">
+        {story.chains.length ? t("story.sub") : t("story.noFlowSub")}
+      </p>
 
       {singleFacet ? (
         <div className="mt-4 rounded-lg border border-dashed border-line bg-paper-sunken/40 px-4 py-3 text-[12px] leading-relaxed text-ink-soft">
           {t("story.singleFacet")}
         </div>
-      ) : (
-        // horizontal root→symptom flow of clickable side-cards
-        <div className="mt-4 flex flex-nowrap items-stretch gap-1 overflow-x-auto pb-2">
-          {ordered.map((facet, i) => (
-            <div key={facet.id} className="flex items-stretch">
-              <SideCard
-                facet={facet}
-                synth={synth}
-                isKeystone={facet.id === synth.keystoneFacetId}
-                titleOf={titleOf}
-                open={openId === facet.id}
-                onToggle={() => setOpenId(openId === facet.id ? null : facet.id)}
-              />
-              {i < ordered.length - 1 && (
-                <div className="flex shrink-0 flex-col items-center justify-center px-1 text-ink-faint">
-                  <span className="text-lg leading-none">→</span>
-                  <span className="mt-0.5 text-[9px] font-medium uppercase tracking-wide">
-                    {t("story.drives")}
-                  </span>
+      ) : story.chains.length ? (
+        <div className="mt-4 space-y-3">
+          {story.chains.map((chain, chainIndex) => (
+            <div
+              key={chain.map((facet) => facet.id).join("->")}
+              className="flex flex-nowrap items-stretch gap-1 overflow-x-auto pb-1"
+            >
+              {chain.map((facet, i) => (
+                <div key={`${chainIndex}_${facet.id}`} className="flex items-stretch">
+                  <SideCard
+                    facet={facet}
+                    synth={synth}
+                    isKeystone={facet.id === synth.keystoneFacetId}
+                    titleOf={titleOf}
+                    open={openId === facet.id}
+                    onToggle={() => setOpenId(openId === facet.id ? null : facet.id)}
+                  />
+                  {i < chain.length - 1 && (
+                    <div className="flex shrink-0 flex-col items-center justify-center px-1 text-ink-faint">
+                      <span className="text-lg leading-none">→</span>
+                      <span className="mt-0.5 text-[9px] font-medium uppercase tracking-wide">
+                        {t("story.drives")}
+                      </span>
+                    </div>
+                  )}
                 </div>
-              )}
+              ))}
             </div>
           ))}
+          {story.unsequenced.length > 0 && (
+            <NeutralFacetGrid
+              facets={story.unsequenced}
+              synth={synth}
+              titleOf={titleOf}
+              openId={openId}
+              setOpenId={setOpenId}
+            />
+          )}
+        </div>
+      ) : (
+        <div className="mt-4">
+          <div className="mb-3 rounded-lg border border-dashed border-line bg-paper-sunken/40 px-4 py-3 text-[12px] leading-relaxed text-ink-soft">
+            {t("story.noFlow")}
+          </div>
+          <NeutralFacetGrid
+            facets={story.unsequenced}
+            synth={synth}
+            titleOf={titleOf}
+            openId={openId}
+            setOpenId={setOpenId}
+          />
         </div>
       )}
 
@@ -141,6 +173,36 @@ export function StorySpine() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function NeutralFacetGrid({
+  facets,
+  synth,
+  titleOf,
+  openId,
+  setOpenId,
+}: {
+  facets: Facet[];
+  synth: Synthesis;
+  titleOf: (id: string) => string;
+  openId: string | null;
+  setOpenId: (id: string | null) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {facets.map((facet) => (
+        <SideCard
+          key={facet.id}
+          facet={facet}
+          synth={synth}
+          isKeystone={false}
+          titleOf={titleOf}
+          open={openId === facet.id}
+          onToggle={() => setOpenId(openId === facet.id ? null : facet.id)}
+        />
+      ))}
     </div>
   );
 }

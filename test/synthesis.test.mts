@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { computeSynthesis } from "../src/lib/synthesis.ts";
+import { buildStoryLayout, computeSynthesis } from "../src/lib/synthesis.ts";
 import type { Bridge, Fragment, RelationType } from "../src/lib/types.ts";
 
 const F = (id: string, title: string): Fragment =>
@@ -39,6 +39,19 @@ t("`separate` alone is NOT assembly → 0%", () => {
 t("`separate` never inflates a real score", () => {
   const withSep = pct(f4, [B("b1", "f1", "f2", "dependency"), B("b2", "f3", "f4", "separate")]);
   assert.equal(withSep, 50, "only the dependency pair counts");
+});
+t("primary-picture coverage uses the whole board as denominator", () => {
+  const cluster = {
+    id: "main",
+    fragmentIds: ["f1", "f2", "f3"],
+    bridgeIds: ["b1", "b2"],
+  };
+  const s = computeSynthesis(
+    f4,
+    [B("b1", "f1", "f2", "complement"), B("b2", "f2", "f3", "complement")],
+    cluster
+  );
+  assert.equal(Math.round(s.coverage.wholeness * 100), 75);
 });
 
 console.log("\n[keystone — causal position, not link count]");
@@ -105,6 +118,29 @@ t("a piece with no confirmed link is reported loose", () => {
 // and silently dropped the others — at 100% wholeness, with nothing reporting the loss. On a
 // real 5-person table that cost two people their place in the reading.
 console.log("\n[spine]");
+t("complement-only facets are not presented as a causal story", () => {
+  const s = synth(f4.slice(0, 3), [
+    B("b1", "f1", "f2", "complement"),
+    B("b2", "f2", "f3", "complement"),
+  ]);
+  const layout = buildStoryLayout(s);
+  assert.deepEqual(layout.chains, []);
+  assert.equal(layout.unsequenced.length, 3);
+});
+
+t("story layout preserves dependency branches instead of linearizing them", () => {
+  const s = synth(f4, [
+    B("b1", "f1", "f2", "dependency"),
+    B("b2", "f1", "f3", "dependency"),
+    B("b3", "f1", "f4", "dependency"),
+  ]);
+  const layout = buildStoryLayout(s);
+  const paths = layout.chains.map((chain) => chain.map((facet) => facet.anchorId));
+  assert.equal(paths.length, 3);
+  assert.ok(paths.every((path) => path[0] === "f1" && path.length === 2));
+  assert.deepEqual(layout.unsequenced, []);
+});
+
 t("every branch off a root reaches the spine, not just the longest", () => {
   const s = synth(f4, [
     B("b1", "f1", "f2", "dependency"),
