@@ -199,7 +199,9 @@ The rule the whole pipeline is now audited against: **if a team authored it, the
 | **Directions** — starting moves | a crux title and title-pairs | the pieces in their own words, the causal spine, and why each tension is one |
 | **Trade-off** — the cost | title matching. It was the endpoint this audit missed: the pieces were computed for the reveal one screen above and dropped before this call | the pieces in the team's own words, plus a citable handle per kept tension, resolved back to the real link |
 
-And the reverse discipline, because more context is not free — [Context Rot](https://www.trychroma.com/research/context-rot) (Chroma, 2025) and [Anthropic's context-engineering guidance](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) both find that irrelevant context costs *accuracy*, not just tokens, and that same-domain distractors are the worst kind. A re-rendered fragment title is exactly that. So each prompt carries what only the engine knows and drops what the links already say: the reveal no longer re-lists kept tensions as bare title-pairs when the links block shows them with the team's own explanation. A card title now appears 2–3× per prompt instead of 4–5×.
+And the reverse discipline, because more context is not free — [Context Rot](https://www.trychroma.com/research/context-rot) (Chroma, 2025) and [Anthropic's context-engineering guidance](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) both find that irrelevant context costs *accuracy*, not just tokens, and that same-domain distractors are the worst kind. A re-rendered fragment title is exactly that. So each prompt carries what only the engine knows and drops what the links already say: the reveal no longer re-lists kept tensions as bare title-pairs when the links block shows them with the team's own explanation. A card title now appears 2–4× per prompt instead of 4–5× — run `npm test` and read the
+DUPLICATION block at the end, which prints the current count per title rather than asking you to
+trust this sentence.
 
 ### Does the team's work survive the model, or only reach it?
 
