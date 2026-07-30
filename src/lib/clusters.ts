@@ -86,13 +86,15 @@ export function findClusters(
     const bridgeIds = bridges
       .filter((b) => isConnecting(b) && idSet.has(b.fragmentAId) && idSet.has(b.fragmentBId))
       .map((b) => b.id);
-    // Identify a cluster by its SMALLEST member id — stable under growth. The old
-    // `cluster_${root}_${i}` changed whenever a bridge was added (both the union-find root
-    // and the size ordering shift), and clusterNames/Questions/Decisions are keyed by this,
-    // so a team that named the elephant, went back, and linked one more piece silently lost
-    // their name. A content hash would have the same flaw; the min-id survives absorption
-    // as long as the founding piece stays, which is what "the same elephant" means here.
-    const anchorId = [...ids].sort()[0];
+    // `ids` is populated in fragment/table order, so its first member is the oldest member
+    // of this component. Never derive identity from a random uid's lexical order: a newly
+    // appended fragment has roughly even odds of sorting before the old anchor, which made
+    // the team's name/question/decision disappear after an ordinary "connect one more" move.
+    //
+    // This preserves identity while a cluster grows. Merging two already-established
+    // clusters is a distinct semantic operation and is handled by explicit cluster selection
+    // rather than pretending both sets of annotations can silently collapse into one.
+    const anchorId = ids[0];
     clusters.push({ id: `cluster_${anchorId}`, fragmentIds: ids, bridgeIds });
   }
   // largest first
