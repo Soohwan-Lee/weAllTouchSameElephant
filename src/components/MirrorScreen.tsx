@@ -8,7 +8,7 @@ import { fetchName } from "@/lib/api";
 import { findRevealClusters, seatCitation, selectedRevealCluster } from "@/lib/clusters";
 import { computeSynthesis } from "@/lib/synthesis";
 import type { FacetSummary } from "@/lib/prompts";
-import type { NameResult, RelationType, RevealMode } from "@/lib/types";
+import type { NameResult, RevealMode } from "@/lib/types";
 import { REVEAL_MODES } from "@/lib/types";
 import { PuzzleCanvas } from "./PuzzleCanvas";
 import { SynthesisCanvas } from "./SynthesisCanvas";
@@ -1270,7 +1270,6 @@ function TradeOffPanel({ decision, cluster, onRevise }: { decision: string; clus
   // Which links the team re-typed INTO a tension, recovered from the event log — see the
   // same lookup in MirrorScreen. A tension the team argued the AI into is the one they are
   // surest is real, so it deserves priority when naming what a decision costs.
-  const setStep = useSession((s) => s.setStep);
   const events = useSession((s) => s.events);
   const bridgeHistory = useMemo(() => bridgeEditsFrom(events), [events]);
   const [loading, setLoading] = useState(false);
@@ -1295,7 +1294,6 @@ function TradeOffPanel({ decision, cluster, onRevise }: { decision: string; clus
     setNote("");
     setNoteFor(null);
     setOpened(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [decision]);
 
   const title = (id: string) => fragments.find((f) => f.id === id)?.title ?? "?";

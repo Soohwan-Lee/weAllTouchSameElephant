@@ -285,11 +285,7 @@ export function computeSynthesis(
   // 6. TENSIONS — kept as their own strand.
   const tensions: LiveTension[] = clusterBridges
     .filter((b) => b.relationType === "tension")
-    .map((b) => {
-      const fa = facetIdOf(b.fragmentAId);
-      const fb = facetIdOf(b.fragmentBId);
-      return { bridgeId: b.id };
-    });
+    .map((b) => ({ bridgeId: b.id }));
 
   // 7. COVERAGE / wholeness.
   const total = ids.length;

@@ -59,7 +59,8 @@ check("only AI-created links are eligible — a hand-drawn link is never contest
 });
 
 check("a link with unknown origin is treated as human and skipped", () => {
-  const { createdBy: _drop, ...unknown } = link;
+  const unknown: Partial<ConfirmedLink> = { ...link };
+  delete unknown.createdBy;
   assert.equal(pickContestTarget([unknown as ConfirmedLink], [], 0), undefined);
 });
 

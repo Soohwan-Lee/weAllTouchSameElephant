@@ -1,0 +1,19 @@
+import js from "@eslint/js";
+import { FlatCompat } from "@eslint/eslintrc";
+import { defineConfig, globalIgnores } from "eslint/config";
+
+const compat = new FlatCompat({
+  baseDirectory: import.meta.dirname,
+  recommendedConfig: js.configs.recommended,
+});
+
+export default defineConfig([
+  ...compat.config({ extends: ["next/core-web-vitals", "next/typescript"] }),
+  {
+    files: ["test/**/*.{ts,mts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
+  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+]);

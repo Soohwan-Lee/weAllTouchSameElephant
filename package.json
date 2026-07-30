@@ -6,11 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "npx --yes tsx test/grounding.test.mts && npx --yes tsx test/synthesis.test.mts && npx --yes tsx test/clusters.test.mts && npx --yes tsx test/request-gate.test.mts && npx --yes tsx test/settled-pairs.test.mts && npx --yes tsx test/rate-limit.test.mts && npx --yes tsx test/seats.test.mts && npx --yes tsx test/seatcite.test.mts && npx --yes tsx test/evidence.test.mts && npx --yes tsx test/contest.test.mts && npx --yes tsx test/contestresolve.test.mts && npx --yes tsx test/session-lifecycle.test.mts && npx --yes tsx test/store-integrity.test.mts && npx --yes tsx test/pipeline.trace.mts"
   },
   "dependencies": {
-    "next": "15.5.20",
+    "next": "^15.5.22",
     "openai": "^4.79.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -21,8 +21,14 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.20",
-    "postcss": "^8.5.1",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.22",
+    "postcss": "^8.5.25",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3"
+  },
+  "overrides": {
+    "postcss": "$postcss",
+    "sharp": "0.35.3"
   }
 }

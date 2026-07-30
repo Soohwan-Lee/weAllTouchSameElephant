@@ -120,7 +120,6 @@ export function StorySpine() {
       {openId && (
         <EvidencePanel
           facet={synth.facets.find((f) => f.id === openId)!}
-          synth={synth}
           bridges={bridges}
           byId={byId}
           titleOf={titleOf}
@@ -268,7 +267,6 @@ function SideCard({
  */
 function EvidencePanel({
   facet,
-  synth,
   bridges,
   byId,
   titleOf,
@@ -276,7 +274,6 @@ function EvidencePanel({
   onClose,
 }: {
   facet: Facet;
-  synth: Synthesis;
   bridges: Bridge[];
   byId: (id: string) => Fragment | undefined;
   titleOf: (id: string) => string;

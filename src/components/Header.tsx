@@ -17,7 +17,6 @@ export function Header() {
   const bridges = useSession((s) => s.bridges);
   const participants = useSession((s) => s.participants);
 
-  const idx = STEP_ORDER.indexOf(step as Step);
   const canConnect = fragments.length >= 3;
   // an "elephant" needs one connected GROUP of >= 3 pieces, not merely 3 bridges —
   // three bridges scattered across separate pairs never form a group of 3.
