@@ -308,17 +308,70 @@ const dict = {
   "bridge.changeReading": { en: "Change the reading", ko: "다르게 읽기" },
   "bridge.aiReading": { en: "AI is reading this as:", ko: "AI는 이 관계를 이렇게 읽었습니다:" },
   "bridge.reviewHeading": { en: "Before this becomes part of the picture", ko: "이 연결을 그림에 넣기 전에" },
-  "bridge.reviewEvidence": {
+  // The review questions, selected per bridge by `reviewChecksFor` (src/lib/reviewChecks.ts).
+  // These replaced three fixed lines that printed identically under every card; a team reading
+  // eight proposals read the same checklist eight times and stopped reading it. Each of these is
+  // a fixed human-authored template — the only interpolated text is the team's own card titles
+  // and seat names, so no sentence here is authored by the model.
+  //
+  // One per relation type, aimed at how THAT type specifically goes wrong.
+  "review.rel.overlap": {
+    en: "Confirming this merges the two cards into one part of the picture. Are they really saying the same thing, or two different things that happen to share words?",
+    ko: "이걸 확인하면 두 카드가 그림에서 하나로 합쳐집니다. 정말 같은 이야기인가요, 아니면 단어만 겹치는 다른 이야기인가요?",
+  },
+  "review.rel.tension": {
+    en: "Is this a real trade-off — you cannot fully have both — or just two different topics sitting next to each other?",
+    ko: "둘 다 온전히 가질 수는 없는 진짜 맞교환인가요, 아니면 그냥 나란히 놓인 서로 다른 이야기인가요?",
+  },
+  "review.rel.dependency": {
+    en: "Does “{a}” really have to come before “{b}”, or is it the other way round?",
+    ko: "정말 “{a}”가 “{b}”보다 먼저여야 하나요, 아니면 그 반대인가요?",
+  },
+  // Used only when a card is missing from the board and cannot be quoted by name — the degraded
+  // path, not a second style. This is the wording the per-bridge checks replaced, kept because
+  // an abstract direction question still beats one that quotes a "?" at the team.
+  "review.rel.dependencyAbstract": {
+    en: "Is the direction right — does the first piece really have to come before the second?",
+    ko: "방향이 맞나요 — 첫 번째 조각이 정말 두 번째보다 먼저여야 하나요?",
+  },
+  "review.rel.complement": {
+    en: "Does each card add something the other is missing, or does the second one mostly restate the first?",
+    ko: "각 카드가 서로에게 없는 것을 채워주나요, 아니면 두 번째가 첫 번째를 거의 다시 말하고 있나요?",
+  },
+  "review.rel.separate": {
+    en: "This one draws a boundary instead of connecting. Is keeping these two apart the point you want on the board?",
+    ko: "이 관계는 잇는 대신 경계를 긋습니다. 이 둘을 떼어 두는 것이 보드에 남기고 싶은 이야기인가요?",
+  },
+  // One per evidence situation. Asking "do the quoted parts support this?" when nothing is
+  // quoted was the original bug in miniature — a question about something not on the screen.
+  "review.ev.both": {
     en: "Do the quoted parts of both cards actually support this?",
     ko: "두 카드에서 인용된 부분이 실제로 이 연결을 뒷받침하나요?",
   },
-  "bridge.reviewRelation": {
-    en: "Is the relation type—and direction, if causal—right?",
-    ko: "관계 종류와, 인과라면 그 방향이 맞나요?",
+  "review.ev.one": {
+    en: "Only one card is quoted. What in “{piece}” anchors this reading?",
+    ko: "한쪽 카드만 인용되어 있어요. “{piece}” 쪽에서는 무엇이 이 읽기를 뒷받침하나요?",
   },
-  "bridge.reviewAlternative": {
-    en: "Could both cards instead be effects of a third thing that is still missing?",
-    ko: "두 카드가 아직 빠져 있는 제3원인의 결과일 가능성은 없나요?",
+  "review.ev.none": {
+    en: "Nothing is quoted from either card, so only the AI's sentence holds this together. What on the cards backs it up?",
+    ko: "어느 카드에서도 인용된 부분이 없어요. 지금은 AI의 문장만이 이 연결을 붙들고 있습니다. 카드에서 근거가 될 부분은 무엇인가요?",
+  },
+  // The confounder — the only question in the pool that points at a piece nobody has put on the
+  // table yet, which is the job this project reserves for the AI. Shown only on dependency and
+  // overlap, where a hidden common cause is a live competing reading of the same two cards.
+  "review.alt.confound": {
+    en: "Could “{a}” and “{b}” both be effects of a third thing nobody has put on the table yet?",
+    ko: "“{a}”와 “{b}”가 둘 다, 아직 아무도 꺼내지 않은 제3의 원인에서 나온 결과일 수는 없나요?",
+  },
+  // Who the link crosses. Cross-seat is where the contestable claim lives; same-seat is where a
+  // team can mistake one person's internal consistency for the table agreeing.
+  "review.seat.cross": {
+    en: "This links {seatA}'s card to {seatB}'s. Would both of them describe the connection this way?",
+    ko: "{seatA} 님의 카드와 {seatB} 님의 카드를 잇는 연결이에요. 두 사람 모두 이 연결을 이렇게 설명할까요?",
+  },
+  "review.seat.same": {
+    en: "Both cards are {seat}'s own. That makes this one person's reading — does anyone else at the table see it the same way?",
+    ko: "두 카드 모두 {seat} 님의 것이에요. 지금은 한 사람의 읽기인 셈인데, 다른 자리에서도 똑같이 보이나요?",
   },
   "bridge.edit": { en: "Edit", ko: "수정" },
   "bridge.reject": { en: "Dismiss", ko: "지우기" },

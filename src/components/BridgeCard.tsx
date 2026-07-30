@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/store";
 import { RELATION_META } from "@/lib/relation";
+import { fillCheck, reviewChecksFor } from "@/lib/reviewChecks";
 import { RELATION_TYPES, type Bridge, type Fragment, type RelationType } from "@/lib/types";
 
 export function BridgeCard({ bridge, fragA, fragB }: { bridge: Bridge; fragA?: Fragment; fragB?: Fragment }) {
@@ -68,9 +69,11 @@ export function BridgeCard({ bridge, fragA, fragB }: { bridge: Bridge; fragA?: F
             <div className="mt-3 rounded-lg border border-accent/20 bg-accent-soft/20 px-3 py-2.5">
               <div className="text-[11px] font-semibold text-ink">{t("bridge.reviewHeading")}</div>
               <ol className="mt-1.5 list-decimal space-y-1 pl-4 text-[11px] leading-snug text-ink-soft">
-                <li>{t("bridge.reviewEvidence")}</li>
-                <li>{t("bridge.reviewRelation")}</li>
-                <li>{t("bridge.reviewAlternative")}</li>
+                {/* selected per bridge — see the note in reviewChecks.ts on why these can't be
+                    three fixed lines, and why the variation is computed rather than prompted */}
+                {reviewChecksFor(bridge, fragA, fragB).map((c) => (
+                  <li key={c.key}>{fillCheck(t(c.key), c.vars)}</li>
+                ))}
               </ol>
             </div>
           )}
