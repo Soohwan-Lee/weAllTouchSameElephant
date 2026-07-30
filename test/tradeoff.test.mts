@@ -22,7 +22,7 @@
  * only on generic vocabulary, or on no margin, falls through instead.
  */
 import assert from "node:assert/strict";
-import { sampleTradeOff } from "../src/app/api/tradeoff/route.ts";
+import { sampleTradeOff } from "../src/lib/tradeoff.ts";
 
 /** the two opportunity-cost labels the fallback uses when no tension is engaged */
 const OPP_EN = "Spending time on this path";
@@ -125,7 +125,7 @@ check("a retyped tension does not win a tie either", () => {
 
 /**
  * KNOWN LIMITATION, pinned as CURRENT behavior — not as aspiration. See the tie comment in
- * src/app/api/tradeoff/route.ts for the full reasoning and the measurement.
+ * src/lib/tradeoff.ts for the full reasoning and the measurement.
  *
  * A decision that NAMES BOTH SIDES and picks one ("X before Y", "X over Y", "Y보다 X를 먼저")
  * scores both sides equally, so the strict tie rule drops it to the generic opportunity cost.
@@ -137,7 +137,7 @@ check("a retyped tension does not win a tie either", () => {
  * which requires removing "먼저" from the STOP list first), THIS TEST SHOULD FAIL. That is the
  * intent: update it deliberately, case by case, rather than deleting it.
  */
-check("a decision naming both sides ties and falls through — known false negative, see route.ts", () => {
+check("a decision naming both sides ties and falls through — known false negative, see lib/tradeoff.ts", () => {
   const bothSides: Array<[string, string, string]> = [
     ["We will prove ROI on the refund flow first", "prove ROI first", "ship the refund flow now"],
     ["Hire support before we scale marketing", "hire support", "scale marketing"],
